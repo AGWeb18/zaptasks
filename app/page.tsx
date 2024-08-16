@@ -17,6 +17,8 @@ import bookingAnimation from "./animations/Booking.json";
 import techsupportAnimation from "./animations/techsupportAnimation.json";
 import petcareAnimation from "./animations/petcareAnimation.json";
 import cleaningAnimation from "./animations/cleaningAnimation.json";
+import eventassistance from "./animations/eventassistance.json";
+
 import Navbar from "./components/NavBar";
 
 const services = [
@@ -109,7 +111,7 @@ const services = [
   {
     icon: (
       <LottieWrapper
-        animationData={techsupportAnimation}
+        animationData={eventassistance}
         width="100%"
         height="100px"
       />
@@ -179,13 +181,13 @@ const LandingPage: React.FC = () => {
           <h3 className="text-2xl font-semibold mb-6 text-center">
             Our Services
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mx-5">
             {services.map((service, index, description) => (
               <div
                 key={index}
                 className="text-center p-4 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
               >
-                <div className="text-blue-600 mb-2">{service.icon}</div>
+                <div className="text-white mb-2">{service.icon}</div>
                 <h4 className="font-semibold">{service.name}</h4>
                 <p>{service.description}</p>
               </div>
@@ -196,11 +198,11 @@ const LandingPage: React.FC = () => {
         <section id="how-it-works" className="mb-16">
           <h3 className="text-3xl font-bold mb-8 text-center">How It Works</h3>
           <div className="flex flex-col md:flex-row items-center justify-between">
-            <div className="md:w-1/2 mb-8 md:mb-0">
+            <div className="md:w-1/2 mb-8 md:mb-0 pl-10">
               <ol className="space-y-6">
                 {steps.map((step, index) => (
                   <li key={index} className="flex items-start">
-                    <span className="flex items-center justify-center bg-primary bg-opacity-10 rounded-full w-10 h-10 mr-4 flex-shrink-0">
+                    <span className="flex items-center justify-center rounded-full w-10 h-10 mr-4 flex-shrink-0">
                       {step.icon}
                     </span>
                     <div>

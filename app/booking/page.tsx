@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import { useUser, useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Navbar from "../components/NavBar";
+import TimeSelector from "../components/TimeSelector";
 
 import {
   Calendar,
@@ -429,25 +430,10 @@ const BookingPage: React.FC = () => {
                         />
                       </div>
                     </div>
-                    <div className="form-control flex-1">
-                      <label className="label" htmlFor="time">
-                        <span className="label-text">Time</span>
-                      </label>
-                      <div className="relative">
-                        <Clock
-                          className="absolute left-3 top-1/2 transform -translate-y-1/2 text-base-content/50"
-                          size={20}
-                        />
-                        <input
-                          id="time"
-                          type="time"
-                          value={time}
-                          onChange={(e) => setTime(e.target.value)}
-                          className="input input-bordered pl-10 w-full text-gray-900"
-                          required
-                        />
-                      </div>
-                    </div>
+                    <TimeSelector
+                      value={time}
+                      onChange={(newTime: string) => setTime(newTime)}
+                    />{" "}
                   </div>
 
                   {/* Hours and People inputs */}

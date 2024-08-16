@@ -62,6 +62,7 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
       options={options}
       onPlaceSelected={handlePlaceSelected}
       defaultValue={location}
+      required={true}
       placeholder="Enter an address"
       className="input input-bordered w-full text-center bg-slate-white text-gray-900"
     />
