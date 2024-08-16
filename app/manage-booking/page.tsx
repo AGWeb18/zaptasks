@@ -1,18 +1,17 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useUser } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
 import Navbar from "@/app/components/NavBar";
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import CheckoutForm from "@/app/components/CheckoutForm";
 import {
   Calendar,
-  Clock,
   DollarSign,
-  CheckCircle,
   XCircle,
+  ChevronDown,
+  ChevronUp,
+  Star,
 } from "lucide-react";
 
 const stripePromise = loadStripe(
@@ -26,24 +25,21 @@ interface Invoice {
   date: string;
   services: string[];
   paymentIntentClientSecret: string | null;
+  lines: Array<{
+    description: string;
+    amount: number;
+  }>;
+  rating: number | null;
 }
 
 const ManageBookings: React.FC = () => {
-  const { isLoaded, isSignedIn, user } = useUser();
-  const router = useRouter();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isLoaded && !isSignedIn) {
-      router.push("/sign-in");
-    }
-  }, [isLoaded, isSignedIn, router]);
+  const [expandedInvoice, setExpandedInvoice] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchInvoices = async () => {
-      if (!isSignedIn) return;
       try {
         const response = await fetch("/api/get-unpaid-remainder-invoices");
         if (!response.ok) {
@@ -59,9 +55,70 @@ const ManageBookings: React.FC = () => {
     };
 
     fetchInvoices();
-  }, [isSignedIn]);
+  }, []);
 
-  if (!isLoaded || loading) {
+  const toggleInvoice = (invoiceId: string) => {
+    setExpandedInvoice(expandedInvoice === invoiceId ? null : invoiceId);
+  };
+
+  const handleRating = async (invoiceId: string, rating: number) => {
+    try {
+      const response = await fetch("/api/rate-invoice", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ invoiceId, rating }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to submit rating");
+      }
+
+      // Update the local state with the new rating
+      setInvoices(
+        invoices.map((invoice) =>
+          invoice.id === invoiceId ? { ...invoice, rating } : invoice
+        )
+      );
+    } catch (err) {
+      console.error("Error submitting rating:", err);
+      // You might want to show an error message to the user here
+    }
+  };
+
+  //   const RatingStars = ({
+  //     invoiceId,
+  //     currentRating,
+  //   }: {
+  //     invoiceId: string;
+  //     currentRating: number | null;
+  //   }) => {
+  //     return (
+  //       <div className="flex items-center mt-4">
+  //         <span className="mr-2">Rate your experience:</span>
+  //         {[1, 2, 3, 4, 5].map((star) => (
+  //           <button
+  //             key={star}
+  //             onClick={() => handleRating(invoiceId, star)}
+  //             className={`btn btn-ghost btn-sm p-0 mr-1 ${
+  //               currentRating && star <= currentRating
+  //                 ? "text-yellow-500"
+  //                 : "text-gray-300"
+  //             }`}
+  //           >
+  //             <Star
+  //               fill={
+  //                 currentRating && star <= currentRating ? "currentColor" : "none"
+  //               }
+  //             />
+  //           </button>
+  //         ))}
+  //       </div>
+  //     );
+  //   };
+
+  if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <span className="loading loading-spinner loading-lg"></span>
@@ -81,7 +138,7 @@ const ManageBookings: React.FC = () => {
   }
 
   return (
-    <div className="bg-base-200 min-h-screen">
+    <div className="min-h-screen bg-slate-200">
       <Navbar />
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-4xl font-bold mb-8 text-center">
@@ -94,11 +151,23 @@ const ManageBookings: React.FC = () => {
         ) : (
           <div className="space-y-8">
             {invoices.map((invoice) => (
-              <div key={invoice.id} className="card bg-base-100 shadow-xl">
+              <div key={invoice.id} className="card bg-slate-100 shadow-xl">
                 <div className="card-body">
-                  <h2 className="card-title text-2xl mb-4">
-                    Invoice for {new Date(invoice.date).toLocaleDateString()}
-                  </h2>
+                  <div className="flex justify-between items-center">
+                    <h2 className="card-title text-2xl">
+                      Invoice for {new Date(invoice.date).toLocaleDateString()}
+                    </h2>
+                    <button
+                      onClick={() => toggleInvoice(invoice.id)}
+                      className="btn btn-circle btn-ghost"
+                    >
+                      {expandedInvoice === invoice.id ? (
+                        <ChevronUp size={24} />
+                      ) : (
+                        <ChevronDown size={24} />
+                      )}
+                    </button>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex items-center">
                       <Calendar className="mr-2" />
@@ -114,33 +183,41 @@ const ManageBookings: React.FC = () => {
                   </div>
                   <div className="divider"></div>
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {invoice.services.map((service, index) => (
+                    {invoice.lines.map((line, index) => (
                       <span key={index} className="badge badge-primary">
-                        {service}
+                        {line.description}: ${(line.amount / 100).toFixed(2)}
                       </span>
                     ))}
                   </div>
-                  {invoice.paymentIntentClientSecret ? (
-                    <Elements
-                      stripe={stripePromise}
-                      options={{
-                        clientSecret: invoice.paymentIntentClientSecret,
-                      }}
-                    >
-                      <CheckoutForm
-                        depositAmount={invoice.amount}
-                        remainingAmount={0}
-                        invoiceId={invoice.id}
-                        clientSecret={invoice.paymentIntentClientSecret}
-                        depositIntentId={invoice.id}
-                      />
-                    </Elements>
-                  ) : (
-                    <div className="alert alert-warning">
-                      <span>
-                        Payment method not available for this invoice.
-                      </span>
-                    </div>
+                  {/* <RatingStars
+                    invoiceId={invoice.id}
+                    currentRating={invoice.rating}
+                  /> */}
+                  {expandedInvoice === invoice.id && (
+                    <>
+                      {invoice.paymentIntentClientSecret ? (
+                        <Elements
+                          stripe={stripePromise}
+                          options={{
+                            clientSecret: invoice.paymentIntentClientSecret,
+                          }}
+                        >
+                          <CheckoutForm
+                            depositAmount={invoice.amount}
+                            remainingAmount={0}
+                            invoiceId={invoice.id}
+                            clientSecret={invoice.paymentIntentClientSecret}
+                            depositIntentId={invoice.id}
+                          />
+                        </Elements>
+                      ) : (
+                        <div className="alert alert-warning">
+                          <span>
+                            Payment method not available for this invoice.
+                          </span>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

@@ -85,9 +85,7 @@ export default function CheckoutForm({
           className="btn btn-lg w-full btn-primary justify-center my-10"
           type="submit"
         >
-          {isProcessing
-            ? "Processing..."
-            : `Pay Deposit $${depositAmount / 100}`}
+          {isProcessing ? "Processing..." : `Pay $${depositAmount / 100}`}
         </button>
       </div>
       <div className="flex justify-center">

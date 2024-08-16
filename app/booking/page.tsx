@@ -249,7 +249,6 @@ const BookingPage: React.FC = () => {
       }
 
       const invoiceData = await invoiceResponse.json();
-      console.log(invoiceData);
 
       // Navigate to invoice confirmation or show success message
       router.push(`/invoice-confirmation/${invoiceData.depositInvoiceId}`);
@@ -312,15 +311,15 @@ const BookingPage: React.FC = () => {
     setAmount(calculatedAmount);
   }, [hours, people, bringEquipmentFee]);
   return (
-    <div>
+    <div data-theme="light">
       <Navbar />
-      <div className="min-h-screen bg-slate-300 py-12">
-        <div className="container mx-auto px-4">
+      <div className="min-h-screen bg-slate-100 py-12">
+        <div className="container mx-auto px-4 ">
           <h1 className="text-4xl font-bold text-center mb-8 text-blue-600">
             Book a Service
           </h1>
 
-          <div className="card bg-base-100 shadow-xl max-w-3xl mx-auto">
+          <div className="card shadow-xl max-w-3xl mx-auto bg-slate-300">
             <div className="card-body">
               <h2 className="card-title">Select Your Services</h2>
               <p className="text-base-content/70">

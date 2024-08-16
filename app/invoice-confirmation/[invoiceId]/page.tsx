@@ -57,19 +57,15 @@ export default function InvoiceConfirmation() {
 
   useEffect(() => {
     const fetchInvoiceData = async () => {
-      console.log("Fetching invoice data...");
       try {
         if (params.invoiceId) {
-          console.log("Invoice ID:", params.invoiceId);
           const response = await fetch(`/api/get-invoice/${params.invoiceId}`);
-          console.log("API Response status:", response.status);
           if (!response.ok) {
             throw new Error(
               `Failed to fetch invoice data: ${response.statusText}`
             );
           }
           const data = await response.json();
-          console.log("Received invoice data:", JSON.stringify(data, null, 2));
           setInvoiceData({
             ...data.invoice,
             payment_intent: data.paymentIntent,
@@ -83,7 +79,6 @@ export default function InvoiceConfirmation() {
           err instanceof Error ? err.message : "An unknown error occurred"
         );
       } finally {
-        console.log("Setting loading to false");
         setLoading(false);
       }
     };
@@ -133,8 +128,6 @@ export default function InvoiceConfirmation() {
     );
   }
 
-  console.log("Rendering invoice data:", invoiceData);
-
   const totalAmount = Number(invoiceData.metadata.totalAmount) / 100;
   const depositAmount = Number(invoiceData.metadata.depositAmount) / 100;
   const remainingAmount = Number(invoiceData.metadata.remainingAmount) / 100;
@@ -149,10 +142,6 @@ export default function InvoiceConfirmation() {
         appearance: { theme: "stripe" as const },
       }
     : null;
-  console.log("invoiceData:", invoiceData);
-  console.log("invoiceData.payment_intent:", invoiceData?.payment_intent);
-  console.log("client_secret:", invoiceData?.payment_intent?.client_secret);
-  console.log("depositOptions:", depositOptions);
 
   return (
     <div>
