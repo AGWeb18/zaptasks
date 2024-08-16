@@ -1,113 +1,266 @@
-import Image from "next/image";
+import React from "react";
+import Link from "next/link";
+import {
+  CheckCircle,
+  Calendar,
+  UserCheck,
+  ThumbsUp,
+  CreditCard,
+} from "lucide-react";
+import LottieWrapper from "./components/LottieWrapper";
+import heroAnimation from "./animations/HeroAnimation.json";
+import yardworkAnimation from "./animations/YardWork.json";
+import handymanAnimation from "./animations/Handyman.json";
+import helpinghandAnimation from "./animations/HelpingHands.json";
+import paintingAnimation from "./animations/Painting.json";
+import bookingAnimation from "./animations/Booking.json";
+import techsupportAnimation from "./animations/techsupportAnimation.json";
+import petcareAnimation from "./animations/petcareAnimation.json";
+import cleaningAnimation from "./animations/cleaningAnimation.json";
+import Navbar from "./components/NavBar";
 
-export default function Home() {
+const services = [
+  {
+    id: "handyman",
+    icon: (
+      <LottieWrapper
+        animationData={handymanAnimation}
+        width="100%"
+        height="100px"
+      />
+    ),
+    name: "Handyman Services",
+    description:
+      "Assistance with heavy lifting, furniture assembly, and packing or unpacking for moves.",
+  },
+  {
+    id: "help",
+    icon: (
+      <LottieWrapper
+        animationData={helpinghandAnimation}
+        width="100%"
+        height="100px"
+      />
+    ),
+    name: "Secondary Set of Hands",
+    description:
+      "Extra help for various tasks, DIY projects, and minor home repairs.",
+  },
+  {
+    icon: (
+      <LottieWrapper
+        animationData={paintingAnimation}
+        width="100%"
+        height="100px"
+      />
+    ),
+    name: "Paint Help",
+    description:
+      "Interior and exterior painting, including walls, ceilings, and trim work.",
+  },
+  {
+    icon: (
+      <LottieWrapper
+        animationData={yardworkAnimation}
+        width="100%"
+        height="100px"
+      />
+    ),
+    name: "Yard Work",
+    description:
+      "Lawn mowing, planting, leaf raking, and basic landscape maintenance.",
+  },
+  {
+    icon: (
+      <LottieWrapper
+        animationData={cleaningAnimation}
+        width="100%"
+        height="100px"
+      />
+    ),
+    name: "Deep Cleaning",
+    description:
+      "Thorough cleaning of neglected areas, including sanitization and organizing.",
+  },
+  {
+    icon: (
+      <LottieWrapper
+        animationData={petcareAnimation}
+        width="100%"
+        height="100px"
+      />
+    ),
+    name: "Pet Care Assistance",
+    description:
+      "Dog walking, pet feeding, litter box cleaning, and basic pet care.",
+  },
+  {
+    icon: (
+      <LottieWrapper
+        animationData={techsupportAnimation}
+        width="100%"
+        height="100px"
+      />
+    ),
+    name: "Basic Tech Support",
+    description:
+      "Help with device setup, Wi-Fi troubleshooting, and software installation.",
+  },
+  {
+    icon: (
+      <LottieWrapper
+        animationData={techsupportAnimation}
+        width="100%"
+        height="100px"
+      />
+    ),
+    name: "Event Assistance",
+    description:
+      "Help with setup, cleanup, and guest management for small gatherings and parties.",
+  },
+];
+
+const steps = [
+  {
+    icon: <CheckCircle className="w-6 h-6 text-primary" />,
+    text: "Choose a service you need",
+  },
+  {
+    icon: <Calendar className="w-6 h-6 text-primary" />,
+    text: "Select your preferred date and time",
+  },
+  {
+    icon: <CreditCard className="w-6 h-6 text-primary" />,
+    text: "Pay a refundable 50% deposit",
+  },
+  {
+    icon: <UserCheck className="w-6 h-6 text-primary" />,
+    text: "Get matched with a skilled professional",
+  },
+  {
+    icon: <ThumbsUp className="w-6 h-6 text-primary" />,
+    text: "Enjoy your completed task and pay the remaining balance",
+  },
+];
+
+const LandingPage: React.FC = () => {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white text-gray-800">
+      <Navbar />
+      <main className="container mx-auto px-4 py-12">
+        <section className="flex flex-col md:flex-row items-center justify-between mb-16">
+          <div className="md:w-1/2 mb-8 md:mb-0 flex flex-col justify-center">
+            <h2 className="text-4xl font-bold mb-4">
+              Get Help with Your Tasks, Fast!
+            </h2>
+            <p className="text-xl text-gray-600 mb-8">
+              Book skilled professionals for various services at your
+              fingertips.
+            </p>
+            <p className="text-xl text-gray-600 mb-8">
+              Your community marketplace for getting help and earning extra.
+            </p>
+            <Link href="/booking">
+              <button className="btn btn-lg btn-primary text-white w-full">
+                Book a Service Now
+              </button>
+            </Link>
+          </div>
+          <div className="md:w-1/2 mb-8 md:mb-0 flex justify-center">
+            <LottieWrapper
+              animationData={heroAnimation}
+              width="100%"
+              height="400px"
             />
-          </a>
+          </div>
+        </section>
+
+        <section id="services" className="mb-16">
+          <h3 className="text-2xl font-semibold mb-6 text-center">
+            Our Services
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {services.map((service, index, description) => (
+              <div
+                key={index}
+                className="text-center p-4 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
+              >
+                <div className="text-blue-600 mb-2">{service.icon}</div>
+                <h4 className="font-semibold">{service.name}</h4>
+                <p>{service.description}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section id="how-it-works" className="mb-16">
+          <h3 className="text-3xl font-bold mb-8 text-center">How It Works</h3>
+          <div className="flex flex-col md:flex-row items-center justify-between">
+            <div className="md:w-1/2 mb-8 md:mb-0">
+              <ol className="space-y-6">
+                {steps.map((step, index) => (
+                  <li key={index} className="flex items-start">
+                    <span className="flex items-center justify-center bg-primary bg-opacity-10 rounded-full w-10 h-10 mr-4 flex-shrink-0">
+                      {step.icon}
+                    </span>
+                    <div>
+                      <p className="font-semibold">{`Step ${index + 1}`}</p>
+                      <p>{step.text}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
+            <div className="md:w-1/2 flex justify-center">
+              <LottieWrapper
+                animationData={bookingAnimation}
+                width="100%"
+                height="400px"
+              />
+            </div>
+          </div>
+
+          <div className="mt-8 bg-gray-100 p-6 rounded-lg">
+            <h4 className="text-xl font-semibold mb-2">Payment Structure</h4>
+            <p>At ZapTasks, we ensure a fair and secure transaction process:</p>
+            <ul className="list-disc list-inside mt-2">
+              <li>
+                You pay a refundable 50% deposit upfront when booking a service.
+              </li>
+              <li>
+                The remaining 50% is paid after the task is successfully
+                completed.
+              </li>
+              <li>
+                This structure protects both you and our service providers,
+                ensuring quality work and timely payments.
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        <section id="contact" className="text-center">
+          <h3 className="text-2xl font-semibold mb-6">Ready to Get Started?</h3>
+          <p className="text-xl text-gray-600 mb-8">
+            Experience the convenience of ZapTasks today!
+          </p>
+          <Link href={"/booking"}>
+            <button className="btn btn-primary btn-lg text-white">
+              Start Now
+            </button>
+          </Link>
+        </section>
+      </main>
+
+      <footer className="bg-gray-100 mt-16">
+        <div className="container mx-auto px-4 py-8">
+          <p className="text-center text-gray-600">
+            &copy; 2024 ZapTasks. All rights reserved.
+          </p>
         </div>
-      </div>
-
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+      </footer>
+    </div>
   );
-}
+};
+
+export default LandingPage;

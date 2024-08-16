@@ -21,6 +21,6 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "app/onboarding/page.jsx", "app/onboarding/page.jsx", "app/components/CheckoutForm.tsx", "app/pages/api/create-checkout-session.jsx", "app/components/CheckoutPage.jsx", "app/invoice-confirmation/[invoiceId]/page.jsx"],
   "exclude": ["node_modules"]
 }
