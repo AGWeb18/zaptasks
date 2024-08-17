@@ -5,6 +5,7 @@ import Navbar from "@/app/components/NavBar";
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import CheckoutForm from "@/app/components/CheckoutForm";
+import Link from "next/link";
 import {
   Calendar,
   DollarSign,
@@ -12,6 +13,8 @@ import {
   ChevronDown,
   ChevronUp,
   Star,
+  FileText,
+  PlusCircle,
 } from "lucide-react";
 
 const stripePromise = loadStripe(
@@ -75,7 +78,6 @@ const ManageBookings: React.FC = () => {
         throw new Error("Failed to submit rating");
       }
 
-      // Update the local state with the new rating
       setInvoices(
         invoices.map((invoice) =>
           invoice.id === invoiceId ? { ...invoice, rating } : invoice
@@ -87,71 +89,74 @@ const ManageBookings: React.FC = () => {
     }
   };
 
-  //   const RatingStars = ({
-  //     invoiceId,
-  //     currentRating,
-  //   }: {
-  //     invoiceId: string;
-  //     currentRating: number | null;
-  //   }) => {
-  //     return (
-  //       <div className="flex items-center mt-4">
-  //         <span className="mr-2">Rate your experience:</span>
-  //         {[1, 2, 3, 4, 5].map((star) => (
-  //           <button
-  //             key={star}
-  //             onClick={() => handleRating(invoiceId, star)}
-  //             className={`btn btn-ghost btn-sm p-0 mr-1 ${
-  //               currentRating && star <= currentRating
-  //                 ? "text-yellow-500"
-  //                 : "text-gray-300"
-  //             }`}
-  //           >
-  //             <Star
-  //               fill={
-  //                 currentRating && star <= currentRating ? "currentColor" : "none"
-  //               }
-  //             />
-  //           </button>
-  //         ))}
-  //       </div>
-  //     );
-  //   };
-
-  if (loading) {
+  const RatingStars = ({
+    invoiceId,
+    currentRating,
+  }: {
+    invoiceId: string;
+    currentRating: number | null;
+  }) => {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <span className="loading loading-spinner loading-lg"></span>
+      <div className="flex items-center mt-4">
+        <span className="mr-2">Rate your experience:</span>
+        {[1, 2, 3, 4, 5].map((star) => (
+          <button
+            key={star}
+            onClick={() => handleRating(invoiceId, star)}
+            className={`btn btn-ghost btn-sm p-0 mr-1 ${
+              currentRating && star <= currentRating
+                ? "text-yellow-500"
+                : "text-gray-300"
+            }`}
+          >
+            <Star
+              fill={
+                currentRating && star <= currentRating ? "currentColor" : "none"
+              }
+            />
+          </button>
+        ))}
       </div>
     );
-  }
-
-  if (error) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="alert alert-error">
-          <XCircle className="stroke-current shrink-0 h-6 w-6" />
-          <span>{error}</span>
-        </div>
-      </div>
-    );
-  }
+  };
 
   return (
     <div className="min-h-screen bg-slate-200">
       <Navbar />
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold mb-8 text-center">
+        <h1 className="text-4xl font-bold mb-8 text-center text-gray-800">
           Manage Your Invoices
         </h1>
-        {invoices.length === 0 ? (
-          <div className="text-center">
-            <p className="text-xl">You have no unpaid invoices.</p>
+
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <span className="loading loading-spinner loading-lg text-primary"></span>
+          </div>
+        ) : error ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="alert alert-error max-w-md">
+              <XCircle className="stroke-current shrink-0 h-6 w-6" />
+              <span>{error}</span>
+            </div>
+          </div>
+        ) : invoices.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-lg shadow-md">
+            <FileText className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+            <h2 className="text-2xl font-semibold text-gray-700 mb-2">
+              No Invoices Found
+            </h2>
+            <p className="text-gray-500 mb-6">
+              You currently have no unpaid invoices.
+            </p>
+            <Link href="/booking" className="btn btn-primary">
+              <PlusCircle className="mr-2 h-5 w-5" />
+              Book a New Service
+            </Link>
           </div>
         ) : (
           <div className="space-y-8">
             {invoices.map((invoice) => (
-              <div key={invoice.id} className="card bg-slate-100 shadow-xl">
+              <div key={invoice.id} className="card bg-white shadow-xl">
                 <div className="card-body">
                   <div className="flex justify-between items-center">
                     <h2 className="card-title text-2xl">
@@ -189,10 +194,10 @@ const ManageBookings: React.FC = () => {
                       </span>
                     ))}
                   </div>
-                  {/* <RatingStars
+                  <RatingStars
                     invoiceId={invoice.id}
                     currentRating={invoice.rating}
-                  /> */}
+                  />
                   {expandedInvoice === invoice.id && (
                     <>
                       {invoice.paymentIntentClientSecret ? (
@@ -211,7 +216,7 @@ const ManageBookings: React.FC = () => {
                           />
                         </Elements>
                       ) : (
-                        <div className="alert alert-warning">
+                        <div className="alert alert-warning mt-4">
                           <span>
                             Payment method not available for this invoice.
                           </span>
