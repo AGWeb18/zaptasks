@@ -347,45 +347,6 @@ const BookingPage: React.FC = () => {
                     </div>
                   ))}
                 </div>
-
-                <div className="mb-6">
-                  <h2 className="text-xl font-semibold mb-4">
-                    Select Your Services
-                  </h2>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Choose one or more services you need assistance with
-                  </p>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    {services.map((service) => (
-                      <div
-                        key={service.id}
-                        className="flex items-center bg-white p-3 rounded-lg shadow-sm"
-                      >
-                        <input
-                          type="checkbox"
-                          id={service.id}
-                          name="service"
-                          className="form-checkbox h-5 w-5 text-blue-600"
-                          checked={selectedServices.includes(service.id)}
-                          onChange={() => handleServiceToggle(service.id)}
-                        />
-                        <label
-                          htmlFor={service.id}
-                          className="ml-3 flex items-center cursor-pointer"
-                        >
-                          <span className="text-gray-700 mr-2">
-                            {service.icon}
-                          </span>
-                          <span className="text-sm font-medium">
-                            {service.name}
-                          </span>
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
                 {selectedServices.length > 0 && (
                   <div className="mt-8 space-y-4">
                     <h3 className="text-lg font-semibold">Selected Services</h3>
