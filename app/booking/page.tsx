@@ -362,19 +362,21 @@ const BookingPage: React.FC = () => {
                           className="card bg-base-200 shadow-md text-gray-900"
                         >
                           <div className="card-body p-4">
-                            <div className="flex justify-between items-center">
-                              <h4 className="font-medium text-lg flex items-center">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                              <h4 className="font-medium text-lg flex items-center mb-2 sm:mb-0">
                                 {service?.icon && (
                                   <span className="mr-2">{service.icon}</span>
                                 )}
-                                {service?.name}
+                                <span className="break-words">
+                                  {service?.name}
+                                </span>
                               </h4>
                               <button
                                 type="button"
                                 onClick={() =>
                                   toggleServiceExpansion(serviceId)
                                 }
-                                className="btn btn-sm btn-circle btn-ghost"
+                                className="btn btn-sm btn-circle btn-ghost self-end sm:self-auto"
                               >
                                 {isExpanded ? (
                                   <ChevronUp size={20} />
@@ -384,7 +386,7 @@ const BookingPage: React.FC = () => {
                               </button>
                             </div>
                             {isExpanded && (
-                              <div className="mt-2">
+                              <div className="mt-4">
                                 <p className="text-base-content/80 mb-2">
                                   {service?.description}
                                 </p>
@@ -394,7 +396,9 @@ const BookingPage: React.FC = () => {
                                   </h5>
                                   <ul className="list-disc pl-5">
                                     {service?.examples.map((example, index) => (
-                                      <li key={index}>{example}</li>
+                                      <li key={index} className="mb-1">
+                                        {example}
+                                      </li>
                                     ))}
                                   </ul>
                                 </div>
