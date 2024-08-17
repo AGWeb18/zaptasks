@@ -110,11 +110,25 @@ const stripePromise = loadStripe(
 );
 
 const termsAndConditions = `
-    1. Services are provided on an as-is basis.
-    2. Clients are responsible for providing a safe work environment.
-    3. Payment is due upon completion of services.
-    4. Cancellations must be made at least 24 hours in advance.
-    `;
+ZapTasks Terms and Conditions
+
+1. Platform Role:
+   ZapTasks is a platform connecting clients with independent service providers. We do not guarantee service quality or completion.
+
+2. Payments and Cancellations:
+   A 50% deposit is required at booking. Full payment is due upon service completion. Cancellations within 24 hours may incur a 50% fee.
+
+3. Liability:
+   ZapTasks is not liable for any damages, losses, or incomplete services. Clients are responsible for providing a safe work environment.
+
+4. Dispute Resolution:
+   Unresolved issues must be reported within 48 hours. ZapTasks will mediate and may offer refunds at its sole discretion.
+
+5. Platform Usage:
+   ZapTasks may modify services, pricing, or these terms at any time. We reserve the right to terminate user accounts for any reason.
+
+By using ZapTasks, you agree to these terms and conditions.
+`;
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
