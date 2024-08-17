@@ -349,65 +349,71 @@ const BookingPage: React.FC = () => {
                 </div>
 
                 {selectedServices.length > 0 && (
-                  <div className="mb-6 space-y-4">
-                    <h3 className="text-lg font-semibold mb-2">
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-4">
                       Selected Services
                     </h3>
-                    {selectedServices.map((serviceId) => {
-                      const service = services.find((s) => s.id === serviceId);
-                      const isExpanded = expandedService === serviceId;
-                      return (
-                        <div
-                          key={serviceId}
-                          className="card bg-base-200 shadow-md text-gray-900"
-                        >
-                          <div className="card-body p-4">
-                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-                              <h4 className="font-medium text-lg flex items-center mb-2 sm:mb-0">
-                                {service?.icon && (
-                                  <span className="mr-2">{service.icon}</span>
-                                )}
-                                <span className="break-words">
-                                  {service?.name}
-                                </span>
-                              </h4>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  toggleServiceExpansion(serviceId)
-                                }
-                                className="btn btn-sm btn-circle btn-ghost self-end sm:self-auto"
-                              >
-                                {isExpanded ? (
-                                  <ChevronUp size={20} />
-                                ) : (
-                                  <ChevronDown size={20} />
-                                )}
-                              </button>
-                            </div>
-                            {isExpanded && (
-                              <div className="mt-4">
-                                <p className="text-base-content/80 mb-2">
-                                  {service?.description}
-                                </p>
-                                <div className="bg-base-100 rounded-lg p-3">
-                                  <h5 className="font-medium mb-2">
-                                    Examples of tasks:
-                                  </h5>
-                                  <ul className="list-disc pl-5">
-                                    {service?.examples.map((example, index) => (
-                                      <li key={index} className="mb-1">
-                                        {example}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {selectedServices.map((serviceId) => {
+                        const service = services.find(
+                          (s) => s.id === serviceId
+                        );
+                        const isExpanded = expandedService === serviceId;
+                        return (
+                          <div
+                            key={serviceId}
+                            className="card bg-base-200 shadow-md text-gray-900"
+                          >
+                            <div className="card-body p-4">
+                              <div className="flex justify-between items-center">
+                                <h4 className="font-medium text-base sm:text-lg flex items-center">
+                                  {service?.icon && (
+                                    <span className="mr-2">{service.icon}</span>
+                                  )}
+                                  <span className="break-words">
+                                    {service?.name}
+                                  </span>
+                                </h4>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    toggleServiceExpansion(serviceId)
+                                  }
+                                  className="btn btn-sm btn-circle btn-ghost"
+                                >
+                                  {isExpanded ? (
+                                    <ChevronUp size={16} />
+                                  ) : (
+                                    <ChevronDown size={16} />
+                                  )}
+                                </button>
                               </div>
-                            )}
+                              {isExpanded && (
+                                <div className="mt-3">
+                                  <p className="text-sm text-base-content/80 mb-2">
+                                    {service?.description}
+                                  </p>
+                                  <div className="bg-base-100 rounded-lg p-2">
+                                    <h5 className="font-medium mb-1 text-sm">
+                                      Examples:
+                                    </h5>
+                                    <ul className="list-disc pl-4 text-sm">
+                                      {service?.examples.map(
+                                        (example, index) => (
+                                          <li key={index} className="mb-1">
+                                            {example}
+                                          </li>
+                                        )
+                                      )}
+                                    </ul>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 
