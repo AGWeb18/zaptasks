@@ -348,72 +348,86 @@ const BookingPage: React.FC = () => {
                   ))}
                 </div>
 
+                <div className="mb-6">
+                  <h2 className="text-xl font-semibold mb-4">
+                    Select Your Services
+                  </h2>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Choose one or more services you need assistance with
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {services.map((service) => (
+                      <div
+                        key={service.id}
+                        className="flex items-center bg-white p-3 rounded-lg shadow-sm"
+                      >
+                        <input
+                          type="checkbox"
+                          id={service.id}
+                          name="service"
+                          className="form-checkbox h-5 w-5 text-blue-600"
+                          checked={selectedServices.includes(service.id)}
+                          onChange={() => handleServiceToggle(service.id)}
+                        />
+                        <label
+                          htmlFor={service.id}
+                          className="ml-3 flex items-center cursor-pointer"
+                        >
+                          <span className="text-gray-700 mr-2">
+                            {service.icon}
+                          </span>
+                          <span className="text-sm font-medium">
+                            {service.name}
+                          </span>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 {selectedServices.length > 0 && (
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-4">
-                      Selected Services
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {selectedServices.map((serviceId) => {
-                        const service = services.find(
-                          (s) => s.id === serviceId
-                        );
-                        const isExpanded = expandedService === serviceId;
-                        return (
-                          <div
-                            key={serviceId}
-                            className="card bg-base-200 shadow-md text-gray-900"
-                          >
-                            <div className="card-body p-4">
-                              <div className="flex justify-between items-center">
-                                <h4 className="font-medium text-base sm:text-lg flex items-center">
-                                  {service?.icon && (
-                                    <span className="mr-2">{service.icon}</span>
-                                  )}
-                                  <span className="break-words">
-                                    {service?.name}
-                                  </span>
-                                </h4>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    toggleServiceExpansion(serviceId)
-                                  }
-                                  className="btn btn-sm btn-circle btn-ghost"
-                                >
-                                  {isExpanded ? (
-                                    <ChevronUp size={16} />
-                                  ) : (
-                                    <ChevronDown size={16} />
-                                  )}
-                                </button>
-                              </div>
-                              {isExpanded && (
-                                <div className="mt-3">
-                                  <p className="text-sm text-base-content/80 mb-2">
-                                    {service?.description}
-                                  </p>
-                                  <div className="bg-base-100 rounded-lg p-2">
-                                    <h5 className="font-medium mb-1 text-sm">
-                                      Examples:
-                                    </h5>
-                                    <ul className="list-disc pl-4 text-sm">
-                                      {service?.examples.map(
-                                        (example, index) => (
-                                          <li key={index} className="mb-1">
-                                            {example}
-                                          </li>
-                                        )
-                                      )}
-                                    </ul>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
+                  <div className="mt-8 space-y-4">
+                    <h3 className="text-lg font-semibold">Selected Services</h3>
+                    {selectedServices.map((serviceId) => {
+                      const service = services.find((s) => s.id === serviceId);
+                      const isExpanded = expandedService === serviceId;
+                      return (
+                        <div
+                          key={serviceId}
+                          className="bg-white shadow rounded-lg p-4"
+                        >
+                          <div className="flex justify-between items-center">
+                            <h4 className="font-medium text-sm flex items-center">
+                              <span className="mr-2">{service?.icon}</span>
+                              {service?.name}
+                            </h4>
+                            <button
+                              type="button"
+                              onClick={() => toggleServiceExpansion(serviceId)}
+                              className="text-blue-600 text-sm hover:text-blue-800"
+                            >
+                              {isExpanded ? "Less info" : "More info"}
+                            </button>
                           </div>
-                        );
-                      })}
-                    </div>
+                          {isExpanded && (
+                            <div className="mt-3 text-sm">
+                              <p className="text-gray-600 mb-2">
+                                {service?.description}
+                              </p>
+                              <h5 className="font-medium mb-1">Examples:</h5>
+                              <ul className="list-disc pl-5 text-gray-600">
+                                {service?.examples.map((example, index) => (
+                                  <li key={index} className="mb-1">
+                                    {example}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
