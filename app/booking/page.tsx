@@ -327,7 +327,7 @@ const BookingPage: React.FC = () => {
               </p>
 
               <form onSubmit={handleSubmit}>
-                <div className="grid grid-cols-3 gap-3 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-6">
                   {services.map((service) => (
                     <div key={service.id} className="form-control">
                       <label className="label cursor-pointer justify-start space-x-3">
@@ -341,12 +341,13 @@ const BookingPage: React.FC = () => {
                         />
                         <span className="label-text flex items-center">
                           {service.icon}
-                          <span className="ml-2">{service.name}</span>
+                          <span className="ml-2 text-sm">{service.name}</span>
                         </span>
                       </label>
                     </div>
                   ))}
                 </div>
+
                 {selectedServices.length > 0 && (
                   <div className="mt-8 space-y-4">
                     <h3 className="text-lg font-semibold">Selected Services</h3>
