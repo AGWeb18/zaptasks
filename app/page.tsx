@@ -160,7 +160,8 @@ const LandingPage: React.FC = () => {
               fingertips.
             </p>
             <p className="text-xl text-gray-600 mb-8">
-              Your community marketplace for getting help and earning extra.
+              Your local marketplace for on-demand assistance with everyday
+              tasks and projects.{" "}
             </p>
             <Link href="/booking">
               <button className="btn btn-lg btn-primary text-white w-full">
