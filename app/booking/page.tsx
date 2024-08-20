@@ -321,7 +321,7 @@ const BookingPage: React.FC = () => {
 
   // Calculate the amount whenever relevant inputs change
   useEffect(() => {
-    const calculatedAmount = hours * people * 100 + bringEquipmentFee;
+    const calculatedAmount = hours * people * 50 + bringEquipmentFee;
     setAmount(calculatedAmount);
   }, [hours, people, bringEquipmentFee]);
   return (
