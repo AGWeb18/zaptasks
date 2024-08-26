@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Package2, ChevronDown, ChevronUp } from "lucide-react";
+import SubscriptionButton from "./SubscriptionButton";
 
 interface ServicePackage {
   id: number;
@@ -11,6 +12,7 @@ interface ServicePackage {
   services: string[];
   estimatedTime: string;
   optimizedRate: string;
+  stripeLink: string; // Add this line
 }
 
 interface AddOn {
@@ -32,6 +34,7 @@ const packages: ServicePackage[] = [
     ],
     estimatedTime: "2-3 hours per visit",
     optimizedRate: "$60-$83 per hour",
+    stripeLink: "https://buy.stripe.com/4gwcMRbIhcC92Iw7ss", // Add your actual Stripe link here
   },
   {
     id: 2,
@@ -46,6 +49,7 @@ const packages: ServicePackage[] = [
     ],
     estimatedTime: "3-4 hours per visit",
     optimizedRate: "$53-$55 per hour",
+    stripeLink: "https://buy.stripe.com/8wM149dQp9pX3MAaEF", // Add your actual Stripe link here
   },
   {
     id: 3,
@@ -60,6 +64,7 @@ const packages: ServicePackage[] = [
     ],
     estimatedTime: "4-6 hours per month",
     optimizedRate: "$50-$50 per hour",
+    stripeLink: "https://buy.stripe.com/7sIfZ3h2Bau12Iw4gi", // Add your actual Stripe link here
   },
 ];
 
@@ -134,9 +139,7 @@ export default function ServicePackages() {
               </div>
             )}
             <div className="px-6 pb-6">
-              <button className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700 transition duration-300">
-                Select Package
-              </button>
+              <SubscriptionButton stripeLink={pkg.stripeLink} />
             </div>
           </div>
         ))}
