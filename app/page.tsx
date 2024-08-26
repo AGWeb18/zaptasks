@@ -18,6 +18,8 @@ import techsupportAnimation from "./animations/techsupportAnimation.json";
 import petcareAnimation from "./animations/petcareAnimation.json";
 import cleaningAnimation from "./animations/cleaningAnimation.json";
 import eventassistance from "./animations/eventassistance.json";
+import ServicePackages from "./components/Subscriptions";
+import BeforeAndAfter from "./components/BeforeAndAfter";
 
 import Navbar from "./components/NavBar";
 
@@ -145,6 +147,28 @@ const steps = [
   },
 ];
 
+const beforeAfterItems = [
+  {
+    id: "1",
+    type: "image" as const,
+    before: "/BeforeAndAfter/LivingRoom-Before.jpeg",
+    after: "/BeforeAndAfter/LivingRoom-After.jpeg",
+  },
+  {
+    id: "2",
+    type: "image" as const,
+    before: "/BeforeAndAfter/LivingRoom-Before2.jpeg",
+    after: "/BeforeAndAfter/LivingRoom-After2.jpeg",
+  },
+  {
+    id: "3",
+    type: "video" as const,
+    videoSrc: "/BeforeAndAfter/lawn-care.MP4",
+    thumbnail: "/BeforeAndAfter/lawncare-before.png",
+  },
+  // Add more items as needed
+];
+
 const LandingPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white text-gray-800">
@@ -195,6 +219,14 @@ const LandingPage: React.FC = () => {
             ))}
           </div>
         </section>
+
+        <section id="before-and-after" className="mb-16">
+          <div>
+            <BeforeAndAfter items={beforeAfterItems} />
+          </div>
+        </section>
+
+        <ServicePackages />
 
         <section id="how-it-works" className="mb-16">
           <h3 className="text-3xl font-bold mb-8 text-center">How It Works</h3>
