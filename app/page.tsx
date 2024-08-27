@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
   CheckCircle,
   Calendar,
@@ -171,8 +170,6 @@ const beforeAfterItems = [
 ];
 
 const LandingPage: React.FC = () => {
-  const pathname = usePathname();
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white text-gray-800">
       <Navbar />
@@ -191,10 +188,7 @@ const LandingPage: React.FC = () => {
               tasks and projects.{" "}
             </p>
             <Link href="/booking">
-              <button
-                className="btn btn-lg btn-primary text-white w-full"
-                // onClick={handleBookServiceClick}
-              >
+              <button className="btn btn-lg btn-primary text-white w-full">
                 Book a Service Now
               </button>
             </Link>
