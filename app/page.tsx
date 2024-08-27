@@ -1,5 +1,8 @@
-import React from "react";
+"use client";
+
+import React, { useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   CheckCircle,
   Calendar,
@@ -18,9 +21,7 @@ import techsupportAnimation from "./animations/techsupportAnimation.json";
 import petcareAnimation from "./animations/petcareAnimation.json";
 import cleaningAnimation from "./animations/cleaningAnimation.json";
 import eventassistance from "./animations/eventassistance.json";
-import ServicePackages from "./components/Subscriptions";
 import BeforeAndAfter from "./components/BeforeAndAfter";
-
 import Navbar from "./components/NavBar";
 
 const services = [
@@ -170,6 +171,8 @@ const beforeAfterItems = [
 ];
 
 const LandingPage: React.FC = () => {
+  const pathname = usePathname();
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white text-gray-800">
       <Navbar />
@@ -188,7 +191,10 @@ const LandingPage: React.FC = () => {
               tasks and projects.{" "}
             </p>
             <Link href="/booking">
-              <button className="btn btn-lg btn-primary text-white w-full">
+              <button
+                className="btn btn-lg btn-primary text-white w-full"
+                // onClick={handleBookServiceClick}
+              >
                 Book a Service Now
               </button>
             </Link>
@@ -225,8 +231,6 @@ const LandingPage: React.FC = () => {
             <BeforeAndAfter items={beforeAfterItems} />
           </div>
         </section>
-
-        <ServicePackages />
 
         <section id="how-it-works" className="mb-16">
           <h3 className="text-3xl font-bold mb-8 text-center">How It Works</h3>

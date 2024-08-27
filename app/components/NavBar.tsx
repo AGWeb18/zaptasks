@@ -36,6 +36,14 @@ const Navbar: React.FC = () => {
                 </Link>
               </li>
               <li>
+                <Link
+                  href="/subscriptions"
+                  className="text-gray-600 hover:text-blue-600"
+                >
+                  Subscriptions
+                </Link>
+              </li>
+              <li>
                 <SignedOut>
                   <SignInButton />
                 </SignedOut>
@@ -77,6 +85,14 @@ const Navbar: React.FC = () => {
                   className="block text-gray-600 hover:text-blue-600"
                 >
                   Manage Bookings
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/subscriptions"
+                  className="block text-gray-600 hover:text-blue-600"
+                >
+                  Subscriptions
                 </Link>
               </li>
               <li>
