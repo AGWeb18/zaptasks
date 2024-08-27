@@ -12,6 +12,7 @@ import {
   HammerIcon,
 } from "lucide-react";
 import Navbar from "@/app/components/NavBar";
+import Script from "next/script";
 
 interface InvoiceData {
   id: string;
@@ -231,6 +232,14 @@ export default async function PaymentSuccessPage({
 
     return (
       <div className="min-h-screen bg-base-200">
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+      gtag('event', 'conversion', {
+      'send_to': 'AW-850422848/u9FkCPXW3M0ZEMDYwZUD',
+      'transaction_id': ''
+  }); 
+          `}
+        </Script>
         <Navbar />
         <div className="container mx-auto px-4 py-8">
           <Suspense fallback={<div>Loading...</div>}>
