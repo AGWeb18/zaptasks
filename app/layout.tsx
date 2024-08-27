@@ -18,8 +18,8 @@ export default function RootLayout({
       <html lang="en">
         <body>
           <main>{children}</main>
+          <GoogleAnalytics gaId="G-K9GLWHQEGZ" />
         </body>
-        <GoogleAnalytics gaId="G-K9GLWHQEGZ" />
       </html>
     </ClerkProvider>
   );
