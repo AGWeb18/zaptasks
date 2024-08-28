@@ -36,9 +36,6 @@ const BeforeAndAfter: React.FC<BeforeAndAfterProps> = ({ items }) => {
 
   return (
     <div className="relative w-full max-w-3xl mx-auto">
-      <h1 className="text-4xl font-bold text-center text-gray-900 mb-12">
-        Before and After
-      </h1>
       <Swiper
         modules={[Navigation, Pagination]}
         spaceBetween={50}
