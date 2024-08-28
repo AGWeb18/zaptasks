@@ -89,7 +89,11 @@ function InvoiceDetails({ invoiceData }: { invoiceData: InvoiceData }) {
 
       <div className="divider"></div>
 
-      <h2 className="text-2xl font-semibold mb-4">Invoice Details</h2>
+      <h2 id="invoice-details" className="text-2xl font-semibold mb-4">
+        <a href="#invoice-details" className="anchor-link">
+          Invoice Details
+        </a>
+      </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="flex items-center">
@@ -157,7 +161,11 @@ function InvoiceDetails({ invoiceData }: { invoiceData: InvoiceData }) {
       </div>
 
       <div className="mt-6">
-        <h3 className="text-xl font-semibold mb-2">Services</h3>
+        <h3 id="services" className="text-xl font-semibold mb-2">
+          <a href="#services" className="anchor-link">
+            Services
+          </a>
+        </h3>
         <div className="flex flex-wrap gap-2">
           {JSON.parse(invoiceData.metadata.services).map(
             (service: string, index: number) => (
@@ -170,7 +178,11 @@ function InvoiceDetails({ invoiceData }: { invoiceData: InvoiceData }) {
       </div>
 
       <div className="mt-6">
-        <h3 className="text-xl font-semibold mb-2">Description</h3>
+        <h3 id="description" className="text-xl font-semibold mb-2">
+          <a href="#description" className="anchor-link">
+            Description
+          </a>
+        </h3>
         <p className="bg-base-200 p-4 rounded-lg">
           {invoiceData.metadata.description}
         </p>
@@ -185,7 +197,11 @@ function InvoiceDetails({ invoiceData }: { invoiceData: InvoiceData }) {
       </div>
 
       <div className="mt-8 bg-base-200 p-4 rounded-lg">
-        <h3 className="text-xl font-semibold mb-2">Next Steps</h3>
+        <h3 id="next-steps" className="text-xl font-semibold mb-2">
+          <a href="#next-steps" className="anchor-link">
+            Next Steps
+          </a>
+        </h3>
         <ul className="list-disc list-inside">
           <li>
             Our team will contact you to confirm the details of your booking.

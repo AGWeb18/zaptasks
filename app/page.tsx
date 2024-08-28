@@ -176,8 +176,10 @@ const LandingPage: React.FC = () => {
       <main className="container mx-auto px-4 py-12">
         <section className="flex flex-col md:flex-row items-center justify-between mb-16">
           <div className="md:w-1/2 mb-8 md:mb-0 flex flex-col justify-center">
-            <h2 className="text-4xl font-bold mb-4">
-              Get Help with Your Tasks, Fast!
+            <h2 id="hero" className="text-4xl font-bold mb-4">
+              <a href="#hero" className="anchor-link">
+                Get Help with Your Tasks, Fast!
+              </a>
             </h2>
             <p className="text-xl text-gray-600 mb-8">
               Book skilled professionals for various services at your
@@ -203,8 +205,13 @@ const LandingPage: React.FC = () => {
         </section>
 
         <section id="services" className="mb-16">
-          <h3 className="text-2xl font-semibold mb-6 text-center">
-            Our Services
+          <h3
+            id="our-services"
+            className="text-2xl font-semibold mb-6 text-center"
+          >
+            <a href="#our-services" className="anchor-link">
+              Our Services
+            </a>
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mx-5">
             {services.map((service, index, description) => (
@@ -221,13 +228,25 @@ const LandingPage: React.FC = () => {
         </section>
 
         <section id="before-and-after" className="mb-16">
+          <h3 id="before-after" className="text-3xl font-bold mb-8 text-center">
+            <a href="#before-after" className="anchor-link">
+              Before and After
+            </a>
+          </h3>
           <div>
             <BeforeAndAfter items={beforeAfterItems} />
           </div>
         </section>
 
         <section id="how-it-works" className="mb-16">
-          <h3 className="text-3xl font-bold mb-8 text-center">How It Works</h3>
+          <h3
+            id="how-it-works-title"
+            className="text-3xl font-bold mb-8 text-center"
+          >
+            <a href="#how-it-works-title" className="anchor-link">
+              How It Works
+            </a>
+          </h3>
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="md:w-1/2 mb-8 md:mb-0 pl-10">
               <ol className="space-y-6">
@@ -254,7 +273,11 @@ const LandingPage: React.FC = () => {
           </div>
 
           <div className="mt-8 bg-gray-100 p-6 rounded-lg">
-            <h4 className="text-xl font-semibold mb-2">Payment Structure</h4>
+            <h4 id="payment-structure" className="text-xl font-semibold mb-2">
+              <a href="#payment-structure" className="anchor-link">
+                Payment Structure
+              </a>
+            </h4>
             <p>At ZapTasks, we ensure a fair and secure transaction process:</p>
             <ul className="list-disc list-inside mt-2">
               <li>
@@ -273,7 +296,11 @@ const LandingPage: React.FC = () => {
         </section>
 
         <section id="contact" className="text-center">
-          <h3 className="text-2xl font-semibold mb-6">Ready to Get Started?</h3>
+          <h3 id="get-started" className="text-2xl font-semibold mb-6">
+            <a href="#get-started" className="anchor-link">
+              Ready to Get Started?
+            </a>
+          </h3>
           <p className="text-xl text-gray-600 mb-8">
             Experience the convenience of ZapTasks today!
           </p>

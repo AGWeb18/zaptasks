@@ -6,6 +6,7 @@ import { useUser, useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Navbar from "../components/NavBar";
 import TimeSelector from "../components/TimeSelector";
+import { format, addDays } from "date-fns";
 
 import {
   Calendar,
@@ -118,13 +119,19 @@ ZapTasks Terms and Conditions
 2. Payments and Cancellations:
    A 50% deposit is required at booking. Full payment is due upon service completion. Cancellations within 24 hours may incur a 50% fee.
 
-3. Liability:
-   ZapTasks is not liable for any damages, losses, or incomplete services. Clients are responsible for providing a safe work environment.
+3. Service Scheduling:
+   No same-day service is available. All bookings must be made at least 24 hours in advance.
 
-4. Dispute Resolution:
+4. Liability:
+   ZapTasks is not liable for any damages, losses, or incomplete services. Clients are responsible for providing a safe work environment. Service providers may perform liability checks before starting work.
+
+5. Documentation:
+   Service providers have the right to take photos before and after the service for quality assurance and dispute resolution purposes.
+
+6. Dispute Resolution:
    Unresolved issues must be reported within 48 hours. ZapTasks will mediate and may offer refunds at its sole discretion.
 
-5. Platform Usage:
+7. Platform Usage:
    ZapTasks may modify services, pricing, or these terms at any time. We reserve the right to terminate user accounts for any reason.
 
 By using ZapTasks, you agree to these terms and conditions.
@@ -166,6 +173,7 @@ const BookingPage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [amount, setAmount] = useState<number>(0);
   const [clientSecret, setClientSecret] = useState("");
+  const [minDate, setMinDate] = useState("");
 
   const handleServiceToggle = (serviceId: string) => {
     setSelectedServices((prev) =>
@@ -324,6 +332,13 @@ const BookingPage: React.FC = () => {
     const calculatedAmount = hours * people * 50 + bringEquipmentFee;
     setAmount(calculatedAmount);
   }, [hours, people, bringEquipmentFee]);
+
+  useEffect(() => {
+    // Set the minimum date to tomorrow
+    const tomorrow = addDays(new Date(), 1);
+    setMinDate(format(tomorrow, "yyyy-MM-dd"));
+  }, []);
+
   return (
     <div data-theme="light">
       <Navbar />
@@ -424,6 +439,7 @@ const BookingPage: React.FC = () => {
                           type="date"
                           value={date}
                           onChange={(e) => setDate(e.target.value)}
+                          min={minDate}
                           className="input input-bordered pl-10 w-full text-gray-900"
                           required
                         />

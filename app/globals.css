@@ -67,3 +67,12 @@
     @apply bg-background text-foreground;
   }
 }
+
+.anchor-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.anchor-link:hover {
+  text-decoration: underline;
+}
