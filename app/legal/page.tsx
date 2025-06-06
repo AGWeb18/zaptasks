@@ -28,7 +28,7 @@ const LegalPage = () => {
               <p>Service providers are independent contractors and not employees of ZapTasks. They are responsible for the quality of their work and compliance with all applicable laws and regulations.</p>
               
               <h3>5. Payments and Fees</h3>
-              <p>ZapTasks charges a <b>10% finder's fee</b> for facilitating connections and transactions between users and service providers. All fees are clearly displayed before a transaction is completed. The remainder is paid out to the provider after successful completion of the service.</p>
+              <p>ZapTasks charges a <b>10% finders fee</b> for facilitating connections and transactions between users and service providers. All fees are clearly displayed before a transaction is completed. The remainder is paid out to the provider after successful completion of the service.</p>
               
               <h3>6. Limitation of Liability</h3>
               <p>ZapTasks is not liable for any direct, indirect, incidental, special, consequential or exemplary damages resulting from your use of the service.</p>

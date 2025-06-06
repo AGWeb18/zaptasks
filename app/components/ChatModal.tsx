@@ -25,8 +25,7 @@ export default function ChatModal({ providerId, providerName, onClose }: ChatMod
       let { data: conv, error } = await supabase
         .from("conversations")
         .select("id")
-        .or(`user1.eq.${user.id},user2.eq.${user.id}`)
-        .or(`user1.eq.${providerId},user2.eq.${providerId}`)
+        .or(`(user1.eq.${user.id}&user2.eq.${providerId}),(user1.eq.${providerId}&user2.eq.${user.id})`)
         .limit(1);
       let conversation_id = conv && conv.length > 0 ? conv[0].id : null;
       if (!conversation_id) {
