@@ -1,4 +1,4 @@
-# ⚡ ZapTasks: Your Community Helper
+# ⚡ ZapTasks: Your Community Service Marketplace
 
 Welcome to ZapTasks, where we're on a mission to make life easier for everyone in our community!
 
@@ -13,9 +13,9 @@ We created ZapTasks with a simple goal: to provide a helping hand to those who n
 
 ZapTasks is here to connect you with reliable, local help for all your tasks and errands.
 
-## 🤝 Our Services
+## 🤝 Our Marketplace Services
 
-We offer a wide range of services to support our community:
+ZapTasks is a platform where local service providers can list their offerings, and people looking for help can easily find and book them. We connect clients with trusted, independent providers for a wide range of tasks.
 
 - **Handyman Help**: From fixing leaky faucets to assembling furniture
 - **Yard Work**: Lawn mowing, leaf raking, and basic landscaping
@@ -23,7 +23,13 @@ We offer a wide range of services to support our community:
 - **Pet Care**: Dog walking, feeding, and basic pet sitting
 - **Tech Support**: Help with Wi-Fi setup, printer installation, and more
 - **Event Assistance**: Extra hands for setting up parties or gatherings
-- **And More!**: If you need help, we're here to assist
+- **And More!**: If you need help, you can find a provider here
+
+## 💸 How Payments Work
+
+- Clients pay for services through the platform.
+- ZapTasks charges a **10% finder's fee** on each transaction for connecting you with a provider.
+- The remaining 90% is paid out to the provider after the service is completed.
 
 ## 💡 How It Works
 
