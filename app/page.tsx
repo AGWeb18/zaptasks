@@ -178,22 +178,24 @@ const LandingPage: React.FC = () => {
           <div className="md:w-1/2 mb-8 md:mb-0 flex flex-col justify-center">
             <h2 id="hero" className="text-4xl font-bold mb-4">
               <a href="#hero" className="anchor-link">
-                Get Help with Your Tasks, Fast!
+                Find or Offer Services in Your Community!
               </a>
             </h2>
             <p className="text-xl text-gray-600 mb-8">
-              Book skilled professionals for various services at your
-              fingertips.
+              ZapTasks is a marketplace connecting people who need help with trusted local service providers.
             </p>
-            <p className="text-xl text-gray-600 mb-8">
-              Your local marketplace for on-demand assistance with everyday
-              tasks and projects.{" "}
-            </p>
-            <Link href="/booking">
-              <button className="btn btn-lg btn-primary text-white w-full">
-                Book a Service Now
-              </button>
-            </Link>
+            <div className="flex flex-col gap-4">
+              <Link href="/providers">
+                <button className="btn btn-lg btn-primary text-white w-full">
+                  Browse Services
+                </button>
+              </Link>
+              <Link href="/become-provider">
+                <button className="btn btn-outline btn-lg w-full">
+                  Become a Provider
+                </button>
+              </Link>
+            </div>
           </div>
           <div className="md:w-1/2 mb-8 md:mb-0 flex justify-center">
             <LottieWrapper

@@ -19,7 +19,7 @@ const LegalPage = () => {
               <p>By accessing or using ZapTasks, you agree to be bound by these Terms of Service and all applicable laws and regulations. If you do not agree with any part of these terms, you may not use our service.</p>
               
               <h3>2. Description of Service</h3>
-              <p>ZapTasks is a platform that connects users with service providers for various tasks. We do not provide the services ourselves but facilitate the connection between users and providers.</p>
+              <p>ZapTasks is a <b>marketplace platform</b> that connects users with independent service providers for various tasks. We do not provide the services ourselves but facilitate the connection and transaction between users and providers.</p>
               
               <h3>3. User Responsibilities</h3>
               <p>You are responsible for maintaining the confidentiality of your account and password. You agree to accept responsibility for all activities that occur under your account.</p>
@@ -28,7 +28,7 @@ const LegalPage = () => {
               <p>Service providers are independent contractors and not employees of ZapTasks. They are responsible for the quality of their work and compliance with all applicable laws and regulations.</p>
               
               <h3>5. Payments and Fees</h3>
-              <p>ZapTasks charges a fee for facilitating connections between users and service providers. All fees are clearly displayed before a transaction is completed.</p>
+              <p>ZapTasks charges a <b>10% finders fee</b> for facilitating connections and transactions between users and service providers. All fees are clearly displayed before a transaction is completed. The remainder is paid out to the provider after successful completion of the service.</p>
               
               <h3>6. Limitation of Liability</h3>
               <p>ZapTasks is not liable for any direct, indirect, incidental, special, consequential or exemplary damages resulting from your use of the service.</p>
