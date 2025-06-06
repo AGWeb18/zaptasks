@@ -106,6 +106,7 @@ const services: Service[] = [
       "Help with setup, cleanup, and guest management for small gatherings and parties.",
   },
 ];
+
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 );

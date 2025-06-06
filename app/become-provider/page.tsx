@@ -4,6 +4,18 @@ import { useState } from "react";
 import Navbar from "../components/NavBar";
 import { createClient } from "../utils/supabase/client";
 
+const SERVICE_OPTIONS = [
+  "Handyman Services",
+  "Lawn Mowing",
+  "Deep Cleaning",
+  "Painting",
+  "Pet Care Assistance",
+  "Basic Tech Support",
+  "Event Assistance",
+  "Yard Work",
+  "Pressure Washing"
+];
+
 export default function BecomeProviderPage() {
   const [form, setForm] = useState({
     name: "",
@@ -46,36 +58,40 @@ export default function BecomeProviderPage() {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 bg-white p-6 rounded shadow">
             <input
-              className="input input-bordered w-full"
-              placeholder="Your Name"
+              className="input input-bordered w-full bg-white text-gray-900 placeholder-gray-500"
+              placeholder="Company Name"
               value={form.name}
               onChange={e => setForm({ ...form, name: e.target.value })}
               required
             />
             <input
-              className="input input-bordered w-full"
+              className="input input-bordered w-full bg-white text-gray-900 placeholder-gray-500"
               placeholder="Email"
               type="email"
               value={form.email}
               onChange={e => setForm({ ...form, email: e.target.value })}
               required
             />
-            <input
-              className="input input-bordered w-full"
-              placeholder="Service Offered (e.g. Lawn Mowing)"
+            <select
+              className="select select-bordered w-full bg-white text-gray-900"
               value={form.service}
               onChange={e => setForm({ ...form, service: e.target.value })}
               required
-            />
+            >
+              <option value="" disabled>Select a Service</option>
+              {SERVICE_OPTIONS.map(option => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
             <textarea
-              className="textarea textarea-bordered w-full"
+              className="textarea textarea-bordered w-full bg-white text-gray-900 placeholder-gray-500"
               placeholder="Service Description"
               value={form.description}
               onChange={e => setForm({ ...form, description: e.target.value })}
               required
             />
             <input
-              className="input input-bordered w-full"
+              className="input input-bordered w-full bg-white text-gray-900 placeholder-gray-500"
               placeholder="Price (e.g. $50/hour)"
               value={form.price}
               onChange={e => setForm({ ...form, price: e.target.value })}
