@@ -3,13 +3,24 @@
 import { useState, useEffect } from "react";
 import { createClient } from "../utils/supabase/client";
 import Navbar from "../components/NavBar";
-import ChatModal from "../components/ChatModal";
 import { useUser } from "@clerk/nextjs";
+
+const SERVICE_OPTIONS = [
+  "Handyman Services",
+  "Lawn Mowing",
+  "Deep Cleaning",
+  "Painting",
+  "Pet Care Assistance",
+  "Basic Tech Support",
+  "Event Assistance",
+  "Yard Work",
+  "Pressure Washing"
+];
 
 type Provider = {
   id?: string;
   name: string;
-  email: string;
+  email?: string;
   service: string;
   description: string;
   price: string;
@@ -18,21 +29,25 @@ type Provider = {
 export default function ProvidersPage() {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [search, setSearch] = useState("");
+  const [selectedService, setSelectedService] = useState("");
   const [loading, setLoading] = useState(true);
   const { user } = useUser();
-  const [chatProvider, setChatProvider] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     const fetchProviders = async () => {
       const supabase = createClient();
-      const { data, error } = await supabase.from("providers").select("*");
-      if (!error && data) setProviders(data as Provider[]);
+      let query = supabase.from("providers").select("*");
+      if (selectedService) {
+        query = query.eq("service", selectedService);
+      }
+      const { data, error } = await query;
+      if (!error && data) setProviders(data);
       setLoading(false);
     };
     fetchProviders();
-  }, []);
+  }, [selectedService]);
 
-  const filteredProviders = providers.filter((p: Provider) => {
+  const filteredProviders = providers.filter((p) => {
     const s = search.toLowerCase();
     return (
       p.name?.toLowerCase().includes(s) ||
@@ -46,13 +61,23 @@ export default function ProvidersPage() {
       <Navbar />
       <div className="container mx-auto px-4 py-12">
         <h1 className="text-3xl font-bold mb-6 text-center">Browse Service Providers</h1>
-        <div className="mb-8 flex justify-center">
+        <div className="mb-8 flex flex-col md:flex-row md:items-center md:space-x-4 space-y-4 md:space-y-0 justify-center">
           <input
-            className="input input-bordered w-full max-w-md"
-            placeholder="Search by service, provider, or description..."
+            className="input input-bordered w-full max-w-md bg-white text-gray-900 placeholder-gray-500"
+            placeholder="Search by name, service, or description..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
+          <select
+            className="select select-bordered w-full max-w-xs bg-white text-gray-900"
+            value={selectedService}
+            onChange={e => setSelectedService(e.target.value)}
+          >
+            <option value="">All Services</option>
+            {SERVICE_OPTIONS.map(option => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
         </div>
         {loading ? (
           <div className="text-center">Loading providers...</div>
@@ -72,25 +97,10 @@ export default function ProvidersPage() {
                 </div>
                 <div className="mt-4 flex items-center justify-between">
                   <span className="font-bold text-lg text-blue-700">{provider.price}</span>
-                  {user && provider.id !== user.id ? (
-                    <button
-                      className="btn btn-sm btn-primary text-white"
-                      onClick={() => setChatProvider({ id: provider.id || provider.email, name: provider.name })}
-                    >
-                      Message
-                    </button>
-                  ) : null}
                 </div>
               </div>
             ))}
           </div>
-        )}
-        {chatProvider && (
-          <ChatModal
-            providerId={chatProvider.id}
-            providerName={chatProvider.name}
-            onClose={() => setChatProvider(null)}
-          />
         )}
       </div>
     </div>
