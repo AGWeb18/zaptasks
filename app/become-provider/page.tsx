@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Navbar from "../components/NavBar";
 import { createClient } from "../utils/supabase/client";
+import { useUser } from "@clerk/nextjs";
 
 const SERVICE_OPTIONS = [
   "Handyman Services",
@@ -17,6 +18,7 @@ const SERVICE_OPTIONS = [
 ];
 
 export default function BecomeProviderPage() {
+  const { user } = useUser();
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -34,11 +36,18 @@ export default function BecomeProviderPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const { error } = await supabase.from("providers").insert([
-      { ...form }
+    // Insert a row into providers table with all required fields
+    const { error: dbError } = await supabase.from("providers").insert([
+      {
+        name: form.name,
+        service: form.service,
+        description: form.description,
+        price: form.price,
+        user_id: user?.id || null,
+      }
     ]);
     setLoading(false);
-    if (error) {
+    if (dbError) {
       setError("There was an error submitting your information. Please try again.");
       return;
     }
