@@ -21,7 +21,7 @@ export default function BecomeProviderPage() {
   const { user } = useUser();
   const [form, setForm] = useState({
     name: "",
-    email: "",
+    location: "",
     service: "",
     description: "",
     price: "",
@@ -43,6 +43,7 @@ export default function BecomeProviderPage() {
         service: form.service,
         description: form.description,
         price: form.price,
+        location: form.location,
         user_id: user?.id || null,
       }
     ]);
@@ -75,10 +76,9 @@ export default function BecomeProviderPage() {
             />
             <input
               className="input input-bordered w-full bg-white text-gray-900 placeholder-gray-500"
-              placeholder="Email"
-              type="email"
-              value={form.email}
-              onChange={e => setForm({ ...form, email: e.target.value })}
+              placeholder="Location"
+              value={form.location}
+              onChange={e => setForm({ ...form, location: e.target.value })}
               required
             />
             <select
