@@ -178,21 +178,21 @@ const LandingPage: React.FC = () => {
           <div className="md:w-1/2 mb-8 md:mb-0 flex flex-col justify-center">
             <h2 id="hero" className="text-4xl font-bold mb-4">
               <a href="#hero" className="anchor-link">
-                Find or Offer Services in Your Community!
+                Welcome to ZapTasks Marketplace!
               </a>
             </h2>
             <p className="text-xl text-gray-600 mb-8">
-              ZapTasks is a marketplace connecting people who need help with trusted local service providers.
+              ZapTasks is your local community marketplace—find, compare, and book trusted service providers, or offer your own services to neighbors in need.
             </p>
             <div className="flex flex-col gap-4">
               <Link href="/providers">
                 <button className="btn btn-lg btn-primary text-white w-full">
-                  Browse Services
+                  Browse Marketplace
                 </button>
               </Link>
               <Link href="/become-provider">
-                <button className="btn btn-outline btn-lg w-full">
-                  Become a Provider
+                <button className="btn btn-outline btn-lg w-full border-2 border-yellow-400 text-yellow-600 hover:bg-yellow-400 hover:text-white transition-colors duration-200">
+                  List Your Service
                 </button>
               </Link>
             </div>
@@ -246,23 +246,57 @@ const LandingPage: React.FC = () => {
             className="text-3xl font-bold mb-8 text-center"
           >
             <a href="#how-it-works-title" className="anchor-link">
-              How It Works
+              How the Marketplace Works
             </a>
           </h3>
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="md:w-1/2 mb-8 md:mb-0 pl-10">
               <ol className="space-y-6">
-                {steps.map((step, index) => (
-                  <li key={index} className="flex items-start">
-                    <span className="flex items-center justify-center rounded-full w-10 h-10 mr-4 flex-shrink-0">
-                      {step.icon}
-                    </span>
-                    <div>
-                      <p className="font-semibold">{`Step ${index + 1}`}</p>
-                      <p>{step.text}</p>
-                    </div>
-                  </li>
-                ))}
+                <li className="flex items-start">
+                  <span className="flex items-center justify-center rounded-full w-10 h-10 mr-4 flex-shrink-0">
+                    <CheckCircle className="w-6 h-6 text-primary" />
+                  </span>
+                  <div>
+                    <p className="font-semibold">Step 1</p>
+                    <p>Browse and compare a variety of local services and providers.</p>
+                  </div>
+                </li>
+                <li className="flex items-start">
+                  <span className="flex items-center justify-center rounded-full w-10 h-10 mr-4 flex-shrink-0">
+                    <Calendar className="w-6 h-6 text-primary" />
+                  </span>
+                  <div>
+                    <p className="font-semibold">Step 2</p>
+                    <p>Book your preferred provider for the date and time you need.</p>
+                  </div>
+                </li>
+                <li className="flex items-start">
+                  <span className="flex items-center justify-center rounded-full w-10 h-10 mr-4 flex-shrink-0">
+                    <CreditCard className="w-6 h-6 text-primary" />
+                  </span>
+                  <div>
+                    <p className="font-semibold">Step 3</p>
+                    <p>Pay a secure, refundable deposit to reserve your booking.</p>
+                  </div>
+                </li>
+                <li className="flex items-start">
+                  <span className="flex items-center justify-center rounded-full w-10 h-10 mr-4 flex-shrink-0">
+                    <UserCheck className="w-6 h-6 text-primary" />
+                  </span>
+                  <div>
+                    <p className="font-semibold">Step 4</p>
+                    <p>Get your task completed by a trusted local provider.</p>
+                  </div>
+                </li>
+                <li className="flex items-start">
+                  <span className="flex items-center justify-center rounded-full w-10 h-10 mr-4 flex-shrink-0">
+                    <ThumbsUp className="w-6 h-6 text-primary" />
+                  </span>
+                  <div>
+                    <p className="font-semibold">Step 5</p>
+                    <p>Pay the remaining balance and leave a review to help others in the marketplace.</p>
+                  </div>
+                </li>
               </ol>
             </div>
             <div className="md:w-1/2 flex justify-center">
@@ -273,26 +307,17 @@ const LandingPage: React.FC = () => {
               />
             </div>
           </div>
-
           <div className="mt-8 bg-gray-100 p-6 rounded-lg">
             <h4 id="payment-structure" className="text-xl font-semibold mb-2">
               <a href="#payment-structure" className="anchor-link">
-                Payment Structure
+                Marketplace Payment Structure
               </a>
             </h4>
-            <p>At ZapTasks, we ensure a fair and secure transaction process:</p>
+            <p>ZapTasks ensures secure, fair transactions for all marketplace users:</p>
             <ul className="list-disc list-inside mt-2">
-              <li>
-                You pay a refundable 50% deposit upfront when booking a service.
-              </li>
-              <li>
-                The remaining 50% is paid after the task is successfully
-                completed.
-              </li>
-              <li>
-                This structure protects both you and our service providers,
-                ensuring quality work and timely payments.
-              </li>
+              <li>Pay a refundable 50% deposit to secure your booking.</li>
+              <li>Pay the remaining 50% after your task is completed to your satisfaction.</li>
+              <li>Our structure protects both clients and providers, ensuring quality and trust in every transaction.</li>
             </ul>
           </div>
         </section>

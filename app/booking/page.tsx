@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "../utils/supabase/client";
 import { useUser, useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Navbar from "../components/NavBar";
@@ -141,7 +141,7 @@ By using ZapTasks, you agree to these terms and conditions.
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient();
 
 const BookingPage: React.FC = () => {
   const { isLoaded, isSignedIn, user } = useUser();
@@ -175,6 +175,15 @@ const BookingPage: React.FC = () => {
   const [amount, setAmount] = useState<number>(0);
   const [clientSecret, setClientSecret] = useState("");
   const [minDate, setMinDate] = useState("");
+  const [selectedProviderId, setSelectedProviderId] = useState<string>("");
+
+  const [providerOptions, setProviderOptions] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.from("providers").select("id, name").then(({ data, error }) => {
+      if (!error && data) setProviderOptions(data);
+    });
+  }, []);
 
   const handleServiceToggle = (serviceId: string) => {
     setSelectedServices((prev) =>
@@ -264,6 +273,7 @@ const BookingPage: React.FC = () => {
           description,
           address: selectedAddress,
           bringEquipment,
+          providerId: selectedProviderId, // Pass selected provider
         }),
       });
 
@@ -357,6 +367,21 @@ const BookingPage: React.FC = () => {
               </p>
 
               <form onSubmit={handleSubmit}>
+                <div className="mb-6">
+                  <label className="block mb-2 font-semibold">Select a Provider</label>
+                  <select
+                    className="select select-bordered w-full max-w-xs bg-white text-gray-900"
+                    value={selectedProviderId}
+                    onChange={e => setSelectedProviderId(e.target.value)}
+                    required
+                  >
+                    <option value="" disabled>Select a provider...</option>
+                    {providerOptions.map((provider) => (
+                      <option key={provider.id} value={provider.id}>{provider.name}</option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-6">
                   {services.map((service) => (
                     <div key={service.id} className="form-control">
