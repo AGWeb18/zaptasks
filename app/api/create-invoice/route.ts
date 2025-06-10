@@ -1,6 +1,8 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { getAuth } from '@clerk/nextjs/server';
 import Stripe from 'stripe';
+import { cookies } from "next/headers";
+import { createClient } from "@/app/utils/supabase/server";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-06-20',
@@ -24,31 +26,45 @@ function calculateDaysUntilDue(serviceDate: string): number {
 export async function POST(req: NextRequest) {
   try {
     const { userId } = getAuth(req);
-    
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { 
-      amount, 
-      customerId, 
-      services, 
-      date, 
-      time, 
-      hours, 
-      people, 
-      description, 
-      address, 
-      bringEquipment 
+    // Accept providerId from the request
+    const {
+      amount,
+      customerId,
+      services,
+      date,
+      time,
+      hours,
+      people,
+      description,
+      address,
+      bringEquipment,
+      providerId // <-- new
     } = await req.json();
 
-    if (!amount || isNaN(amount) || !customerId) {
-      return NextResponse.json({ error: 'Invalid amount or customer ID' }, { status: 400 });
+    if (!amount || isNaN(amount) || !customerId || !providerId) {
+      return NextResponse.json({ error: 'Invalid amount, customer ID, or provider ID' }, { status: 400 });
     }
+
+    // Look up provider's Stripe account ID from Supabase
+    const supabase = createClient(cookies());
+    const { data: provider, error: providerError } = await supabase
+      .from("providers")
+      .select("stripe_account_id")
+      .eq("id", providerId)
+      .single();
+    if (providerError || !provider?.stripe_account_id) {
+      return NextResponse.json({ error: 'Provider Stripe account not found' }, { status: 400 });
+    }
+    const providerStripeAccountId = provider.stripe_account_id;
 
     const totalAmount = Math.round(amount * 100); // Convert to cents
     const depositAmount = Math.round(totalAmount * 0.5); // 50% deposit
     const remainingAmount = totalAmount - depositAmount;
+    const applicationFee = Math.round(totalAmount * 0.10); // 10% platform fee
 
     // Create metadata object
     const metadata = {
@@ -71,6 +87,10 @@ export async function POST(req: NextRequest) {
       collection_method: 'send_invoice',
       days_until_due: 0, // Due immediately
       metadata: { ...metadata, invoiceType: 'deposit' },
+      // For Connect: set on_behalf_of and transfer_data
+      on_behalf_of: providerStripeAccountId,
+      transfer_data: { destination: providerStripeAccountId },
+      application_fee_amount: applicationFee,
     });
 
     // Add deposit invoice item
@@ -105,7 +125,7 @@ export async function POST(req: NextRequest) {
     await stripe.invoices.finalizeInvoice(remainderInvoice.id);
     await stripe.invoices.sendInvoice(remainderInvoice.id);
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       depositInvoiceId: depositInvoice.id,
       depositInvoiceUrl: depositInvoice.hosted_invoice_url,
       remainderInvoiceId: remainderInvoice.id,

@@ -21,6 +21,22 @@ const Navbar: React.FC = () => {
             <ul className="flex space-x-4 items-center">
               <li>
                 <Link
+                  href="/providers"
+                  className="text-gray-600 hover:text-blue-600"
+                >
+                  Marketplace
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/become-provider"
+                  className="text-gray-600 hover:text-yellow-600"
+                >
+                  List Your Service
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/booking"
                   className="text-gray-600 hover:text-blue-600"
                 >
@@ -71,6 +87,22 @@ const Navbar: React.FC = () => {
         {isMenuOpen && (
           <nav className="md:hidden mt-4">
             <ul className="flex flex-col space-y-2">
+              <li>
+                <Link
+                  href="/providers"
+                  className="block text-gray-600 hover:text-blue-600"
+                >
+                  Marketplace
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/become-provider"
+                  className="block text-gray-600 hover:text-yellow-600"
+                >
+                  List Your Service
+                </Link>
+              </li>
               <li>
                 <Link
                   href="/booking"

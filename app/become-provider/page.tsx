@@ -4,6 +4,7 @@ import { useState } from "react";
 import Navbar from "../components/NavBar";
 import { createClient } from "../utils/supabase/client";
 import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 
 const SERVICE_OPTIONS = [
   "Handyman Services",
@@ -19,6 +20,7 @@ const SERVICE_OPTIONS = [
 
 export default function BecomeProviderPage() {
   const { user } = useUser();
+  const router = useRouter();
   const [form, setForm] = useState({
     name: "",
     location: "",
@@ -29,6 +31,7 @@ export default function BecomeProviderPage() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [onboardingLoading, setOnboardingLoading] = useState(false);
 
   const supabase = createClient();
 
@@ -55,6 +58,31 @@ export default function BecomeProviderPage() {
     setSubmitted(true);
   };
 
+  const handleStripeOnboard = async () => {
+    setOnboardingLoading(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/stripe-connect-onboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user?.primaryEmailAddress?.emailAddress }),
+      });
+      const data = await response.json();
+      if (data.url) {
+        // Save the Stripe accountId to the provider's record in Supabase
+        await supabase.from("providers").update({ stripe_account_id: data.accountId }).eq("user_id", user?.id);
+        // Redirect to Stripe onboarding
+        window.location.href = data.url;
+      } else {
+        setError("Failed to start Stripe onboarding.");
+      }
+    } catch (err) {
+      setError("Error connecting to Stripe. Please try again.");
+    } finally {
+      setOnboardingLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white text-gray-800">
       <Navbar />
@@ -64,6 +92,14 @@ export default function BecomeProviderPage() {
           <div className="bg-green-100 p-6 rounded text-center">
             <h2 className="text-xl font-semibold mb-2">Thank you for signing up!</h2>
             <p>We will review your submission and contact you soon.</p>
+            <button
+              type="button"
+              className="btn btn-outline w-full mt-2"
+              onClick={handleStripeOnboard}
+              disabled={onboardingLoading || loading}
+            >
+              {onboardingLoading ? "Redirecting to Stripe..." : "Connect Stripe for Payouts"}
+            </button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 bg-white p-6 rounded shadow">
