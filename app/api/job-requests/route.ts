@@ -157,7 +157,7 @@ export async function PATCH(req: NextRequest) {
 
     if (status === "awarded" && selectedApplicationId) {
       const selectedApplication = jobRequest.job_applications?.find(
-        (app) => app.id === selectedApplicationId
+        (app: { id: string }) => app.id === selectedApplicationId
       );
 
       if (!selectedApplication) {

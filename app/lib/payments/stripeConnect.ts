@@ -141,9 +141,9 @@ export async function createJobInvoices({
 
   return {
     depositInvoiceId: depositInvoice.id,
-    depositInvoiceUrl: depositInvoice.hosted_invoice_url,
+    depositInvoiceUrl: depositInvoice.hosted_invoice_url ?? null,
     remainderInvoiceId: remainderInvoice.id,
-    remainderInvoiceUrl: remainderInvoice.hosted_invoice_url,
+    remainderInvoiceUrl: remainderInvoice.hosted_invoice_url ?? null,
     totals: {
       jobSubtotalCents: totalJobCents,
       homeownerTotalCents: customerTotalCents,
