@@ -2,14 +2,18 @@
 
 import { useMemo, useState } from "react";
 import Navbar from "../components/NavBar";
+import SiteFooter from "../components/SiteFooter";
 import { createClient } from "../utils/supabase/client";
 import { useUser } from "@clerk/nextjs";
+import { Compass, Loader2, ShieldCheck, Zap } from "lucide-react";
 
 const SERVICE_OPTIONS = [
-  { value: "Snow & Lawn Care", label: "Snow removal & ice control" },
-  { value: "Handyman & Repairs", label: "Winter repairs & weatherproofing" },
-  { value: "Home Cleaning", label: "Holiday cleaning & turnover" },
+  { value: "Home Repairs", label: "Home repairs & punch lists" },
+  { value: "Cleaning & Turnover", label: "Cleaning & turnover" },
+  { value: "Outdoor & Seasonal", label: "Outdoor & seasonal upkeep" },
 ];
+
+const AVAILABILITY_OPTIONS = ["Weekdays", "Weeknights", "Weekends", "Emergency on-call"];
 
 export default function OfferServicesPage() {
   const { user } = useUser();
@@ -27,6 +31,11 @@ export default function OfferServicesPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [onboardingLoading, setOnboardingLoading] = useState(false);
+  const [experienceYears, setExperienceYears] = useState("3");
+  const [selectedAvailability, setSelectedAvailability] = useState<string[]>(["Weekdays"]);
+  const [hasInsurance, setHasInsurance] = useState(true);
+  const [acceptsVerification, setAcceptsVerification] = useState(true);
+  const [geoLoading, setGeoLoading] = useState(false);
 
   const supabase = createClient();
 
@@ -62,6 +71,12 @@ export default function OfferServicesPage() {
       return;
     }
 
+    if (!acceptsVerification) {
+      setLoading(false);
+      setError("Providers must agree to Stripe Identity verification.");
+      return;
+    }
+
     const pricingPayload = {
       currency: "CAD",
       pricingType,
@@ -69,6 +84,9 @@ export default function OfferServicesPage() {
       flatFee: numericFlatFee,
       minimumHours: numericMinimumHours,
       display: pricingDisplay,
+      availability: selectedAvailability,
+      experienceYears: Number(experienceYears || 0),
+      hasInsurance,
     };
 
     const baseRecord = {
@@ -89,6 +107,33 @@ export default function OfferServicesPage() {
     setSubmitted(true);
   };
 
+  const handleAvailabilityToggle = (value: string) => {
+    setSelectedAvailability((prev) =>
+      prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value],
+    );
+  };
+
+  const handleUseCurrentLocation = async () => {
+    if (!navigator?.geolocation) return;
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        try {
+          const response = await fetch(`/api/reverse-geocode?lat=${coords.latitude}&lng=${coords.longitude}`);
+          const data = await response.json();
+          if (data.formattedAddress) {
+            setForm((prev) => ({ ...prev, location: data.formattedAddress }));
+          }
+        } catch (err) {
+          console.error("Geolocation lookup failed", err);
+        } finally {
+          setGeoLoading(false);
+        }
+      },
+      () => setGeoLoading(false),
+    );
+  };
+
   const handleStripeOnboard = async () => {
     setOnboardingLoading(true);
     setError(null);
@@ -100,9 +145,7 @@ export default function OfferServicesPage() {
       });
       const data = await response.json();
       if (data.url) {
-        // Save the Stripe accountId to the provider's record in Supabase
         await supabase.from("providers").update({ stripe_account_id: data.accountId }).eq("user_id", user?.id);
-        // Redirect to Stripe onboarding
         window.location.href = data.url;
       } else {
         setError("Failed to start Stripe onboarding.");
@@ -115,61 +158,123 @@ export default function OfferServicesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white text-gray-800">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50/60 to-white text-gray-800 flex flex-col">
       <Navbar />
-      <div className="container mx-auto px-4 py-12 max-w-xl">
-        <h1 className="text-3xl font-bold mb-2 text-center">Offer Your Home Services</h1>
-        <p className="text-center text-gray-600 mb-6">
-          Join our Canadian-owned marketplace and help Kawarthas and GTA neighbours get winter-ready—from ice control to holiday clean-ups.
-        </p>
+      <div className="container mx-auto px-4 py-12 max-w-3xl flex-1">
+        <div className="text-center mb-8">
+          <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm text-xs font-semibold uppercase text-blue-700">
+            <Zap className="h-4 w-4" /> 1-minute onboarding
+          </span>
+          <h1 className="text-3xl font-bold mt-4">Offer Your Home Services</h1>
+          <p className="text-gray-600 mt-2">
+            Join our Canadian-owned marketplace and help Kawarthas and GTA neighbours keep their homes running smoothly. Complete the essentials below—verification and payouts are handled automatically.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 text-sm text-slate-600">
+          <div className="bg-white rounded-xl border border-slate-200 p-4">
+            <p className="font-semibold text-slate-900">Step 1</p>
+            <p>Tell us who you are and where you work.</p>
+          </div>
+          <div className="bg-white rounded-xl border border-slate-200 p-4">
+            <p className="font-semibold text-slate-900">Step 2</p>
+            <p>Share your specialties and availability.</p>
+          </div>
+          <div className="bg-white rounded-xl border border-slate-200 p-4">
+            <p className="font-semibold text-slate-900">Step 3</p>
+            <p>Connect Stripe payouts and verify ID.</p>
+          </div>
+        </div>
         {submitted ? (
-          <div className="bg-green-100 p-6 rounded text-center">
+          <div className="bg-emerald-50 border border-emerald-200 p-6 rounded-2xl text-center">
             <h2 className="text-xl font-semibold mb-2">Thanks for listing your skills!</h2>
-            <p>We&apos;ll review your details and follow up with next steps so you can start accepting seasonal jobs.</p>
+            <p className="text-slate-600">
+              We&apos;ll review your details within 1 business day. Next, complete payout onboarding so you can accept jobs and receive deposits automatically.
+            </p>
             <button
               type="button"
-              className="btn btn-outline w-full mt-2"
+              className="btn btn-primary w-full mt-4 text-white"
               onClick={handleStripeOnboard}
               disabled={onboardingLoading || loading}
             >
               {onboardingLoading ? "Redirecting to Stripe..." : "Set up payouts with Stripe"}
             </button>
+            <p className="text-xs text-slate-500 mt-3">
+              Stripe Identity verification is required for ZapTasks badges and to receive funds.
+            </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4 bg-white p-6 rounded shadow">
-            <input
-              className="input input-bordered w-full bg-white text-gray-900 placeholder-gray-500"
-              placeholder="Business or trade name"
-              value={form.name}
-              onChange={e => setForm({ ...form, name: e.target.value })}
-              required
-            />
-            <input
-              className="input input-bordered w-full bg-white text-gray-900 placeholder-gray-500"
-              placeholder="Service area (city or region)"
-              value={form.location}
-              onChange={e => setForm({ ...form, location: e.target.value })}
-              required
-            />
+          <form onSubmit={handleSubmit} className="space-y-6 bg-white p-8 rounded-3xl shadow-lg border border-slate-100">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input
+                className="input input-bordered w-full bg-white text-gray-900 placeholder-gray-500"
+                placeholder="Business or trade name"
+                value={form.name}
+                onChange={e => setForm({ ...form, name: e.target.value })}
+                required
+              />
+              <div className="relative">
+                <input
+                  className="input input-bordered w-full bg-white text-gray-900 placeholder-gray-500"
+                  placeholder="Service area (city, postal code)"
+                  value={form.location}
+                  onChange={e => setForm({ ...form, location: e.target.value })}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={handleUseCurrentLocation}
+                  className="btn btn-ghost btn-sm absolute right-2 top-2"
+                >
+                  {geoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Compass className="h-4 w-4 text-blue-600" />}
+                </button>
+              </div>
+            </div>
             <select
               className="select select-bordered w-full bg-white text-gray-900"
               value={form.service}
               onChange={e => setForm({ ...form, service: e.target.value })}
               required
             >
-              <option value="" disabled>Select a seasonal specialty</option>
+              <option value="" disabled>Select your primary service</option>
               {SERVICE_OPTIONS.map(option => (
                 <option key={option.value} value={option.value}>{option.label}</option>
               ))}
             </select>
             <textarea
               className="textarea textarea-bordered w-full bg-white text-gray-900 placeholder-gray-500"
-              placeholder="Describe your fall & winter specialties"
+              placeholder="Describe the jobs you love, certifications, equipment, and travel radius"
               value={form.description}
               onChange={e => setForm({ ...form, description: e.target.value })}
               required
             />
-            <div className="bg-slate-50 border border-slate-200 rounded-md p-4 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="form-control w-full">
+                <span className="label-text">Years of experience</span>
+                <input
+                  type="number"
+                  min={0}
+                  className="input input-bordered"
+                  value={experienceYears}
+                  onChange={e => setExperienceYears(e.target.value)}
+                />
+              </label>
+              <label className="form-control w-full">
+                <span className="label-text">Availability</span>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {AVAILABILITY_OPTIONS.map((option) => (
+                    <button
+                      type="button"
+                      key={option}
+                      onClick={() => handleAvailabilityToggle(option)}
+                      className={`btn btn-xs ${selectedAvailability.includes(option) ? "btn-primary" : "btn-outline"}`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </label>
+            </div>
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-4">
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-semibold text-gray-700" htmlFor="pricingType">
                   Pricing model
@@ -198,12 +303,11 @@ export default function OfferServicesPage() {
                       className="input input-bordered w-full bg-white text-gray-900"
                       value={hourlyRate}
                       onChange={e => setHourlyRate(e.target.value)}
-                      required
                     />
                   </div>
                   <div className="flex flex-col gap-2">
                     <label className="text-sm font-semibold text-gray-700" htmlFor="minimumHours">
-                      Minimum billable hours
+                      Minimum hours
                     </label>
                     <input
                       id="minimumHours"
@@ -212,41 +316,66 @@ export default function OfferServicesPage() {
                       className="input input-bordered w-full bg-white text-gray-900"
                       value={minimumHours}
                       onChange={e => setMinimumHours(e.target.value)}
-                      required
                     />
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-semibold text-gray-700" htmlFor="flatFee">
-                    Flat project fee (CAD)
-                  </label>
-                  <input
-                    id="flatFee"
-                    type="number"
-                    min="1"
-                    className="input input-bordered w-full bg-white text-gray-900"
-                    value={flatFee}
-                    onChange={e => setFlatFee(e.target.value)}
-                    required
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-semibold text-gray-700" htmlFor="flatFee">
+                      Project fee (CAD)
+                    </label>
+                    <input
+                      id="flatFee"
+                      type="number"
+                      min="1"
+                      className="input input-bordered w-full bg-white text-gray-900"
+                      value={flatFee}
+                      onChange={e => setFlatFee(e.target.value)}
+                    />
+                  </div>
                 </div>
               )}
-
-              <p className="text-sm text-gray-600">
-                Homeowners pay a 50% deposit up front. ZapTasks automatically retains a 10% service fee from both sides through Stripe Connect, so you never chase payments.
-              </p>
-              <div className="rounded bg-white border border-dashed border-slate-300 p-3 text-sm text-gray-700">
-                <span className="font-semibold">Displayed to homeowners:</span> {pricingDisplay}
-              </div>
             </div>
-            <button className="btn btn-primary w-full" type="submit" disabled={loading}>
-              {loading ? "Submitting..." : "List my seasonal service"}
+            <div className="flex flex-col gap-3 text-sm text-slate-600">
+              <label className="inline-flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={hasInsurance}
+                  onChange={e => setHasInsurance(e.target.checked)}
+                  className="checkbox checkbox-sm"
+                />
+                I carry liability insurance or will provide proof before first booking.
+              </label>
+              <label className="inline-flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={acceptsVerification}
+                  onChange={e => setAcceptsVerification(e.target.checked)}
+                  className="checkbox checkbox-sm"
+                  required
+                />
+                I agree to complete Stripe Identity verification for a ZapTasks “Verified” badge.
+              </label>
+            </div>
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+            <button
+              type="submit"
+              className="btn btn-primary w-full text-white"
+              disabled={loading}
+            >
+              {loading ? "Submitting..." : "Finish in under a minute"}
             </button>
-            {error && <p className="text-red-500 text-center mt-2">{error}</p>}
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-blue-900 flex items-start gap-3">
+              <ShieldCheck className="h-5 w-5" />
+              <span>
+                Once you&apos;re approved, deposits flow instantly via Stripe Connect. ZapTasks takes a small platform fee so you keep more of every booking.
+              </span>
+            </div>
           </form>
         )}
       </div>
+      <SiteFooter />
     </div>
   );
 }

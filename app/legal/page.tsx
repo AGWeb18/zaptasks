@@ -1,83 +1,83 @@
-// app/legal/page.tsx
-import React from 'react';
-import Link from 'next/link';
+import Navbar from "../components/NavBar";
+import SiteFooter from "../components/SiteFooter";
 
-const LegalPage = () => {
+const lastUpdated = new Date().toLocaleDateString("en-CA", {
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+});
+
+export default function LegalPage() {
   return (
-    <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8 text-center">Legal Information</h1>
-        
-        <div className="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
-          <div className="px-4 py-5 sm:px-6">
-            <h2 className="text-2xl font-semibold mb-4">Terms of Service</h2>
-            <p className="mb-4">Last updated: {new Date().toLocaleDateString()}</p>
-            <div className="prose max-w-none">
-              <p>Welcome to ZapTasks. By using our service, you agree to these terms. Please read them carefully.</p>
-              
-              <h3>1. Acceptance of Terms</h3>
-              <p>By accessing or using ZapTasks, you agree to be bound by these Terms of Service and all applicable laws and regulations. If you do not agree with any part of these terms, you may not use our service.</p>
-              
-              <h3>2. Description of Service</h3>
-              <p>ZapTasks is a <b>marketplace platform</b> that connects users with independent service providers for various tasks. We do not provide the services ourselves but facilitate the connection and transaction between users and providers.</p>
-              
-              <h3>3. User Responsibilities</h3>
-              <p>You are responsible for maintaining the confidentiality of your account and password. You agree to accept responsibility for all activities that occur under your account.</p>
-              
-              <h3>4. Service Provider Responsibilities</h3>
-              <p>Service providers are independent contractors and not employees of ZapTasks. They are responsible for the quality of their work and compliance with all applicable laws and regulations.</p>
-              
-              <h3>5. Payments and Fees</h3>
-              <p>ZapTasks charges a <b>10% finders fee</b> for facilitating connections and transactions between users and service providers. All fees are clearly displayed before a transaction is completed. The remainder is paid out to the provider after successful completion of the service.</p>
-              
-              <h3>6. Limitation of Liability</h3>
-              <p>ZapTasks is not liable for any direct, indirect, incidental, special, consequential or exemplary damages resulting from your use of the service.</p>
-              
-              <h3>7. Changes to Terms</h3>
-              <p>We reserve the right to modify these terms at any time. We will provide notice of significant changes by posting an announcement on our website.</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-          <div className="px-4 py-5 sm:px-6">
-            <h2 className="text-2xl font-semibold mb-4">Privacy Policy</h2>
-            <p className="mb-4">Last updated: {new Date().toLocaleDateString()}</p>
-            <div className="prose max-w-none">
-              <p>Your privacy is important to us. This Privacy Policy explains how we collect, use, and protect your personal information.</p>
-              
-              <h3>1. Information We Collect</h3>
-              <p>We collect information you provide directly to us, such as when you create an account, request a service, or contact customer support. This may include your name, email address, phone number, and location.</p>
-              
-              <h3>2. How We Use Your Information</h3>
-              <p>We use your information to provide, maintain, and improve our services, process transactions, send you technical notices and support messages, and respond to your comments and questions.</p>
-              
-              <h3>3. Information Sharing</h3>
-              <p>We share your information with service providers as necessary to provide our service. We may also share information to comply with legal obligations or to protect our rights.</p>
-              
-              <h3>4. Data Security</h3>
-              <p>We implement reasonable security measures to protect your personal information from unauthorized access, alteration, disclosure, or destruction.</p>
-              
-              <h3>5. Your Rights</h3>
-              <p>You have the right to access, correct, or delete your personal information. You may also have the right to restrict or object to certain processing of your data.</p>
-              
-              <h3>6. Changes to This Policy</h3>
-              <p>We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page.</p>
-              
-              <h3>7. Contact Us</h3>
-              <p>If you have any questions about this Privacy Policy, please contact us at privacy@zaptasks.com.</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="mt-8 text-center">
-          <Link href="/" className="text-blue-600 hover:text-blue-800">
-            Return to Home
-          </Link>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-b from-blue-50/40 to-white text-slate-800 flex flex-col">
+      <Navbar />
+      <main className="container mx-auto px-4 py-12 flex-1 max-w-4xl space-y-10">
+        <header className="text-center">
+          <h1 className="text-3xl md:text-4xl font-bold">Legal centre</h1>
+          <p className="text-sm text-slate-500 mt-2">Updated {lastUpdated}</p>
+        </header>
+
+        <section className="bg-white border border-slate-200 rounded-3xl shadow-sm p-8 space-y-4">
+          <h2 className="text-2xl font-semibold text-slate-900">Terms of Service</h2>
+          <p className="text-sm text-slate-600">
+            ZapTasks Inc. (&quot;ZapTasks&quot;, &quot;we&quot;, &quot;us&quot;) operates a Canadian marketplace connecting homeowners with independent service providers.
+          </p>
+          <h3 className="text-lg font-semibold text-slate-900">1. Acceptance</h3>
+          <p className="text-sm text-slate-600">
+            By using ZapTasks, you agree to these terms, our Privacy Policy, and any supplemental policies posted on the platform. If you do not agree, do not use the service.
+          </p>
+          <h3 className="text-lg font-semibold text-slate-900">2. Marketplace role</h3>
+          <p className="text-sm text-slate-600">
+            We facilitate bookings, escrow-style payments, verification, and dispute support. Providers are independent contractors responsible for their work, insurance, and compliance with Ontario regulations.
+          </p>
+          <h3 className="text-lg font-semibold text-slate-900">3. Fees</h3>
+          <p className="text-sm text-slate-600">
+            Homeowners pay no booking fee. Providers pay a 15% platform fee on completed jobs, or 10% + $9/month for the Priority plan. Fees are deducted automatically from Stripe Connect payouts.
+          </p>
+          <h3 className="text-lg font-semibold text-slate-900">4. Deposits & releases</h3>
+          <p className="text-sm text-slate-600">
+            A 50% deposit is collected at booking and held via Stripe Connect. The remaining 50% is released upon homeowner approval. ZapTasks may pause payouts during disputes until resolution.
+          </p>
+          <h3 className="text-lg font-semibold text-slate-900">5. Liability</h3>
+          <p className="text-sm text-slate-600">
+            We are not liable for indirect or consequential damages. Our aggregate liability is limited to fees paid to us in the preceding 12 months.
+          </p>
+        </section>
+
+        <section className="bg-white border border-slate-200 rounded-3xl shadow-sm p-8 space-y-4">
+          <h2 className="text-2xl font-semibold text-slate-900">Privacy policy</h2>
+          <p className="text-sm text-slate-600">
+            We collect personal information needed to operate the marketplace, verify providers, process payments, and deliver support.
+          </p>
+          <h3 className="text-lg font-semibold text-slate-900">1. Data collection</h3>
+          <p className="text-sm text-slate-600">
+            We collect account information, booking details, communications, and payment identifiers. Provider identity documents are processed and stored by Stripe.
+          </p>
+          <h3 className="text-lg font-semibold text-slate-900">2. Usage</h3>
+          <p className="text-sm text-slate-600">
+            Data is used for matching, messaging, analytics, marketing (with consent), and compliance reporting. We retain data only as long as necessary.
+          </p>
+          <h3 className="text-lg font-semibold text-slate-900">3. Sharing</h3>
+          <p className="text-sm text-slate-600">
+            We share relevant information with providers/homeowners involved in a booking, payment processors, analytics tools, and law enforcement if required.
+          </p>
+          <h3 className="text-lg font-semibold text-slate-900">4. Security</h3>
+          <p className="text-sm text-slate-600">
+            We use HTTPS, role-based access, audit logging, and Stripe Connect to protect sensitive data. Notify us immediately at privacy@zaptasks.com if you suspect unauthorized access.
+          </p>
+        </section>
+
+        <section className="bg-blue-50 border border-blue-100 rounded-3xl p-8 text-sm text-blue-900/90">
+          <h2 className="text-xl font-semibold text-blue-900">Dispute resolution</h2>
+          <ol className="list-decimal list-inside space-y-2 mt-3">
+            <li>Contact support within 24 hours of the issue. We pause the remaining 50% payout.</li>
+            <li>Submit photos, chat transcripts, and receipts. Providers may propose a fix or refund.</li>
+            <li>ZapTasks mediates within 48 hours. Possible outcomes include partial refund, rework, or payout release.</li>
+          </ol>
+          <p className="mt-4">Escalations: hello@zaptasks.com • 1-888-ZAP-TASK (voicemail)</p>
+        </section>
+      </main>
+      <SiteFooter />
     </div>
   );
-};
-
-export default LegalPage;
+}

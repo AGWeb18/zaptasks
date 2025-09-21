@@ -52,6 +52,30 @@ const Navbar: React.FC = () => {
                 </Link>
               </li>
               <li>
+                <Link
+                  href="/pricing"
+                  className="hover:text-blue-600 transition-colors"
+                >
+                  Pricing
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/blog"
+                  className="hover:text-blue-600 transition-colors"
+                >
+                  Blog
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/faq"
+                  className="hover:text-blue-600 transition-colors"
+                >
+                  Trust & FAQ
+                </Link>
+              </li>
+              <li>
                 <SignedIn>
                   <Link
                     href="/manage-booking"
@@ -119,6 +143,30 @@ const Navbar: React.FC = () => {
                   className="block hover:text-blue-600"
                 >
                   Open Jobs
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/pricing"
+                  className="block hover:text-blue-600"
+                >
+                  Pricing
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/blog"
+                  className="block hover:text-blue-600"
+                >
+                  Blog
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/faq"
+                  className="block hover:text-blue-600"
+                >
+                  Trust & FAQ
                 </Link>
               </li>
               <li>

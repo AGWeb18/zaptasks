@@ -5,17 +5,18 @@ import { useUser } from "@clerk/nextjs";
 import Navbar from "../components/NavBar";
 import TimeSelector from "../components/TimeSelector";
 import { format, addDays } from "date-fns";
+import { useSearchParams } from "next/navigation";
 
 import {
   Calendar,
   Clock,
   Users,
   MapPin,
-  Snowflake,
   Sparkles,
   ChevronDown,
   ChevronUp,
   Hammer,
+  Trees,
 } from "lucide-react";
 import AddressAutocomplete from "../components/AddressAutocomplete";
 
@@ -29,32 +30,20 @@ interface Service {
 
 const services: Service[] = [
   {
-    id: "snow-ice",
-    name: "Snow Removal & Ice Control",
-    icon: <Snowflake className="w-6 h-6" />,
-    examples: [
-      "Driveway plowing",
-      "Walkway salting",
-      "Emergency snow blowing",
-    ],
-    description:
-      "Keep paths clear across the Kawarthas and GTA with on-call crews for overnight snowfalls and freeze-thaw cycles.",
-  },
-  {
-    id: "winterize",
-    name: "Winter Repairs & Weatherproofing",
+    id: "home-repairs",
+    name: "Home Repairs",
     icon: <Hammer className="w-6 h-6" />,
     examples: [
-      "Draft sealing & weatherstripping",
-      "Gutter guard installs",
-      "Cottage winter close-up",
+      "Punch-list fixes",
+      "Fixture installs",
+      "Emergency handyman visits",
     ],
     description:
-      "Licensed pros tackling cold-weather fixes, roofline checks, and cottage winterization before deep freezes arrive.",
+      "Licensed trades tackling repairs, maintenance, and seasonal prep across the Kawarthas & GTA.",
   },
   {
-    id: "holiday-clean",
-    name: "Holiday Clean-Up & Turnover",
+    id: "cleaning",
+    name: "Cleaning & Turnover",
     icon: <Sparkles className="w-6 h-6" />,
     examples: [
       "Pre-guest deep clean",
@@ -63,6 +52,18 @@ const services: Service[] = [
     ],
     description:
       "Detail-driven teams ready for spotless homes, condos, and lakeside retreats between holiday guests.",
+  },
+  {
+    id: "outdoor",
+    name: "Outdoor & Seasonal",
+    icon: <Trees className="w-6 h-6" />,
+    examples: [
+      "Snow shovelling routes",
+      "Lawn & garden care",
+      "Cottage opening/closing",
+    ],
+    description:
+      "Keep properties safe year-round with trusted outdoor crews for snow, lawn, and cottage care.",
   },
 ];
 
@@ -119,6 +120,35 @@ const BookingPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [minDate, setMinDate] = useState("");
   const [submissionStatus, setSubmissionStatus] = useState<"idle" | "success">("idle");
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const presetService = searchParams.get("service");
+    const presetLocation = searchParams.get("location");
+    const mappedService = (() => {
+      switch (presetService) {
+        case "handyman":
+          return "home-repairs";
+        case "cleaning":
+          return "cleaning";
+        case "outdoor":
+          return "outdoor";
+        default:
+          return null;
+      }
+    })();
+
+    if (mappedService) {
+      setSelectedServices([mappedService]);
+      const serviceName = services.find((service) => service.id === mappedService)?.name;
+      if (serviceName && !jobTitle) {
+        setJobTitle(`${serviceName} help needed`);
+      }
+    }
+    if (presetLocation) {
+      setSelectedAddress(presetLocation);
+    }
+  }, [jobTitle, searchParams]);
 
   useEffect(() => {
     if (hours < 1) {
