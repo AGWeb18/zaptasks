@@ -15,7 +15,6 @@ import handymanAnimation from "./animations/Handyman.json";
 import paintingAnimation from "./animations/Painting.json";
 import bookingAnimation from "./animations/Booking.json";
 import cleaningAnimation from "./animations/cleaningAnimation.json";
-import BeforeAndAfter from "./components/BeforeAndAfter";
 import Navbar from "./components/NavBar";
 import ServiceSearchBar from "./components/ServiceSearchBar";
 import TestimonialsCarousel, {
@@ -76,7 +75,7 @@ const bookingSteps = [
   {
     icon: <MessageSquare className="w-6 h-6 text-blue-600" />,
     title: "Compare offers",
-    copy: "Local pros apply with their availability. Chat in-app, review ratings, and pick the offer that fits.",
+    copy: "Nearby neighbours and helpers apply with their availability. Chat in-app, review ratings, and pick the offer that fits.",
   },
   {
     icon: <CreditCard className="w-6 h-6 text-blue-600" />,
@@ -85,27 +84,6 @@ const bookingSteps = [
   },
 ];
 
-const beforeAfterItems = [
-  {
-    id: "1",
-    type: "image" as const,
-    before: "/BeforeAndAfter/LivingRoom-Before.jpeg",
-    after: "/BeforeAndAfter/LivingRoom-After.jpeg",
-  },
-  {
-    id: "2",
-    type: "image" as const,
-    before: "/BeforeAndAfter/LivingRoom-Before2.jpeg",
-    after: "/BeforeAndAfter/LivingRoom-After2.jpeg",
-  },
-  {
-    id: "3",
-    type: "video" as const,
-    videoSrc: "/BeforeAndAfter/lawn-care.MP4",
-    thumbnail: "/BeforeAndAfter/lawncare-before.png",
-  },
-  // Add more items as needed
-];
 
 const testimonials: Testimonial[] = [
   {
@@ -234,17 +212,6 @@ const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        <section id="before-and-after" className="mb-16">
-          <h3 id="before-after" className="text-3xl font-bold mb-8 text-center">
-            <a href="#before-after" className="anchor-link">
-              Before and After
-            </a>
-          </h3>
-          <div>
-            <BeforeAndAfter items={beforeAfterItems} />
-          </div>
-        </section>
-
         <section id="how-it-works" className="mb-16">
           <h3
             id="how-it-works-title"
@@ -291,11 +258,12 @@ const LandingPage: React.FC = () => {
             </h4>
             <p>
               ZapTasks keeps peer-to-peer work transparent with milestone
-              payments that protect both sides:
+              payments that protect neighbours on both sides of the job:
             </p>
             <ul className="list-disc list-inside mt-2">
               <li>
-                Pay a refundable 50% deposit when you accept a pro&apos;s offer.
+                Pay a refundable 50% deposit when you accept a neighbour&apos;s
+                offer.
               </li>
               <li>
                 Release the remaining 50% after the work is finished and
@@ -347,15 +315,15 @@ const LandingPage: React.FC = () => {
               <ul className="mt-4 space-y-3 text-sm text-blue-900/80">
                 <li>
                   • Stripe Identity verification with visible “Verified” badges
-                  on provider profiles.
+                  on neighbour profiles.
                 </li>
                 <li>
                   • Escrow-style 50/50 payment flow handled by Stripe Connect
-                  for compliance and quick payouts.
+                  for compliance and quick payouts to local helpers.
                 </li>
                 <li>
-                  • Dispute desk with 24-hour triage and fast resolution
-                  playbooks.
+                  • Dispute desk with 24-hour triage and community-friendly
+                  resolution playbooks.
                 </li>
               </ul>
             </div>
