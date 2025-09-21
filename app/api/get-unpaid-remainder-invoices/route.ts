@@ -1,11 +1,12 @@
 // app/api/get-unpaid-remainder-invoices/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
 import { currentUser } from '@clerk/nextjs/server'
+import { stripe } from '@/app/lib/payments/stripeConnect';
+import type Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-06-20',
-});
+type InvoiceWithExpandedIntent = Stripe.Invoice & {
+  payment_intent?: Stripe.PaymentIntent | string | null;
+};
 
 export async function GET(req: NextRequest) {
   try {
@@ -39,36 +40,45 @@ export async function GET(req: NextRequest) {
     const stripeCustomerId = customerSearch.data[0].id;
     console.log('Stripe customerId:', stripeCustomerId);
 
-    const invoices = await stripe.invoices.list({
+    const invoicesResponse = await stripe.invoices.list({
       customer: stripeCustomerId,
       status: 'open',
       expand: ['data.payment_intent'],
     });
+    const invoices = invoicesResponse.data;
 
-    const unpaidInvoices = invoices.data.map(invoice => {
-      const paymentIntent = invoice.payment_intent as Stripe.PaymentIntent | null;
+    const unpaidInvoices = invoices.map((invoice) => {
+      const typedInvoice = invoice as InvoiceWithExpandedIntent;
+      const paymentIntent =
+        typedInvoice.payment_intent && typeof typedInvoice.payment_intent !== 'string'
+          ? typedInvoice.payment_intent
+          : null;
       
       const formattedInvoice = {
-        id: invoice.id,
-        amount: invoice.amount_due,
-        currency: invoice.currency,
-        date: new Date(invoice.created * 1000).toISOString(),
-        services: invoice.metadata?.services ? JSON.parse(invoice.metadata.services) : [],
-        paymentIntentClientSecret: paymentIntent?.client_secret || null,
-        lines: invoice.lines.data.map(line => ({
-          description: line.description,
+        id: typedInvoice.id,
+        amount: typedInvoice.amount_due,
+        currency: typedInvoice.currency,
+        lines: typedInvoice.lines.data.map((line: Stripe.InvoiceLineItem) => ({
+          description: line.description ?? undefined,
           amount: line.amount,
         })),
+        // ... other fields
       };
-      return formattedInvoice;
+
+      return {
+        ...formattedInvoice,
+        paymentIntent: paymentIntent ? {
+          id: paymentIntent.id,
+          status: paymentIntent.status,
+          amount: paymentIntent.amount,
+        } : null,
+      };
     });
 
-    console.log('Unpaid invoices:', JSON.stringify(unpaidInvoices, null, 2));
-
-    return NextResponse.json({ invoices: unpaidInvoices });
+    return NextResponse.json({ unpaidInvoices });
   } catch (error) {
     console.error('Error fetching unpaid invoices:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch unpaid invoices' }, { status: 500 });
   }
 }
 

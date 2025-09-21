@@ -35,10 +35,11 @@
     "react-dom": "^18.3.1",
     "react-google-autocomplete": "^2.7.3",
     "react-hook-form": "^7.53.0",
-    "stripe": "^17.0.0",
+    "stripe": "^18.5.0",
     "swiper": "^11.1.10",
     "tailwind-merge": "^2.5.0",
     "tailwindcss-animate": "^1.0.7",
+    "vercel": "^48.1.0",
     "zod": "^3.24.0"
   },
   "devDependencies": {

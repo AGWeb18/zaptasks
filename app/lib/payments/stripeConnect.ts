@@ -1,7 +1,7 @@
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-06-20",
+  apiVersion: "2025-08-27.basil",
 });
 
 const PLATFORM_FEE_RATE = 0.1;
@@ -104,6 +104,10 @@ export async function createJobInvoices({
     application_fee_amount: depositApplicationFeeCents,
   });
 
+  if (!depositInvoice.id) {
+    throw new Error("Stripe returned a deposit invoice without an id");
+  }
+
   await stripe.invoiceItems.create({
     customer: customerId,
     amount: depositInvoiceAmountCents,
@@ -123,6 +127,10 @@ export async function createJobInvoices({
     transfer_data: { destination: providerStripeAccountId },
     application_fee_amount: remainderApplicationFeeCents,
   });
+
+  if (!remainderInvoice.id) {
+    throw new Error("Stripe returned a remainder invoice without an id");
+  }
 
   await stripe.invoiceItems.create({
     customer: customerId,

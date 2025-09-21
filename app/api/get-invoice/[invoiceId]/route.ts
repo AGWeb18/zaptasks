@@ -1,14 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
 import { getAuth } from "@clerk/nextjs/server";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-06-20",
-});
+import { stripe } from "@/app/lib/payments/stripeConnect";
+import type Stripe from "stripe";
 
 type GetInvoiceRouteContext = {
   params: Promise<{ invoiceId: string }>;
 };
+
+function selectDefaultPaymentIntent(
+  payments: Stripe.InvoicePayment[] | undefined,
+): string | Stripe.PaymentIntent | undefined {
+  if (!payments?.length) {
+    return undefined;
+  }
+
+  const paymentIntentPayment =
+    payments.find(
+      (payment) =>
+        payment.is_default && payment.payment.type === "payment_intent",
+    ) ??
+    payments.find((payment) => payment.payment.type === "payment_intent");
+
+  return paymentIntentPayment?.payment.payment_intent;
+}
 
 export async function GET(req: NextRequest, context: GetInvoiceRouteContext) {
   try {
@@ -25,11 +39,30 @@ export async function GET(req: NextRequest, context: GetInvoiceRouteContext) {
       return NextResponse.json({ error: "Invoice ID is required" }, { status: 400 });
     }
 
-    const invoice = await stripe.invoices.retrieve(invoiceId);
-    
-    let paymentIntent = null;
-    if (invoice.payment_intent) {
-      paymentIntent = await stripe.paymentIntents.retrieve(invoice.payment_intent as string);
+    const invoiceResponse = await stripe.invoices.retrieve(invoiceId);
+    const invoice = invoiceResponse as Stripe.Invoice;
+
+    const invoicePaymentsResponse = await stripe.invoicePayments.list({
+      invoice: invoiceId,
+      expand: ["data.payment.payment_intent"],
+      limit: 10,
+    });
+
+    const paymentIntentValue = selectDefaultPaymentIntent(
+      invoicePaymentsResponse.data,
+    );
+
+    let paymentIntent: Stripe.PaymentIntent | null = null;
+
+    if (paymentIntentValue) {
+      if (typeof paymentIntentValue === "string") {
+        const paymentIntentResponse = await stripe.paymentIntents.retrieve(
+          paymentIntentValue,
+        );
+        paymentIntent = paymentIntentResponse as Stripe.PaymentIntent;
+      } else {
+        paymentIntent = paymentIntentValue;
+      }
     }
 
     return NextResponse.json({ invoice, paymentIntent });
@@ -37,7 +70,7 @@ export async function GET(req: NextRequest, context: GetInvoiceRouteContext) {
     console.error("Error fetching invoice:", error);
     return NextResponse.json(
       { error: "Failed to fetch invoice" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

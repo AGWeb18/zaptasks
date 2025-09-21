@@ -1,13 +1,27 @@
 import { NextResponse } from "next/server";
-import Stripe from "stripe";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-06-20",
-});
+import { stripe } from "@/app/lib/payments/stripeConnect";
+import type Stripe from "stripe";
 
 type GetPaymentIntentRouteContext = {
   params: Promise<{ id: string }>;
 };
+
+function selectDefaultPaymentIntent(
+  payments: Stripe.InvoicePayment[] | undefined,
+): string | Stripe.PaymentIntent | undefined {
+  if (!payments?.length) {
+    return undefined;
+  }
+
+  const paymentIntentPayment =
+    payments.find(
+      (payment) =>
+        payment.is_default && payment.payment.type === "payment_intent",
+    ) ??
+    payments.find((payment) => payment.payment.type === "payment_intent");
+
+  return paymentIntentPayment?.payment.payment_intent;
+}
 
 export async function GET(_: Request, context: GetPaymentIntentRouteContext) {
   try {
@@ -18,18 +32,32 @@ export async function GET(_: Request, context: GetPaymentIntentRouteContext) {
       return NextResponse.json({ error: "Invoice ID is required" }, { status: 400 });
     }
 
-    const invoice = await stripe.invoices.retrieve(invoiceId);
+    const invoiceResponse = await stripe.invoices.retrieve(invoiceId);
+    const invoice = invoiceResponse as Stripe.Invoice;
 
-    // Fetch the PaymentIntent associated with this invoice
-    let clientSecret = null;
-    if (invoice.payment_intent) {
-      const paymentIntent = await stripe.paymentIntents.retrieve(
-        invoice.payment_intent as string
-      );
-      clientSecret = paymentIntent.client_secret;
+    const invoicePaymentsResponse = await stripe.invoicePayments.list({
+      invoice: invoiceId,
+      expand: ["data.payment.payment_intent"],
+      limit: 10,
+    });
+
+    const paymentIntentValue = selectDefaultPaymentIntent(
+      invoicePaymentsResponse.data,
+    );
+
+    let clientSecret: string | null = null;
+
+    if (paymentIntentValue) {
+      if (typeof paymentIntentValue === "string") {
+        const paymentIntentResponse = await stripe.paymentIntents.retrieve(
+          paymentIntentValue,
+        );
+        clientSecret = paymentIntentResponse.client_secret ?? null;
+      } else {
+        clientSecret = paymentIntentValue.client_secret ?? null;
+      }
     }
 
-    // Return both invoice data and client secret
     return NextResponse.json({
       invoice,
       clientSecret,
@@ -38,7 +66,7 @@ export async function GET(_: Request, context: GetPaymentIntentRouteContext) {
     console.error("Error retrieving invoice:", err);
     return NextResponse.json(
       { error: "Failed to retrieve invoice" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
