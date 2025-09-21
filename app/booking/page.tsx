@@ -11,7 +11,6 @@ import { format, addDays } from "date-fns";
 import {
   Calendar,
   Clock,
-  DollarSign,
   Users,
   MapPin,
   PaintBucket,
@@ -19,7 +18,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import { Hammer, Trash2, Dog, Wifi, PartyPopper } from "lucide-react";
+import { Hammer, Trash2 } from "lucide-react";
 import AddressAutocomplete from "../components/AddressAutocomplete";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
@@ -35,81 +34,107 @@ interface Service {
 const services: Service[] = [
   {
     id: "handyman",
-    name: "Handyman Services",
+    name: "Handyman & Repairs",
     icon: <Hammer className="w-6 h-6" />,
-    examples: ["Furniture assembly", "Picture hanging", "Minor repairs"],
+    examples: ["Fixture installs", "Drywall touch-ups", "Furniture assembly"],
     description:
-      "Assistance with heavy lifting, furniture assembly, and packing or unpacking for moves.",
-  },
-  {
-    id: "help",
-    name: "Secondary Set of Hands",
-    icon: <Users className="w-6 h-6" />,
-    examples: [
-      "Moving furniture",
-      "Organizing garage",
-      "Helping with DIY projects",
-    ],
-    description:
-      "Extra help for various tasks, DIY projects, and minor home repairs.",
-  },
-  {
-    id: "paint",
-    name: "Paint Help",
-    icon: <PaintBucket className="w-6 h-6" />,
-    examples: ["Wall painting", "Trim work", "Ceiling painting"],
-    description:
-      "Interior and exterior painting, including walls, ceilings, and trim work.",
-  },
-  {
-    id: "yardwork",
-    name: "Yard Work",
-    icon: <Shovel className="w-6 h-6" />,
-    examples: ["Lawn mowing", "Leaf raking", "Planting flowers"],
-    description:
-      "Lawn mowing, planting, leaf raking, and basic landscape maintenance.",
+      "Licensed and insured pros for punch-list fixes and seasonal maintenance in the Kawarthas and GTA.",
   },
   {
     id: "cleaning",
-    name: "Deep Cleaning",
+    name: "Home Cleaning",
     icon: <Trash2 className="w-6 h-6" />,
-    examples: ["Bathroom scrubbing", "Kitchen deep clean", "Carpet shampooing"],
+    examples: ["Move-in ready cleans", "Cottage turnover", "Deep sanitization"],
     description:
-      "Thorough cleaning of neglected areas, including sanitization and organizing.",
+      "Detail-oriented teams delivering sparkling homes, condos, and lakeside retreats across Ontario.",
   },
   {
-    id: "petcare",
-    name: "Pet Care Assistance",
-    icon: <Dog className="w-6 h-6" />,
-    examples: ["Dog walking", "Cat litter box cleaning", "Pet feeding"],
+    id: "painting",
+    name: "Painting & Finishing",
+    icon: <PaintBucket className="w-6 h-6" />,
+    examples: ["Interior refresh", "Exterior touch-up", "Trim finishing"],
     description:
-      "Dog walking, pet feeding, litter box cleaning, and basic pet care.",
+      "Prep, paint, and finish work that stands up to Canadian winters and cottage humidity.",
   },
   {
-    id: "techsupport",
-    name: "Basic Tech Support",
-    icon: <Wifi className="w-6 h-6" />,
-    examples: [
-      "Wi-Fi setup",
-      "Printer installation",
-      "Smartphone troubleshooting",
-    ],
+    id: "snow-lawn",
+    name: "Snow & Lawn Care",
+    icon: <Shovel className="w-6 h-6" />,
+    examples: ["Driveway plowing", "Salting & sanding", "Weekly lawn cuts"],
     description:
-      "Help with device setup, Wi-Fi troubleshooting, and software installation.",
-  },
-  {
-    id: "eventassistance",
-    name: "Event Assistance",
-    icon: <PartyPopper className="w-6 h-6" />,
-    examples: ["Party setup", "Cleanup after gatherings", "Guest management"],
-    description:
-      "Help with setup, cleanup, and guest management for small gatherings and parties.",
+      "Seasonal outdoor care—plows, shovels, and landscaping crews ready for Kawarthas and GTA weather swings.",
   },
 ];
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 );
+
+type PricingInfo = {
+  currency?: string;
+  pricingType?: "hourly" | "flat";
+  hourlyRate?: number | null;
+  flatFee?: number | null;
+  minimumHours?: number | null;
+  display?: string;
+};
+
+type ProviderOption = {
+  id: string;
+  name: string;
+  service: string;
+  price: string | null;
+};
+
+// 10% platform fee applied to both homeowner and provider transactions
+const PLATFORM_FEE_RATE = 0.1;
+
+const parsePricingInfo = (raw: string | null | undefined): PricingInfo | null => {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed === "object" && parsed !== null) {
+      return parsed as PricingInfo;
+    }
+  } catch {
+    const amountMatch = raw.match(/\$?\s*(\d+(?:\.\d{1,2})?)/);
+    if (amountMatch) {
+      const value = Number(amountMatch[1]);
+      if (raw.toLowerCase().includes("flat")) {
+        return {
+          currency: "CAD",
+          pricingType: "flat",
+          flatFee: value,
+          display: raw,
+        };
+      }
+      return {
+        currency: "CAD",
+        pricingType: "hourly",
+        hourlyRate: value,
+        display: raw,
+      };
+    }
+  }
+  return null;
+};
+
+const formatProviderPricing = (raw: string | null | undefined): string => {
+  const info = parsePricingInfo(raw);
+  if (!info) return raw ?? "Pricing pending";
+  if (info.display) return info.display;
+  if (info.pricingType === "flat" && info.flatFee) {
+    return `$${info.flatFee.toFixed(0)} flat project fee`;
+  }
+  if (info.pricingType === "hourly" && info.hourlyRate) {
+    const minimum = info.minimumHours ? `${info.minimumHours} hr min` : "2 hr min";
+    return `$${info.hourlyRate.toFixed(0)}/hr • ${minimum}`;
+  }
+  return raw ?? "Pricing pending";
+};
+
+const formatCurrency = (value: number) =>
+  value.toLocaleString("en-CA", { style: "currency", currency: "CAD" });
 
 const termsAndConditions = `
 ZapTasks Terms and Conditions
@@ -172,18 +197,112 @@ const BookingPage: React.FC = () => {
     "idle" | "success" | "error"
   >("idle");
   const [errorMessage, setErrorMessage] = useState("");
-  const [amount, setAmount] = useState<number>(0);
   const [clientSecret, setClientSecret] = useState("");
   const [minDate, setMinDate] = useState("");
   const [selectedProviderId, setSelectedProviderId] = useState<string>("");
 
-  const [providerOptions, setProviderOptions] = useState<{ id: string; name: string }[]>([]);
+  const [providerOptions, setProviderOptions] = useState<ProviderOption[]>([]);
   useEffect(() => {
     const supabase = createClient();
-    supabase.from("providers").select("id, name").then(({ data, error }) => {
-      if (!error && data) setProviderOptions(data);
-    });
+    supabase
+      .from("providers")
+      .select("id, name, service, price")
+      .then(({ data, error }) => {
+        if (!error && data) {
+          const normalized = data.map((provider) => ({
+            id: provider.id,
+            name: provider.name,
+            service: provider.service,
+            price: provider.price ?? null,
+          }));
+          setProviderOptions(normalized);
+        }
+      });
   }, []);
+
+  const selectedProvider = React.useMemo(
+    () => providerOptions.find((option) => option.id === selectedProviderId) || null,
+    [providerOptions, selectedProviderId]
+  );
+
+  const selectedPricing = React.useMemo(
+    () => parsePricingInfo(selectedProvider?.price),
+    [selectedProvider]
+  );
+
+  const minimumHoursRequired = React.useMemo(() => {
+    if (selectedPricing?.pricingType === "hourly") {
+      return Math.max(selectedPricing.minimumHours ?? 2, 1);
+    }
+    return 1;
+  }, [selectedPricing]);
+
+  useEffect(() => {
+    if (selectedPricing?.pricingType === "hourly" && hours < minimumHoursRequired) {
+      setHours(minimumHoursRequired);
+    }
+  }, [selectedPricing, minimumHoursRequired, hours]);
+
+  const pricingDetails = React.useMemo(() => {
+    const equipmentFee = bringEquipment ? bringEquipmentFee : 0;
+
+    const calculateBreakdown = (baseAmount: number) => {
+      const jobSubtotal = baseAmount + equipmentFee;
+      const customerFee = jobSubtotal * PLATFORM_FEE_RATE;
+      const customerTotal = jobSubtotal + customerFee;
+      const providerFee = jobSubtotal * PLATFORM_FEE_RATE;
+      const providerNetTotal = jobSubtotal - providerFee;
+
+      const customerDeposit = customerTotal * 0.5;
+      const customerRemainder = customerTotal - customerDeposit;
+      const providerDeposit = providerNetTotal * 0.5;
+      const providerRemainder = providerNetTotal - providerDeposit;
+
+      return {
+        baseAmount,
+        equipmentFee,
+        totalAmount: jobSubtotal,
+        depositAmount: customerDeposit,
+        remainderAmount: customerRemainder,
+        platformFee: providerFee,
+        customerFee,
+        customerTotal,
+        providerNetTotal,
+        providerDeposit,
+        providerRemainder,
+      };
+    };
+
+    if (!selectedPricing) {
+      return {
+        ...calculateBreakdown(0),
+        pricingInfo: null as PricingInfo | null,
+      };
+    }
+
+    let baseAmount = 0;
+
+    if (selectedPricing.pricingType === "hourly" && selectedPricing.hourlyRate) {
+      const billableHours = Math.max(hours, minimumHoursRequired);
+      baseAmount = selectedPricing.hourlyRate * billableHours * Math.max(people, 1);
+    } else if (selectedPricing.pricingType === "flat" && selectedPricing.flatFee) {
+      baseAmount = selectedPricing.flatFee;
+    }
+
+    return {
+      ...calculateBreakdown(baseAmount),
+      pricingInfo: selectedPricing,
+    };
+  }, [selectedPricing, hours, people, bringEquipment, bringEquipmentFee, minimumHoursRequired]);
+
+  const isReadyToBook = Boolean(
+    selectedProvider &&
+    selectedPricing &&
+    pricingDetails.totalAmount > 0 &&
+    date &&
+    time &&
+    selectedServices.length > 0
+  );
 
   const handleServiceToggle = (serviceId: string) => {
     setSelectedServices((prev) =>
@@ -206,6 +325,20 @@ const BookingPage: React.FC = () => {
     // Ensure the user is logged in
     if (!isLoaded || !user) {
       setError("Please log in to book a service.");
+      return;
+    }
+
+    if (!selectedProvider || !selectedPricing) {
+      setIsLoading(false);
+      setError("Please select a provider with published pricing to continue.");
+      return;
+    }
+
+    if (pricingDetails.totalAmount <= 0) {
+      setIsLoading(false);
+      setError(
+        "Unable to calculate the job total from this provider's pricing. Please adjust your selections or choose a different pro."
+      );
       return;
     }
 
@@ -261,7 +394,7 @@ const BookingPage: React.FC = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          amount,
+          amount: pricingDetails.totalAmount,
           customerId: stripeCustomerId,
           name: user.fullName,
           email: user.primaryEmailAddress?.emailAddress,
@@ -338,12 +471,6 @@ const BookingPage: React.FC = () => {
   //     appearance,
   //   };
 
-  // Calculate the amount whenever relevant inputs change
-  useEffect(() => {
-    const calculatedAmount = hours * people * 50 + bringEquipmentFee;
-    setAmount(calculatedAmount);
-  }, [hours, people, bringEquipmentFee]);
-
   useEffect(() => {
     // Set the minimum date to tomorrow
     const tomorrow = addDays(new Date(), 1);
@@ -355,9 +482,12 @@ const BookingPage: React.FC = () => {
       <Navbar />
       <div className="min-h-screen bg-slate-300 py-12">
         <div className="container mx-auto px-4 ">
-          <h1 className="text-4xl font-bold text-center mb-8 text-blue-600">
+          <h1 className="text-4xl font-bold text-center mb-4 text-blue-600">
             Book a Service
           </h1>
+          <p className="text-center text-base-content/70 mb-8">
+            Lock in trusted Kawarthas and GTA professionals with a secure Canadian checkout and 50% deposit.
+          </p>
 
           <div className="card shadow-xl max-w-3xl mx-auto bg-slate-100">
             <div className="card-body">
@@ -370,16 +500,23 @@ const BookingPage: React.FC = () => {
                 <div className="mb-6">
                   <label className="block mb-2 font-semibold">Select a Provider</label>
                   <select
-                    className="select select-bordered w-full max-w-xs bg-white text-gray-900"
+                    className="select select-bordered w-full bg-white text-gray-900"
                     value={selectedProviderId}
                     onChange={e => setSelectedProviderId(e.target.value)}
                     required
                   >
                     <option value="" disabled>Select a provider...</option>
                     {providerOptions.map((provider) => (
-                      <option key={provider.id} value={provider.id}>{provider.name}</option>
+                      <option key={provider.id} value={provider.id}>
+                        {provider.name} • {provider.service} • {formatProviderPricing(provider.price)}
+                      </option>
                     ))}
                   </select>
+                  {selectedProvider && (
+                    <p className="mt-2 text-sm text-gray-600">
+                      {formatProviderPricing(selectedProvider.price)}. ZapTasks collects a {Math.round(PLATFORM_FEE_RATE * 100)}% service fee from the provider payout through Stripe Connect.
+                    </p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-6">
@@ -483,7 +620,7 @@ const BookingPage: React.FC = () => {
                     <div className="form-control flex-1">
                       <label className="label" htmlFor="hours">
                         <span className="label-text">
-                          Number of Hours (minimum 2)
+                          Number of Hours (minimum {selectedPricing?.pricingType === "hourly" ? minimumHoursRequired : 1})
                         </span>
                       </label>
                       <div className="relative">
@@ -494,23 +631,25 @@ const BookingPage: React.FC = () => {
                         <input
                           id="hours"
                           type="number"
-                          min="2"
+                          min={selectedPricing?.pricingType === "hourly" ? minimumHoursRequired : 1}
                           value={hours}
                           onChange={(e) => {
                             const value = parseInt(e.target.value);
-                            setHours(isNaN(value) ? 2 : Math.max(2, value));
+                            const min = selectedPricing?.pricingType === "hourly" ? minimumHoursRequired : 1;
+                            setHours(isNaN(value) ? min : Math.max(min, value));
                           }}
                           onBlur={() => {
-                            if (hours < 2) setHours(2);
+                            const min = selectedPricing?.pricingType === "hourly" ? minimumHoursRequired : 1;
+                            if (hours < min) setHours(min);
                           }}
                           className="input input-bordered pl-10 w-full text-gray-900"
                           required
                         />
                       </div>
-                      {hours < 2 && (
+                      {selectedPricing?.pricingType === "hourly" && hours < minimumHoursRequired && (
                         <label className="label">
                           <span className="label-text-alt text-error">
-                            Minimum 2 hours required
+                            Minimum {minimumHoursRequired} hours required
                           </span>
                         </label>
                       )}
@@ -631,12 +770,43 @@ const BookingPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Total and submit button */}
-                <div className="mt-6">
-                  <div className="text-xl font-semibold mb-4 flex items-center justify-center">
-                    <DollarSign className="mr-2" size={24} />
-                    Total: ${amount}
+                {/* Pricing summary and submit */}
+                <div className="mt-6 space-y-4">
+                  <div className="bg-white border border-slate-200 rounded-lg p-4 space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span>Service subtotal</span>
+                      <span className="font-semibold">{formatCurrency(pricingDetails.baseAmount)}</span>
+                    </div>
+                    {pricingDetails.equipmentFee > 0 && (
+                      <div className="flex justify-between">
+                        <span>Equipment & supplies</span>
+                        <span className="font-semibold">{formatCurrency(pricingDetails.equipmentFee)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span>ZapTasks service fee (homeowner 10%)</span>
+                      <span className="font-semibold">{formatCurrency(pricingDetails.customerFee)}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-slate-200 pt-2 text-base font-semibold">
+                      <span>Total due from homeowner</span>
+                      <span>{formatCurrency(pricingDetails.customerTotal)}</span>
+                    </div>
                   </div>
+
+                  <div className="bg-slate-200 border border-slate-300 rounded-lg p-4 space-y-2 text-sm">
+                    <div className="flex justify-between text-base font-semibold">
+                      <span>Due today (50% deposit inc. fees)</span>
+                      <span>{formatCurrency(pricingDetails.depositAmount)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Due after completion (inc. fees)</span>
+                      <span>{formatCurrency(pricingDetails.remainderAmount)}</span>
+                    </div>
+                    <p className="text-xs text-gray-600 pt-2">
+                      ZapTasks routes payments through Stripe Connect and retains a {Math.round(PLATFORM_FEE_RATE * 100)}% service fee from both the provider payout and homeowner transaction.
+                    </p>
+                  </div>
+
                   {clientSecret && (
                     <Elements stripe={stripePromise} options={options}>
                       <button className="btn btn-primary w-full text-white btn-lg">
@@ -648,10 +818,20 @@ const BookingPage: React.FC = () => {
                     <button
                       type="submit"
                       className="btn btn-primary btn-block"
-                      disabled={!agreeToTerms}
+                      disabled={!agreeToTerms || !isReadyToBook || isLoading}
                     >
-                      Proceed to Payment
+                      {isLoading ? "Processing..." : "Proceed to Payment"}
                     </button>
+                  )}
+                  {!selectedProvider && (
+                    <p className="text-xs text-error">
+                      Select a provider to unlock pricing and the booking button.
+                    </p>
+                  )}
+                  {selectedServices.length === 0 && (
+                    <p className="text-xs text-error">
+                      Choose at least one service category to continue.
+                    </p>
                   )}
                 </div>
               </form>

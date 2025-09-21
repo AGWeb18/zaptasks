@@ -8,6 +8,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-06-20',
 });
 
+// 10% platform fee applied to both homeowner charges and provider payouts
+const PLATFORM_FEE_RATE = 0.1;
+
 function calculateDaysUntilDue(serviceDate: string): number {
   const currentDate = new Date();
   const serviceDateObj = new Date(serviceDate);
@@ -61,10 +64,24 @@ export async function POST(req: NextRequest) {
     }
     const providerStripeAccountId = provider.stripe_account_id;
 
-    const totalAmount = Math.round(amount * 100); // Convert to cents
-    const depositAmount = Math.round(totalAmount * 0.5); // 50% deposit
-    const remainingAmount = totalAmount - depositAmount;
-    const applicationFee = Math.round(totalAmount * 0.10); // 10% platform fee
+    const totalJobCents = Math.round(amount * 100); // Provider subtotal in cents
+    const customerFeeCents = Math.round(totalJobCents * PLATFORM_FEE_RATE);
+    const customerTotalCents = totalJobCents + customerFeeCents;
+
+    const depositJobCents = Math.round(totalJobCents * 0.5);
+    const remainderJobCents = totalJobCents - depositJobCents;
+
+    const depositCustomerFeeCents = Math.round(customerFeeCents * 0.5);
+    const remainderCustomerFeeCents = customerFeeCents - depositCustomerFeeCents;
+
+    const providerFeeDepositCents = Math.round(depositJobCents * PLATFORM_FEE_RATE);
+    const providerFeeRemainderCents = Math.round(remainderJobCents * PLATFORM_FEE_RATE);
+
+    const depositInvoiceAmountCents = depositJobCents + depositCustomerFeeCents;
+    const remainderInvoiceAmountCents = remainderJobCents + remainderCustomerFeeCents;
+
+    const depositApplicationFeeCents = providerFeeDepositCents + depositCustomerFeeCents;
+    const remainderApplicationFeeCents = providerFeeRemainderCents + remainderCustomerFeeCents;
 
     // Create metadata object
     const metadata = {
@@ -76,9 +93,13 @@ export async function POST(req: NextRequest) {
       description,
       address,
       bringEquipment: bringEquipment ? 'Yes' : 'No',
-      totalAmount: totalAmount.toString(),
-      depositAmount: depositAmount.toString(),
-      remainingAmount: remainingAmount.toString(),
+      jobSubtotalCents: totalJobCents.toString(),
+      homeownerFeeCents: customerFeeCents.toString(),
+      homeownerTotalCents: customerTotalCents.toString(),
+      depositInvoiceCents: depositInvoiceAmountCents.toString(),
+      remainderInvoiceCents: remainderInvoiceAmountCents.toString(),
+      providerFeeDepositCents: providerFeeDepositCents.toString(),
+      providerFeeRemainderCents: providerFeeRemainderCents.toString(),
     };
 
     // Create deposit invoice
@@ -90,16 +111,16 @@ export async function POST(req: NextRequest) {
       // For Connect: set on_behalf_of and transfer_data
       on_behalf_of: providerStripeAccountId,
       transfer_data: { destination: providerStripeAccountId },
-      application_fee_amount: applicationFee,
+      application_fee_amount: depositApplicationFeeCents,
     });
 
     // Add deposit invoice item
     await stripe.invoiceItems.create({
       customer: customerId,
-      amount: depositAmount,
+      amount: depositInvoiceAmountCents,
       currency: 'cad',
       invoice: depositInvoice.id,
-      description: `Deposit for Service: ${services.join(', ')} on ${date} at ${time}`,
+      description: `Deposit for Service: ${services.join(', ')} on ${date} at ${time} (includes ZapTasks homeowner fee)`,
     });
 
     // Create remainder invoice
@@ -108,15 +129,18 @@ export async function POST(req: NextRequest) {
       collection_method: 'send_invoice',
       days_until_due: calculateDaysUntilDue(date), // Due after service
       metadata: { ...metadata, invoiceType: 'remainder' },
+      on_behalf_of: providerStripeAccountId,
+      transfer_data: { destination: providerStripeAccountId },
+      application_fee_amount: remainderApplicationFeeCents,
     });
 
     // Add remainder invoice item
     await stripe.invoiceItems.create({
       customer: customerId,
-      amount: remainingAmount,
+      amount: remainderInvoiceAmountCents,
       currency: 'cad',
       invoice: remainderInvoice.id,
-      description: `Remaining balance for Service: ${services.join(', ')} on ${date} at ${time}`,
+      description: `Remaining balance for Service: ${services.join(', ')} on ${date} at ${time} (includes ZapTasks homeowner fee)`,
     });
 
     // Finalize and send both invoices
@@ -130,9 +154,10 @@ export async function POST(req: NextRequest) {
       depositInvoiceUrl: depositInvoice.hosted_invoice_url,
       remainderInvoiceId: remainderInvoice.id,
       remainderInvoiceUrl: remainderInvoice.hosted_invoice_url,
-      totalAmount,
-      depositAmount,
-      remainingAmount,
+      jobSubtotalCents: totalJobCents,
+      homeownerTotalCents: customerTotalCents,
+      depositInvoiceCents: depositInvoiceAmountCents,
+      remainderInvoiceCents: remainderInvoiceAmountCents,
     });
   } catch (error: unknown) {
     console.error('Error creating invoices:', error);

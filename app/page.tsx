@@ -13,13 +13,9 @@ import LottieWrapper from "./components/LottieWrapper";
 import heroAnimation from "./animations/HeroAnimation.json";
 import yardworkAnimation from "./animations/YardWork.json";
 import handymanAnimation from "./animations/Handyman.json";
-import helpinghandAnimation from "./animations/HelpingHands.json";
 import paintingAnimation from "./animations/Painting.json";
 import bookingAnimation from "./animations/Booking.json";
-import techsupportAnimation from "./animations/techsupportAnimation.json";
-import petcareAnimation from "./animations/petcareAnimation.json";
 import cleaningAnimation from "./animations/cleaningAnimation.json";
-import eventassistance from "./animations/eventassistance.json";
 import BeforeAndAfter from "./components/BeforeAndAfter";
 import Navbar from "./components/NavBar";
 
@@ -33,48 +29,12 @@ const services = [
         height="100px"
       />
     ),
-    name: "Handyman Services",
+    name: "Handyman & Repairs",
     description:
-      "Assistance with heavy lifting, furniture assembly, and packing or unpacking for moves.",
+      "Trusted Kawarthas and GTA tradespeople for minor fixes, installs, and punch-list jobs.",
   },
   {
-    id: "help",
-    icon: (
-      <LottieWrapper
-        animationData={helpinghandAnimation}
-        width="100%"
-        height="100px"
-      />
-    ),
-    name: "Secondary Set of Hands",
-    description:
-      "Extra help for various tasks, DIY projects, and minor home repairs.",
-  },
-  {
-    icon: (
-      <LottieWrapper
-        animationData={paintingAnimation}
-        width="100%"
-        height="100px"
-      />
-    ),
-    name: "Paint Help",
-    description:
-      "Interior and exterior painting, including walls, ceilings, and trim work.",
-  },
-  {
-    icon: (
-      <LottieWrapper
-        animationData={yardworkAnimation}
-        width="100%"
-        height="100px"
-      />
-    ),
-    name: "Yard Work",
-    description:
-      "Lawn mowing, planting, leaf raking, and basic landscape maintenance.",
-  },
-  {
+    id: "cleaning",
     icon: (
       <LottieWrapper
         animationData={cleaningAnimation}
@@ -82,45 +42,35 @@ const services = [
         height="100px"
       />
     ),
-    name: "Deep Cleaning",
+    name: "Home Cleaning",
     description:
-      "Thorough cleaning of neglected areas, including sanitization and organizing.",
+      "Thorough deep cleans and recurring tidy-ups tailored to Ontario homes and cottages.",
   },
   {
+    id: "painting",
     icon: (
       <LottieWrapper
-        animationData={petcareAnimation}
+        animationData={paintingAnimation}
         width="100%"
         height="100px"
       />
     ),
-    name: "Pet Care Assistance",
+    name: "Painting & Finishing",
     description:
-      "Dog walking, pet feeding, litter box cleaning, and basic pet care.",
+      "Indoor and outdoor paint, trim refreshes, and finishing touches from insured pros.",
   },
   {
+    id: "snow-lawn",
     icon: (
       <LottieWrapper
-        animationData={techsupportAnimation}
+        animationData={yardworkAnimation}
         width="100%"
         height="100px"
       />
     ),
-    name: "Basic Tech Support",
+    name: "Snow & Lawn Care",
     description:
-      "Help with device setup, Wi-Fi troubleshooting, and software installation.",
-  },
-  {
-    icon: (
-      <LottieWrapper
-        animationData={eventassistance}
-        width="100%"
-        height="100px"
-      />
-    ),
-    name: "Event Assistance",
-    description:
-      "Help with setup, cleanup, and guest management for small gatherings and parties.",
+      "Seasonal Ontario upkeep—from plowing and salting to mowing and garden care.",
   },
 ];
 
@@ -182,7 +132,7 @@ const LandingPage: React.FC = () => {
               </a>
             </h2>
             <p className="text-xl text-gray-600 mb-8">
-              ZapTasks is your local community marketplace—find, compare, and book trusted service providers, or offer your own services to neighbors in need.
+              Built in Canada for the Kawarthas and Greater Toronto Area, ZapTasks makes it easy to compare vetted local pros, secure work with a simple deposit, and keep every job on track.
             </p>
             <div className="flex flex-col gap-4">
               <Link href="/providers">
