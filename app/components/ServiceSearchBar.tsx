@@ -11,16 +11,18 @@ type Suggestion = {
 };
 
 const SERVICE_OPTIONS = [
-  { value: "handyman", label: "Home Repairs" },
-  { value: "cleaning", label: "Cleaning & Turnover" },
-  { value: "outdoor", label: "Outdoor & Seasonal" },
+  { value: "grocery", label: "Grocery Runs" },
+  { value: "handyman", label: "General Help" },
+  { value: "outdoor", label: "Yard Work" },
 ];
 
 export function ServiceSearchBar({ className }: { className?: string }) {
   const router = useRouter();
   const [service, setService] = useState(SERVICE_OPTIONS[0]?.value ?? "");
   const [location, setLocation] = useState("");
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
+    null
+  );
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -38,7 +40,9 @@ export function ServiceSearchBar({ className }: { className?: string }) {
 
     debounceRef.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/places-autocomplete?input=${encodeURIComponent(location)}`);
+        const res = await fetch(
+          `/api/places-autocomplete?input=${encodeURIComponent(location)}`
+        );
         if (!res.ok) {
           throw new Error("Failed to fetch suggestions");
         }
@@ -72,9 +76,11 @@ export function ServiceSearchBar({ className }: { className?: string }) {
         setCoords({ lat: latitude, lng: longitude });
         try {
           const res = await fetch(
-            `/api/reverse-geocode?lat=${latitude}&lng=${longitude}`,
+            `/api/reverse-geocode?lat=${latitude}&lng=${longitude}`
           );
-          const data = (await res.json()) as { formattedAddress?: string | null };
+          const data = (await res.json()) as {
+            formattedAddress?: string | null;
+          };
           if (data.formattedAddress) {
             setLocation(data.formattedAddress);
           } else {
@@ -89,117 +95,118 @@ export function ServiceSearchBar({ className }: { className?: string }) {
       },
       () => {
         setGeoLoading(false);
-      },
+      }
     );
   };
 
   const serviceLabel = useMemo(
     () => SERVICE_OPTIONS.find((s) => s.value === service)?.label ?? "Service",
-    [service],
+    [service]
   );
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const params = new URLSearchParams();
-    if (service) params.set("service", service);
-    if (location) params.set("location", location);
-    if (coords) params.set("lat", coords.lat.toString()), params.set("lng", coords.lng.toString());
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const params = new URLSearchParams({
+      service,
+      q: location,
+    });
+    if (coords) {
+      params.set("lat", coords.lat.toString());
+      params.set("lng", coords.lng.toString());
+    }
     router.push(`/booking?${params.toString()}`);
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
+    <div
       className={clsx(
-        "w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-lg px-4 sm:px-6 py-4 sm:py-6",
-        className,
+        "relative w-full rounded-2xl bg-white p-2 shadow-lg ring-1 ring-black/5",
+        className
       )}
     >
-      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-        <label className="flex-1">
-          <span className="text-xs uppercase tracking-wide text-gray-500">Service</span>
-          <div className="relative mt-1">
-            <select
-              value={service}
-              onChange={(event) => setService(event.target.value)}
-              className="select select-bordered w-full bg-white text-gray-900"
-            >
-              {SERVICE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </label>
+      <form
+        className="flex flex-col sm:flex-row items-center gap-2"
+        onSubmit={handleSubmit}
+      >
+        <div className="w-full sm:w-auto dropdown">
+          <label
+            tabIndex={0}
+            className="btn btn-ghost flex-shrink-0 rounded-full w-full justify-start"
+          >
+            {serviceLabel}
+          </label>
+          <ul
+            tabIndex={0}
+            className="dropdown-content menu rounded-box z-[1] w-52 bg-base-100 p-2 shadow"
+          >
+            {SERVICE_OPTIONS.map((opt) => (
+              <li key={opt.value}>
+                <a onClick={() => setService(opt.value)}>{opt.label}</a>
+              </li>
+            ))}
+          </ul>
+        </div>
 
-        <label className="flex-[1.4]">
-          <span className="text-xs uppercase tracking-wide text-gray-500">Location</span>
-          <div className="relative mt-1">
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              className="input input-bordered w-full bg-white text-gray-900 pl-9"
-              placeholder="Search by neighbourhood, city, or postal code"
-              value={location}
-              onChange={(event) => {
-                setLocation(event.target.value);
-                setShowSuggestions(true);
-              }}
-              onFocus={() => setShowSuggestions(true)}
-              autoComplete="off"
-            />
-            <button
-              type="button"
-              onClick={handleGeolocate}
-              className="absolute right-2 top-1/2 -translate-y-1/2 btn btn-sm btn-ghost"
-            >
-              {geoLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Compass className="h-4 w-4 text-blue-600" />
-              )}
-            </button>
-            {showSuggestions && (suggestions.length > 0 || loadingSuggestions) && (
-              <div className="absolute z-20 mt-2 w-full rounded-lg bg-white shadow-xl border border-slate-200">
-                {loadingSuggestions && (
-                  <div className="flex items-center gap-2 p-3 text-sm text-gray-500">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Searching nearby locations…
-                  </div>
-                )}
-                {suggestions.map((suggestion) => (
-                  <button
-                    type="button"
-                    key={suggestion.place_id}
-                    onClick={() => handleSuggestionSelect(suggestion)}
-                    className="w-full text-left px-4 py-3 text-sm hover:bg-blue-50"
-                  >
-                    {suggestion.description}
-                  </button>
-                ))}
-              </div>
+        <div className="hidden sm:block h-6 w-px bg-slate-200" />
+
+        <div className="relative flex-grow w-full">
+          <MapPin className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Enter city or postal code..."
+            className="w-full border-none bg-transparent pl-10 pr-4 text-slate-800 placeholder-slate-400 focus:ring-0 h-12"
+            value={location}
+            onChange={(e) => {
+              setLocation(e.target.value);
+              setShowSuggestions(true);
+            }}
+            onFocus={() => setShowSuggestions(true)}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+          />
+        </div>
+
+        <div className="flex w-full items-center gap-1 sm:w-auto">
+          <button
+            type="button"
+            onClick={handleGeolocate}
+            className="btn btn-ghost btn-circle"
+            aria-label="Use current location"
+          >
+            {geoLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Compass className="h-5 w-5" />
             )}
-          </div>
-        </label>
+          </button>
 
-        <div className="flex sm:flex-col items-stretch sm:items-end gap-2">
-          <span className="text-xs uppercase tracking-wide text-gray-500 sm:hidden">
-            Action
-          </span>
-          <button type="submit" className="btn btn-primary btn-lg sm:btn-md w-full sm:w-auto text-white">
-            <Search className="h-4 w-4 mr-2" />
-            Start Your Job
+          <button
+            type="submit"
+            className="btn btn-primary rounded-full flex-grow"
+            aria-label="Search"
+          >
+            <Search className="h-5 w-5" />
+            <span className="hidden md:inline ml-2">Search</span>
           </button>
         </div>
-      </div>
+      </form>
 
-      <div className="mt-3 text-xs text-gray-500 flex flex-wrap items-center justify-between gap-2">
-        <span>
-          Neighbours are posting: Toronto snow removal, Kawartha Lakes cottage closing, GTA deep clean.
-        </span>
-        <span className="font-medium text-blue-700">Built for Canadian homes • 50% deposit protection</span>
-      </div>
-    </form>
+      {showSuggestions && suggestions.length > 0 && (
+        <ul className="absolute left-0 top-full z-10 mt-2 w-full rounded-lg border bg-white shadow-lg">
+          {loadingSuggestions && (
+            <li className="px-4 py-2 text-sm text-slate-500">Loading...</li>
+          )}
+          {suggestions.map((s) => (
+            <li
+              key={s.place_id}
+              className="cursor-pointer px-4 py-2 hover:bg-slate-100"
+              onMouseDown={() => handleSuggestionSelect(s)}
+            >
+              {s.description}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 

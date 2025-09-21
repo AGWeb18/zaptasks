@@ -2,7 +2,12 @@
 
 import React from "react";
 import Link from "next/link";
-import { CheckCircle, CreditCard, MessageSquare, ShieldCheck } from "lucide-react";
+import {
+  CheckCircle,
+  CreditCard,
+  MessageSquare,
+  ShieldCheck,
+} from "lucide-react";
 import LottieWrapper from "./components/LottieWrapper";
 import heroAnimation from "./animations/HeroAnimation.json";
 import yardworkAnimation from "./animations/YardWork.json";
@@ -13,10 +18,27 @@ import cleaningAnimation from "./animations/cleaningAnimation.json";
 import BeforeAndAfter from "./components/BeforeAndAfter";
 import Navbar from "./components/NavBar";
 import ServiceSearchBar from "./components/ServiceSearchBar";
-import TestimonialsCarousel, { Testimonial } from "./components/TestimonialsCarousel";
+import TestimonialsCarousel, {
+  Testimonial,
+} from "./components/TestimonialsCarousel";
 import SiteFooter from "./components/SiteFooter";
 
+import helpingHandsAnimation from "./animations/HelpingHands.json";
+
 const services = [
+  {
+    id: "grocery",
+    icon: (
+      <LottieWrapper
+        animationData={helpingHandsAnimation}
+        width="100%"
+        height="100px"
+      />
+    ),
+    name: "Grocery Runs",
+    description:
+      "A friendly neighbour can pick up and deliver your groceries, whether it's a few items or a full list.",
+  },
   {
     id: "handyman",
     icon: (
@@ -26,22 +48,9 @@ const services = [
         height="100px"
       />
     ),
-    name: "Home Repairs",
+    name: "General Help",
     description:
-      "Trusted local pros fix leaks, swaps fixtures, and handle punch-list projects so you stay stress-free.",
-  },
-  {
-    id: "cleaning",
-    icon: (
-      <LottieWrapper
-        animationData={cleaningAnimation}
-        width="100%"
-        height="100px"
-      />
-    ),
-    name: "Cleaning & Turnover",
-    description:
-      "Neighbourhood cleaners tackle deep scrubs, turnovers, and weekly resets for cottages and city homes.",
+      "Need an extra hand? Get help with small tasks, moving furniture, or assembling items around the house.",
   },
   {
     id: "outdoor",
@@ -52,9 +61,9 @@ const services = [
         height="100px"
       />
     ),
-    name: "Outdoor & Seasonal",
+    name: "Yard Work",
     description:
-      "From snow shovelling to lawn care, neighbourhood crews keep your property ready for Ontario seasons.",
+      "From raking leaves to shovelling snow, neighbours can help keep your property looking great year-round.",
   },
 ];
 
@@ -139,21 +148,24 @@ const LandingPage: React.FC = () => {
               🇨🇦 Proudly Canadian • Kawarthas & GTA
             </span>
             <h1 className="mt-4 text-4xl md:text-5xl font-bold text-slate-900 leading-tight">
-              Post a home service job. Local pros apply fast.
+              Need a hand? Post a task and get help from a neighbour.
             </h1>
             <p className="mt-4 text-lg text-slate-600">
-              ZapTasks is the Canadian marketplace where homeowners post tasks and neighbours apply. Compare offers, chat before booking, and pay with a 50/50 milestone flow protected by Stripe Connect.
+              ZapTasks is the Canadian marketplace where you can post any
+              task—from grocery runs to yard work—and find trusted neighbours to
+              help. Compare offers, chat before booking, and pay securely.
             </p>
             <div className="mt-6">
               <ServiceSearchBar />
               <p className="mt-2 text-xs text-slate-500">
-                We use your selections to pre-fill the job post so you can publish and get offers faster.
+                We use your selections to pre-fill the job post so you can
+                publish and get offers faster.
               </p>
             </div>
             <div className="mt-6 flex flex-col sm:flex-row gap-3 text-sm text-slate-600">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-emerald-500" />
-                ID-verified community pros
+                ID-verified neighbours
               </div>
               <div className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4 text-blue-500" />
@@ -161,15 +173,28 @@ const LandingPage: React.FC = () => {
               </div>
             </div>
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
-              <Link href="/booking" className="btn btn-primary btn-lg text-white">
+              <Link
+                href="/booking"
+                className="btn btn-primary btn-lg text-white"
+              >
                 Post a Job & Get Offers
               </Link>
-              <Link href="/become-provider" className="btn btn-outline btn-lg border-2 border-blue-200 hover:border-blue-500">
+              <Link
+                href="/become-provider"
+                className="btn btn-outline btn-lg border-2 border-blue-200 hover:border-blue-500"
+              >
                 Find Local Jobs
               </Link>
             </div>
             <p className="mt-3 text-xs text-slate-500">
-              Prefer to hand-pick your help? <Link href="/providers" className="text-blue-600 font-semibold hover:underline">Browse verified providers</Link> and invite them to apply.
+              Prefer to hand-pick your help?{" "}
+              <Link
+                href="/providers"
+                className="text-blue-600 font-semibold hover:underline"
+              >
+                Browse available neighbours
+              </Link>{" "}
+              and invite them to help.
             </p>
           </div>
           <div className="w-full lg:w-1/2 flex justify-center">
@@ -183,9 +208,12 @@ const LandingPage: React.FC = () => {
 
         <section className="mb-16">
           <div className="max-w-2xl mx-auto text-center mb-10">
-            <h2 className="text-3xl font-bold text-slate-900">Popular tasks neighbours are posting</h2>
+            <h2 className="text-3xl font-bold text-slate-900">
+              Popular tasks neighbours are helping with
+            </h2>
             <p className="mt-3 text-sm text-slate-600">
-              From Kawartha cottages to GTA condos, ZapTasks matches real jobs with real providers. Post what you need or browse offers from the community.
+              From Kawartha cottages to GTA condos, ZapTasks connects you with
+              friendly neighbours for everyday help.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -194,8 +222,12 @@ const LandingPage: React.FC = () => {
                 key={service.id}
                 className="bg-white rounded-2xl shadow-md border border-slate-100 p-6 flex flex-col items-center text-center hover:shadow-lg transition-shadow duration-300"
               >
-                <div className="w-full flex justify-center mb-4">{service.icon}</div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">{service.name}</h3>
+                <div className="w-full flex justify-center mb-4">
+                  {service.icon}
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                  {service.name}
+                </h3>
                 <p className="text-sm text-slate-600">{service.description}</p>
               </div>
             ))}
@@ -226,12 +258,17 @@ const LandingPage: React.FC = () => {
             <div className="md:w-1/2">
               <ol className="space-y-6">
                 {bookingSteps.map((step, index) => (
-                  <li key={step.title} className="flex items-start gap-4 bg-white rounded-xl shadow-sm p-5 border border-slate-100">
+                  <li
+                    key={step.title}
+                    className="flex items-start gap-4 bg-white rounded-xl shadow-sm p-5 border border-slate-100"
+                  >
                     <span className="flex items-center justify-center rounded-full bg-blue-50 w-12 h-12 flex-shrink-0">
                       {step.icon}
                     </span>
                     <div>
-                      <p className="font-semibold text-slate-900">Step {index + 1}: {step.title}</p>
+                      <p className="font-semibold text-slate-900">
+                        Step {index + 1}: {step.title}
+                      </p>
                       <p className="text-sm text-slate-600 mt-1">{step.copy}</p>
                     </div>
                   </li>
@@ -252,51 +289,90 @@ const LandingPage: React.FC = () => {
                 Marketplace Payment Structure
               </a>
             </h4>
-            <p>ZapTasks keeps peer-to-peer work transparent with milestone payments that protect both sides:</p>
+            <p>
+              ZapTasks keeps peer-to-peer work transparent with milestone
+              payments that protect both sides:
+            </p>
             <ul className="list-disc list-inside mt-2">
-              <li>Pay a refundable 50% deposit when you accept a pro&apos;s offer.</li>
-              <li>Release the remaining 50% after the work is finished and you&apos;re satisfied.</li>
-              <li>Our dispute desk steps in fast if anything feels off, so neighbours stay confident to book locally.</li>
+              <li>
+                Pay a refundable 50% deposit when you accept a pro&apos;s offer.
+              </li>
+              <li>
+                Release the remaining 50% after the work is finished and
+                you&apos;re satisfied.
+              </li>
+              <li>
+                Our dispute desk steps in fast if anything feels off, so
+                neighbours stay confident to book locally.
+              </li>
             </ul>
           </div>
         </section>
 
         <section className="mb-16 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           <div className="bg-white rounded-2xl shadow-md border border-slate-100 p-6">
-            <h3 className="text-2xl font-bold text-slate-900 mb-3">1-minute walkthrough</h3>
+            <h3 className="text-2xl font-bold text-slate-900 mb-3">
+              1-minute walkthrough
+            </h3>
             <p className="text-sm text-slate-600 mb-4">
-              Watch how easy it is to post a job, chat with providers, and confirm payment milestones in ZapTasks.
+              Watch how easy it is to post a job, chat with providers, and
+              confirm payment milestones in ZapTasks.
             </p>
             <div className="aspect-video rounded-xl overflow-hidden bg-slate-900/80 flex items-center justify-center text-slate-200 text-sm">
               <span>
-                Upload your explainer video to <code className="bg-black/20 px-1">public/videos/explainer.mp4</code> and it will play here.
+                Upload your explainer video to{" "}
+                <code className="bg-black/20 px-1">
+                  public/videos/explainer.mp4
+                </code>{" "}
+                and it will play here.
               </span>
             </div>
             <div className="mt-4 text-xs text-slate-500">
-              Shot locally in Ontario • Edited with cost-effective tools like CapCut
+              Shot locally in Ontario • Edited with cost-effective tools like
+              CapCut
             </div>
           </div>
-          <TestimonialsCarousel testimonials={testimonials} className="bg-gradient-to-br from-white via-blue-50/50 to-white" />
+          <TestimonialsCarousel
+            testimonials={testimonials}
+            className="bg-gradient-to-br from-white via-blue-50/50 to-white"
+          />
         </section>
 
         <section className="mb-16">
           <div className="bg-blue-50 border border-blue-100 rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="md:w-2/3">
-              <h3 className="text-2xl font-semibold text-blue-900">Marketplace trust for the Kawarthas & GTA</h3>
+              <h3 className="text-2xl font-semibold text-blue-900">
+                Marketplace trust for the Kawarthas & GTA
+              </h3>
               <ul className="mt-4 space-y-3 text-sm text-blue-900/80">
-                <li>• Stripe Identity verification with visible “Verified” badges on provider profiles.</li>
-                <li>• Escrow-style 50/50 payment flow handled by Stripe Connect for compliance and quick payouts.</li>
-                <li>• Dispute desk with 24-hour triage and fast resolution playbooks.</li>
+                <li>
+                  • Stripe Identity verification with visible “Verified” badges
+                  on provider profiles.
+                </li>
+                <li>
+                  • Escrow-style 50/50 payment flow handled by Stripe Connect
+                  for compliance and quick payouts.
+                </li>
+                <li>
+                  • Dispute desk with 24-hour triage and fast resolution
+                  playbooks.
+                </li>
               </ul>
             </div>
             <div className="md:w-1/3 space-y-3">
               <div className="bg-white border border-blue-200 rounded-2xl p-4 text-center shadow-sm">
-                <p className="text-lg font-semibold text-blue-900">Flat 10% marketplace fee</p>
+                <p className="text-lg font-semibold text-blue-900">
+                  Flat 10% marketplace fee
+                </p>
                 <p className="text-xs text-blue-900/70 mt-2">
-                  Every job supports verification, escrow-style payments, and dispute resolution with one transparent 10% ZapTasks fee.
+                  Every job supports verification, escrow-style payments, and
+                  dispute resolution with one transparent 10% ZapTasks fee.
                 </p>
               </div>
-              <Link href="/faq" className="btn btn-outline w-full border-blue-300">
+              <Link
+                href="/faq"
+                className="btn btn-outline w-full border-blue-300"
+              >
                 See Trust & Safety FAQ
               </Link>
             </div>
