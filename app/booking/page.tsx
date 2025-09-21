@@ -19,6 +19,8 @@ import {
   ShoppingCart,
   Hammer,
   Trees,
+  ShieldCheck,
+  AlertTriangle,
 } from "lucide-react";
 import AddressAutocomplete from "../components/AddressAutocomplete";
 
@@ -67,6 +69,40 @@ const services: Service[] = [
     description:
       "Quick fixes and punch-list items tackled by reviewed neighbours. Clarify scope, materials, and timing so the right person applies.",
   },
+];
+
+const GROCERY_SAFETY_OPTIONS = [
+  {
+    id: "sealed-packaging",
+    label:
+      "Keep items sealed and share a quick photo of the receipt before drop-off",
+  },
+  {
+    id: "no-substitutions",
+    label: "Confirm any substitutions in chat before purchasing",
+  },
+  {
+    id: "contactless",
+    label: "Contactless handoff - leave bags at the door and knock",
+  },
+];
+
+const HANDYMAN_MATERIAL_OPTIONS = [
+  { id: "provided", label: "I have materials ready" },
+  { id: "helper-source", label: "Helper should pick up materials (reimburse)" },
+  { id: "confirm-together", label: "Let's confirm materials during chat" },
+];
+
+const HANDYMAN_PRICING_APPROACH = [
+  { id: "need-quote", label: "Looking for quotes/estimates" },
+  { id: "have-budget", label: "I have a target budget" },
+];
+
+const YARD_SIZE_OPTIONS = [
+  { id: "small", label: "Small (townhome / <1/4 acre)" },
+  { id: "medium", label: "Medium (1/4 - 1/2 acre)" },
+  { id: "large", label: "Large (1/2 acre + / corner lot)" },
+  { id: "not-sure", label: "Not sure - need neighbour to assess" },
 ];
 
 const MAX_PHOTOS = 3;
@@ -144,9 +180,70 @@ const BookingPage: React.FC = () => {
   const [estimatedDistance, setEstimatedDistance] = useState(3); // New: km, from geolocation/zip
   const [dropOffNotes, setDropOffNotes] = useState(""); // New: for messaging drop-off details
   const [hasRequestedGeo, setHasRequestedGeo] = useState(false);
+  const [grocerySafetySelections, setGrocerySafetySelections] = useState<string[]>([]);
+  const [handymanMaterialPreference, setHandymanMaterialPreference] =
+    useState<"provided" | "helper-source" | "confirm-together">(
+      "confirm-together"
+    );
+  const [handymanPricingFocus, setHandymanPricingFocus] =
+    useState<"need-quote" | "have-budget">("need-quote");
+  const [handymanExtraNotes, setHandymanExtraNotes] = useState("");
+  const [yardSize, setYardSize] = useState<string>("not-sure");
+  const [yardAccessNotes, setYardAccessNotes] = useState("");
   const [calculatedPrice, setCalculatedPrice] = useState(25); // New: auto-calc
   const searchParams = useSearchParams();
   const hasGrocerySelected = selectedServices.includes("grocery-runs");
+  const hasHandymanSelected = selectedServices.includes("handyman-jobs");
+  const hasPropertyCleanupSelected = selectedServices.includes("property-cleanup");
+
+  const summaryHighlights: string[] = [];
+  if (hasGrocerySelected) {
+    summaryHighlights.push(
+      `Grocery run: ~${itemCount} items | ~${estimatedDistance}km`
+    );
+    if (grocerySafetySelections.length > 0) {
+      const labels = grocerySafetySelections
+        .map(
+          (id) =>
+            GROCERY_SAFETY_OPTIONS.find((option) => option.id === id)?.label ??
+            null
+        )
+        .filter((label): label is string => Boolean(label));
+      if (labels.length > 0) {
+        summaryHighlights.push(`Handoff prefs: ${labels.join(", ")}`);
+      }
+    }
+    if (dropOffNotes.trim()) {
+      summaryHighlights.push(`Drop-off: ${dropOffNotes.trim()}`);
+    }
+  }
+
+  if (hasPropertyCleanupSelected) {
+    const yardLabel =
+      YARD_SIZE_OPTIONS.find((option) => option.id === yardSize)?.label ??
+      yardSize;
+    summaryHighlights.push(`Yard size: ${yardLabel}`);
+    if (yardAccessNotes.trim()) {
+      summaryHighlights.push(`Yard notes: ${yardAccessNotes.trim()}`);
+    }
+  }
+
+  if (hasHandymanSelected) {
+    const materialLabel =
+      HANDYMAN_MATERIAL_OPTIONS.find(
+        (option) => option.id === handymanMaterialPreference
+      )?.label ?? handymanMaterialPreference;
+    const pricingLabel =
+      HANDYMAN_PRICING_APPROACH.find(
+        (option) => option.id === handymanPricingFocus
+      )?.label ?? handymanPricingFocus;
+
+    summaryHighlights.push(`Materials: ${materialLabel}`);
+    summaryHighlights.push(`Pricing: ${pricingLabel}`);
+    if (handymanExtraNotes.trim()) {
+      summaryHighlights.push(`Handyman notes: ${handymanExtraNotes.trim()}`);
+    }
+  }
 
   useEffect(() => {
     const presetService = searchParams.get("service");
@@ -247,6 +344,14 @@ const BookingPage: React.FC = () => {
     );
   };
 
+  const toggleGrocerySafety = (optionId: string) => {
+    setGrocerySafetySelections((prev) =>
+      prev.includes(optionId)
+        ? prev.filter((id) => id !== optionId)
+        : [...prev, optionId]
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSubmissionStatus("idle");
@@ -320,6 +425,74 @@ const BookingPage: React.FC = () => {
         }
       }
 
+      const serviceSpecificNotes: string[] = [];
+
+      if (hasGrocerySelected) {
+        const selectedLabels = grocerySafetySelections
+          .map(
+            (id) =>
+              GROCERY_SAFETY_OPTIONS.find((option) => option.id === id)?.label ??
+              null
+          )
+          .filter((label): label is string => Boolean(label));
+
+        if (selectedLabels.length > 0) {
+          serviceSpecificNotes.push(
+            `Grocery safety preferences: ${selectedLabels.join(", ")}`
+          );
+        }
+
+        serviceSpecificNotes.push(
+          `Grocery order estimate: ~${itemCount} items, ~${estimatedDistance}km`
+        );
+
+        if (dropOffNotes.trim()) {
+          serviceSpecificNotes.push(
+            `Drop-off instructions: ${dropOffNotes.trim()}`
+          );
+        }
+      }
+
+      if (hasPropertyCleanupSelected) {
+        const yardLabel =
+          YARD_SIZE_OPTIONS.find((option) => option.id === yardSize)?.label ??
+          yardSize;
+        serviceSpecificNotes.push(`Yard size: ${yardLabel}`);
+
+        if (yardAccessNotes.trim()) {
+          serviceSpecificNotes.push(
+            `Yard access/details: ${yardAccessNotes.trim()}`
+          );
+        }
+      }
+
+      if (hasHandymanSelected) {
+        const materialLabel =
+          HANDYMAN_MATERIAL_OPTIONS.find(
+            (option) => option.id === handymanMaterialPreference
+          )?.label ?? handymanMaterialPreference;
+        const pricingLabel =
+          HANDYMAN_PRICING_APPROACH.find(
+            (option) => option.id === handymanPricingFocus
+          )?.label ?? handymanPricingFocus;
+
+        serviceSpecificNotes.push(`Handyman materials: ${materialLabel}`);
+        serviceSpecificNotes.push(`Pricing approach: ${pricingLabel}`);
+
+        if (handymanExtraNotes.trim()) {
+          serviceSpecificNotes.push(
+            `Handyman scope notes: ${handymanExtraNotes.trim()}`
+          );
+        }
+      }
+
+      const combinedBudgetNotes = [
+        budgetNotes.trim(),
+        ...serviceSpecificNotes,
+      ]
+        .filter((entry) => entry.length > 0)
+        .join(" | ");
+
       const response = await fetch("/api/job-requests", {
         method: "POST",
         headers: {
@@ -343,7 +516,7 @@ const BookingPage: React.FC = () => {
           budget: {
             type: budgetType,
             amount: parsedBudgetAmount,
-            notes: budgetNotes,
+            notes: combinedBudgetNotes || null,
           },
           contactPreference,
           photoUrls: uploadedPhotoUrls,
@@ -375,6 +548,16 @@ const BookingPage: React.FC = () => {
       setBudgetNotes("");
       setContactPreference("messages");
       setAgreeToTerms(false);
+      setItemCount(5);
+      setEstimatedDistance(3);
+      setDropOffNotes("");
+      setHasRequestedGeo(false);
+      setGrocerySafetySelections([]);
+      setHandymanMaterialPreference("confirm-together");
+      setHandymanPricingFocus("need-quote");
+      setHandymanExtraNotes("");
+      setYardSize("not-sure");
+      setYardAccessNotes("");
       clearPhotos();
       setPhotoUploadError(null);
 
@@ -385,7 +568,7 @@ const BookingPage: React.FC = () => {
         !(error instanceof Error && error.message === "PHOTO_UPLOAD_FAILED")
       ) {
         setError(
-          "We couldn’t post your job request. Please review the details and try again."
+          "We couldn't post your job request. Please review the details and try again."
         );
       }
     } finally {
@@ -630,6 +813,49 @@ const BookingPage: React.FC = () => {
 
                 {hasGrocerySelected && (
                   <>
+                    <div className="alert bg-emerald-50 border border-emerald-200 text-emerald-900">
+                      <ShieldCheck className="w-5 h-5" />
+                      <div>
+                        <p className="font-semibold text-sm">
+                          Food-handling peace of mind
+                        </p>
+                        <p className="text-xs md:text-sm text-emerald-900/80">
+                          Helpers must follow your handoff instructions. Pick the
+                          safeguards you prefer so groceries stay sealed and
+                          tamper-free.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="bg-white border border-emerald-100 rounded-xl p-4 mb-6 shadow-sm">
+                      <p className="font-semibold text-slate-900 text-sm md:text-base">
+                        Handoff preferences
+                      </p>
+                      <p className="text-xs md:text-sm text-slate-600 mb-3">
+                        Select the steps you&apos;d like your neighbour to follow.
+                        You can chat to confirm anything else.
+                      </p>
+                      <div className="space-y-2">
+                        {GROCERY_SAFETY_OPTIONS.map((option) => {
+                          const isChecked = grocerySafetySelections.includes(option.id);
+                          return (
+                            <label
+                              key={option.id}
+                              className="flex items-start gap-2 text-sm text-slate-700"
+                            >
+                              <input
+                                type="checkbox"
+                                className="checkbox checkbox-sm mt-1"
+                                checked={isChecked}
+                                onChange={() => toggleGrocerySafety(option.id)}
+                              />
+                              <span>{option.label}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+
                     {/* Item Count for Pricing */}
                     <div className="form-control mb-6">
                       <label className="label text-lg" htmlFor="itemCount">
@@ -649,7 +875,7 @@ const BookingPage: React.FC = () => {
                       />
                       <p className="text-sm text-gray-600 mt-1">
                         This helps calculate the fee: $25 for &lt;10 items &amp;
-                        ≤5km, $35 otherwise.
+                        &lt;=5km, $35 otherwise.
                       </p>
                     </div>
 
@@ -698,7 +924,7 @@ const BookingPage: React.FC = () => {
                       <textarea
                         id="dropOffNotes"
                         className="textarea textarea-bordered h-20 text-gray-900 text-lg"
-                        placeholder="e.g. Leave bag under welcome mat or knock at apartment 2B—no entry needed"
+                        placeholder="e.g. Leave bag under welcome mat or knock at apartment 2B - no entry needed"
                         value={dropOffNotes}
                         onChange={(e) => setDropOffNotes(e.target.value)}
                       />
@@ -708,6 +934,156 @@ const BookingPage: React.FC = () => {
                       </p>
                     </div>
                   </>
+                )}
+
+                {hasPropertyCleanupSelected && (
+                  <div className="mb-6 space-y-4">
+                    <div className="alert bg-amber-50 border border-amber-200 text-amber-900">
+                      <AlertTriangle className="w-5 h-5" />
+                      <div>
+                        <p className="font-semibold text-sm">
+                          Yard sizes can vary a ton
+                        </p>
+                        <p className="text-xs md:text-sm text-amber-900/80">
+                          Give neighbours a quick sense of the space so they can
+                          quote accurately. Add a photo for extra clarity.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="form-control">
+                        <label className="label text-lg" htmlFor="yardSize">
+                          <span className="label-text">Approximate yard size</span>
+                        </label>
+                        <select
+                          id="yardSize"
+                          className="select select-bordered w-full bg-white text-gray-900 text-lg"
+                          value={yardSize}
+                          onChange={(e) => setYardSize(e.target.value)}
+                        >
+                          {YARD_SIZE_OPTIONS.map((option) => (
+                            <option key={option.id} value={option.id}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="form-control">
+                        <label className="label text-lg" htmlFor="yardAccessNotes">
+                          <span className="label-text">
+                            Access &amp; equipment notes (optional)
+                          </span>
+                        </label>
+                        <textarea
+                          id="yardAccessNotes"
+                          className="textarea textarea-bordered h-20 text-gray-900 text-lg"
+                          placeholder="Gate width, slope, pet areas, on-site tools, or disposal notes"
+                          value={yardAccessNotes}
+                          onChange={(e) => setYardAccessNotes(e.target.value)}
+                        />
+                        <p className="text-xs text-slate-500 mt-1">
+                          Unsure on size? Mark "Not sure" and ask helpers to
+                          confirm during chat.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {hasHandymanSelected && (
+                  <div className="mb-6 space-y-4">
+                    <div className="alert bg-blue-50 border border-blue-200 text-blue-900">
+                      <Hammer className="w-5 h-5" />
+                      <div>
+                        <p className="font-semibold text-sm">
+                          Handyman rates depend on scope &amp; materials
+                        </p>
+                        <p className="text-xs md:text-sm text-blue-900/80">
+                          Share how complex the job is, who&apos;s providing
+                          materials, and whether you&apos;re expecting hourly quotes
+                          or flat bids.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="form-control">
+                        <label className="label text-lg">
+                          <span className="label-text">Materials</span>
+                        </label>
+                        <div className="space-y-2">
+                          {HANDYMAN_MATERIAL_OPTIONS.map((option) => (
+                            <label
+                              key={option.id}
+                              className="flex items-center gap-2 text-sm text-slate-700"
+                            >
+                              <input
+                                type="radio"
+                                name="handyman-materials"
+                                className="radio radio-sm"
+                                value={option.id}
+                                checked={handymanMaterialPreference === option.id}
+                                onChange={(e) =>
+                                  setHandymanMaterialPreference(
+                                    e.target.value as
+                                      | "provided"
+                                      | "helper-source"
+                                      | "confirm-together"
+                                  )
+                                }
+                              />
+                              {option.label}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="form-control">
+                        <label className="label text-lg">
+                          <span className="label-text">Pricing approach</span>
+                        </label>
+                        <div className="space-y-2">
+                          {HANDYMAN_PRICING_APPROACH.map((option) => (
+                            <label
+                              key={option.id}
+                              className="flex items-center gap-2 text-sm text-slate-700"
+                            >
+                              <input
+                                type="radio"
+                                name="handyman-pricing"
+                                className="radio radio-sm"
+                                value={option.id}
+                                checked={handymanPricingFocus === option.id}
+                                onChange={(e) =>
+                                  setHandymanPricingFocus(
+                                    e.target.value as "need-quote" | "have-budget"
+                                  )
+                                }
+                              />
+                              {option.label}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="form-control">
+                      <label className="label text-lg" htmlFor="handymanExtraNotes">
+                        <span className="label-text">
+                          Scope or specialty notes (optional)
+                        </span>
+                      </label>
+                      <textarea
+                        id="handymanExtraNotes"
+                        className="textarea textarea-bordered h-20 text-gray-900 text-lg"
+                        placeholder="e.g. Condo job - need proof of insurance, skill saw required, replacing 3 faucets, etc."
+                        value={handymanExtraNotes}
+                        onChange={(e) => setHandymanExtraNotes(e.target.value)}
+                      />
+                      <p className="text-xs text-slate-500 mt-1">
+                        The more detail you add, the more accurate the quotes.
+                      </p>
+                    </div>
+                  </div>
                 )}
 
                 {/* Date and Time inputs */}
@@ -946,6 +1322,29 @@ const BookingPage: React.FC = () => {
                   </div>
                 </div>
 
+                <div className="form-control mb-6">
+                  <label className="label text-lg" htmlFor="budgetNotes">
+                    <span className="label-text">
+                      Pricing context for neighbours (optional)
+                    </span>
+                  </label>
+                  <textarea
+                    id="budgetNotes"
+                    className="textarea textarea-bordered h-20 text-gray-900 text-lg"
+                    placeholder={hasHandymanSelected
+                      ? "e.g. Expecting quotes around $250, labour only. I can reimburse materials with receipt."
+                      : hasPropertyCleanupSelected
+                      ? "e.g. Hoping to spend under $180, willing to adjust if it takes longer."
+                      : "Share flexibility, reimbursements, or anything neighbours should know about payment."}
+                    value={budgetNotes}
+                    onChange={(e) => setBudgetNotes(e.target.value)}
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    Clear pricing expectations help neighbours respond with the
+                    right offer. It&apos;s okay to say you&apos;re looking for quotes.
+                  </p>
+                </div>
+
                 {/* Contact preference */}
                 <div className="form-control">
                   <label className="label">
@@ -1057,7 +1456,7 @@ const BookingPage: React.FC = () => {
                     <div className="flex justify-between">
                       <span className="font-medium">Service window</span>
                       <span>
-                        {date ? format(new Date(date), "MMM d, yyyy") : "TBD"} •{" "}
+                        {date ? format(new Date(date), "MMM d, yyyy") : "TBD"} | {" "}
                         {time || "Flexible"}
                       </span>
                     </div>
@@ -1077,6 +1476,18 @@ const BookingPage: React.FC = () => {
                           Budget notes
                         </span>
                         <p className="text-gray-600 text-sm">{budgetNotes}</p>
+                      </div>
+                    )}
+                    {summaryHighlights.length > 0 && (
+                      <div className="pt-2 border-t border-dashed border-slate-200">
+                        <span className="font-medium block mb-1">
+                          Service specifics
+                        </span>
+                        <ul className="text-gray-600 text-sm space-y-1">
+                          {summaryHighlights.map((highlight, index) => (
+                            <li key={`${highlight}-${index}`}>{highlight}</li>
+                          ))}
+                        </ul>
                       </div>
                     )}
                   </div>
