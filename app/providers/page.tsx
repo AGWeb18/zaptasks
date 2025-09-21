@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "../utils/supabase/client";
 import Navbar from "../components/NavBar";
@@ -17,7 +18,7 @@ const SERVICE_LABELS: Record<string, string> = {
 };
 
 const SERVICE_FILTERS = [
-  { value: "", label: "All fall & winter services" },
+  { value: "", label: "All services" },
   { value: "Home Repairs", label: "Home Repairs" },
   { value: "Cleaning & Turnover", label: "Cleaning & Turnover" },
   { value: "Outdoor & Seasonal", label: "Outdoor & Seasonal" },
@@ -50,6 +51,7 @@ type EnrichedPro = Pro & {
   availabilityLabel: string;
   responseTimeLabel: string;
   effectiveRate: number | null;
+  pricingType?: "hourly" | "flat";
 };
 
 const parsePricingInfo = (raw: string | null): PricingInfo | null => {
@@ -135,6 +137,7 @@ export default function ProvidersPage() {
             availabilityLabel,
             responseTimeLabel,
             effectiveRate,
+            pricingType: pricing?.pricingType,
           };
         });
         setPros(enriched);
@@ -158,7 +161,8 @@ export default function ProvidersPage() {
           availabilityFilter === "any" ||
           pro.availabilityLabel.toLowerCase().includes(availabilityFilter);
         const numericPrice = pro.effectiveRate;
-        const matchesPrice = !numericPrice || numericPrice <= maxPrice;
+        const matchesPrice =
+          pro.pricingType !== "hourly" || !numericPrice || numericPrice <= maxPrice;
         return matchesSearch && matchesRating && matchesAvailability && matchesPrice;
       })
       .sort((a, b) => {
@@ -187,9 +191,9 @@ export default function ProvidersPage() {
     <div className="min-h-screen bg-gradient-to-b from-blue-50/50 to-white text-slate-800 flex flex-col">
       <Navbar />
       <div className="container mx-auto px-4 py-12 flex-1">
-        <h1 className="text-3xl font-bold mb-2 text-center">Find Trusted Home Pros</h1>
+        <h1 className="text-3xl font-bold mb-2 text-center">Browse verified home providers</h1>
         <p className="text-center text-gray-600 mb-6">
-          Cozy up for fall and winter with vetted Kawarthas and GTA specialists. Every booking is processed by our Canadian-owned marketplace.
+          Handpick trusted neighbours for any task across the Kawarthas and GTA. Every booking stays protected through our Canadian-owned marketplace.
         </p>
         <div className="mb-6 grid grid-cols-1 lg:grid-cols-5 gap-4">
           <input
@@ -231,16 +235,16 @@ export default function ProvidersPage() {
 
         <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-slate-600">
           <label className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col gap-2">
-            <span className="font-semibold text-slate-700">Price cap (CAD)</span>
+            <span className="font-semibold text-slate-700">Max hourly rate (CAD)</span>
             <input
               type="range"
-              min={50}
-              max={500}
+              min={25}
+              max={250}
               value={maxPrice}
               onChange={e => setMaxPrice(Number(e.target.value))}
               className="range range-primary"
             />
-            <span className="text-xs text-slate-500">Showing providers ≤ ${maxPrice}</span>
+            <span className="text-xs text-slate-500">Showing providers ≤ ${maxPrice}/hr</span>
           </label>
           <label className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col gap-2">
             <span className="font-semibold text-slate-700">Availability</span>
@@ -263,16 +267,13 @@ export default function ProvidersPage() {
           </div>
         </div>
 
-        <div className="flex flex-wrap justify-center gap-2 mb-8 text-xs uppercase tracking-wide text-blue-700">
-          <span className="badge badge-outline">Roof & gutter prep</span>
-          <span className="badge badge-outline">Snow shovelling routes</span>
-          <span className="badge badge-outline">Holiday deep cleans</span>
-          <span className="badge badge-outline">Weekend handyman calls</span>
-        </div>
+        <p className="text-center text-xs text-slate-500 mb-8">
+          Not sure who to message? <Link href="/booking" className="text-blue-600 font-semibold hover:underline">Post a job</Link> so local providers can apply in minutes.
+        </p>
         {loading ? (
           <div className="text-center">Loading local pros...</div>
         ) : filteredPros.length === 0 ? (
-          <div className="text-center text-gray-500">No pros match that search yet. Try a different keyword or browse all fall & winter services.</div>
+          <div className="text-center text-gray-500">No providers match that search yet. Try a different keyword or switch back to all services.</div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredPros.map((pro) => (

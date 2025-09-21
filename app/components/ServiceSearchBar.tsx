@@ -188,14 +188,14 @@ export function ServiceSearchBar({ className }: { className?: string }) {
           </span>
           <button type="submit" className="btn btn-primary btn-lg sm:btn-md w-full sm:w-auto text-white">
             <Search className="h-4 w-4 mr-2" />
-            Find Pros
+            Start Your Job
           </button>
         </div>
       </div>
 
       <div className="mt-3 text-xs text-gray-500 flex flex-wrap items-center justify-between gap-2">
         <span>
-          Popular today: Toronto snow removal, Kawartha Lakes cottage closing, GTA deep clean.
+          Neighbours are posting: Toronto snow removal, Kawartha Lakes cottage closing, GTA deep clean.
         </span>
         <span className="font-medium text-blue-700">Built for Canadian homes • 50% deposit protection</span>
       </div>

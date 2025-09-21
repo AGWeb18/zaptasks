@@ -246,12 +246,12 @@ const ProJobsPage = () => {
     <div className="bg-slate-100 min-h-screen">
       <Navbar />
       <main className="container mx-auto px-4 py-10">
-        <section className="max-w-5xl mx-auto">
+        <section className="max-w-6xl mx-auto">
           <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-10">
             <div>
-              <h1 className="text-4xl font-bold text-blue-600 mb-2">Open Seasonal Jobs</h1>
+              <h1 className="text-4xl font-bold text-blue-600 mb-2">Browse open jobs near you</h1>
               <p className="text-base-content/70 max-w-2xl">
-                Browse homeowner requests across the Kawarthas and GTA. Apply with a quick message, tailor your rate, and let ZapTasks handle payments when you’re awarded the job.
+                Scroll the community job board for tasks posted by neighbours in the Kawarthas and GTA. You don’t have to be a pro—apply with a quick note, chat through the details, and get paid through ZapTasks when you’re selected.
               </p>
             </div>
             <div className="bg-white rounded-xl shadow border border-slate-200 p-4 flex flex-col gap-3 min-w-[220px]">
@@ -346,83 +346,97 @@ const ProJobsPage = () => {
               </p>
             </div>
           ) : (
-            <div className="grid gap-6">
-              {jobs.map((job) => {
-                const applied = hasApplied(job.id);
-                return (
-                  <article key={job.id} className="card bg-white shadow border border-slate-200">
-                    <div className="card-body">
-                      <header className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
-                        <div>
-                          <h3 className="text-2xl font-semibold text-gray-900 mb-2">{job.job_title}</h3>
-                          <div className="flex flex-wrap gap-2 text-sm text-blue-700 mb-3">
-                            {job.services.map((service) => (
-                              <span key={service} className="badge badge-outline">
-                                {service}
-                              </span>
-                            ))}
+            <div className="max-h-[75vh] overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 pb-2">
+                {jobs.map((job) => {
+                  const applied = hasApplied(job.id);
+                  return (
+                    <article
+                      key={job.id}
+                      className="bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col h-full"
+                    >
+                      <div className="flex-1 flex flex-col p-6">
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <div>
+                            <h3 className="text-xl font-semibold text-gray-900">{job.job_title}</h3>
+                            <div className="flex flex-wrap gap-2 mt-2 text-xs text-blue-700">
+                              {job.services.map((service) => (
+                                <span key={service} className="badge badge-outline">
+                                  {service}
+                                </span>
+                              ))}
+                            </div>
                           </div>
-                          <p className="text-base-content/70 leading-relaxed max-w-3xl">
-                            {job.description}
-                          </p>
+                          <span className="text-xs text-slate-500">
+                            Posted {format(new Date(job.created_at), "MMM d")}
+                          </span>
                         </div>
+                        <p className="text-sm text-base-content/70 leading-relaxed mb-4">
+                          {job.description}
+                        </p>
+                        <div className="space-y-2 text-sm text-base-content/80">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4" />
+                            <span>
+                              {job.service_date
+                                ? format(new Date(job.service_date), "MMM d, yyyy")
+                                : "Date flexible"}
+                              {job.service_time ? ` • ${job.service_time}` : ""}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4" />
+                            <span>{job.address ?? "Exact address shared after award"}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4" />
+                            <span>
+                              {job.hours ? `${job.hours} hour${job.hours > 1 ? "s" : ""}` : "Hours TBD"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4" />
+                            <span>
+                              {job.people ? `${job.people} helper${job.people > 1 ? "s" : ""} ideal` : "Solo or team"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <DollarSign className="w-4 h-4" />
+                            <span>
+                              {job.budget_amount
+                                ? job.budget_type === "hourly"
+                                  ? `$${job.budget_amount}/hr`
+                                  : `$${job.budget_amount} flat`
+                                : "Budget open"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <MessageCircle className="w-4 h-4" />
+                            <span>{job.contact_preference === "phone" ? "Prefers phone chat" : job.contact_preference === "email" ? "Prefers email" : "Prefers ZapTasks chat"}</span>
+                          </div>
+                        </div>
+                        {job.budget_notes && (
+                          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-base-content/70 mt-4">
+                            Homeowner notes: {job.budget_notes}
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-6 pt-0">
                         <button
-                          className="btn btn-primary btn-sm"
+                          className="btn btn-primary btn-block"
                           onClick={() => {
                             setSelectedJobId(job.id);
                             resetApplicationForm();
                           }}
                           disabled={applied || submitting}
                         >
-                          {applied ? "Application submitted" : "Apply now"}
+                          {applied ? "Application submitted" : "Apply to this job"}
                         </button>
-                      </header>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-base-content/80">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4" />
-                          <span>
-                            {job.service_date
-                              ? format(new Date(job.service_date), "MMM d, yyyy")
-                              : "Date flexible"}
-                            {job.service_time ? ` • ${job.service_time}` : ""}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4" />
-                          <span>{job.address ?? "Exact address shared after award"}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4" />
-                          <span>
-                            {job.hours ? `${job.hours} hour${job.hours > 1 ? "s" : ""}` : "Hours TBD"}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4" />
-                          <span>
-                            {job.people ? `${job.people} person crew requested` : "Crew size flexible"}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <DollarSign className="w-4 h-4" />
-                          <span>
-                            {job.budget_amount
-                              ? `${job.budget_type === "hourly" ? "Hourly" : "Flat"} • $${job.budget_amount.toFixed(0)}`
-                              : "Budget hidden"}
-                          </span>
-                        </div>
                       </div>
-
-                      {job.budget_notes && (
-                        <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-base-content/70 mt-4">
-                          Homeowner notes: {job.budget_notes}
-                        </div>
-                      )}
-                    </div>
-                  </article>
-                );
-              })}
+                    </article>
+                  );
+                })}
+              </div>
             </div>
           )}
         </section>

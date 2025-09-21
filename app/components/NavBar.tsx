@@ -7,8 +7,7 @@ import { Menu, X } from "lucide-react";
 
 const primaryLinks = [
   { href: "/booking", label: "Post a Job" },
-  { href: "/providers", label: "Browse Pros" },
-  { href: "/become-provider", label: "Become a Pro" },
+  { href: "/pro/jobs", label: "Browse Jobs" },
   { href: "/pricing", label: "Pricing" },
   { href: "/faq", label: "Help & Safety" },
 ];

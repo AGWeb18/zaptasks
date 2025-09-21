@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { CheckCircle, Calendar, CreditCard, MessageSquare, ShieldCheck } from "lucide-react";
+import { CheckCircle, CreditCard, MessageSquare, ShieldCheck } from "lucide-react";
 import LottieWrapper from "./components/LottieWrapper";
 import heroAnimation from "./animations/HeroAnimation.json";
 import yardworkAnimation from "./animations/YardWork.json";
@@ -28,7 +28,7 @@ const services = [
     ),
     name: "Home Repairs",
     description:
-      "Licensed Ontario trades for quick fixes, safety upgrades, and seasonal maintenance.",
+      "Trusted local pros fix leaks, swaps fixtures, and handle punch-list projects so you stay stress-free.",
   },
   {
     id: "cleaning",
@@ -41,7 +41,7 @@ const services = [
     ),
     name: "Cleaning & Turnover",
     description:
-      "Deep cleans, cottage changeovers, and recurring tidy-ups tailored to Kawarthas & GTA homes.",
+      "Neighbourhood cleaners tackle deep scrubs, turnovers, and weekly resets for cottages and city homes.",
   },
   {
     id: "outdoor",
@@ -54,25 +54,25 @@ const services = [
     ),
     name: "Outdoor & Seasonal",
     description:
-      "Snow removal, lawn care, and cottage openings powered by insured local crews.",
+      "From snow shovelling to lawn care, neighbourhood crews keep your property ready for Ontario seasons.",
   },
 ];
 
 const bookingSteps = [
   {
     icon: <CheckCircle className="w-6 h-6 text-blue-600" />,
-    title: "Tell us what you need",
-    copy: "Describe your task in under 60 seconds or pick a pre-set bundle for popular jobs.",
+    title: "Post your job",
+    copy: "Share what you need done, set your budget, and target Kawarthas or GTA neighbourhoods in under 60 seconds.",
   },
   {
-    icon: <Calendar className="w-6 h-6 text-blue-600" />,
-    title: "Choose timing & pro",
-    copy: "Compare verified local providers instantly, filtered by ratings, availability, and distance.",
+    icon: <MessageSquare className="w-6 h-6 text-blue-600" />,
+    title: "Compare offers",
+    copy: "Local pros apply with their availability. Chat in-app, review ratings, and pick the offer that fits.",
   },
   {
     icon: <CreditCard className="w-6 h-6 text-blue-600" />,
     title: "Secure & finish",
-    copy: "Reserve with a protected 50% deposit via Stripe Connect and release the balance when the job is signed off.",
+    copy: "Lock in the booking with a protected 50% deposit via Stripe Connect, then release the rest once the job is signed off.",
   },
 ];
 
@@ -139,32 +139,38 @@ const LandingPage: React.FC = () => {
               🇨🇦 Proudly Canadian • Kawarthas & GTA
             </span>
             <h1 className="mt-4 text-4xl md:text-5xl font-bold text-slate-900 leading-tight">
-              Book trusted local pros with 50/50 protected payments
+              Post a home service job. Local pros apply fast.
             </h1>
             <p className="mt-4 text-lg text-slate-600">
-              ZapTasks connects homeowners and providers across the Kawarthas and Greater Toronto Area. Post a job in under a minute, compare verified pros, and pay securely through Stripe Connect.
+              ZapTasks is the Canadian marketplace where homeowners post tasks and neighbours apply. Compare offers, chat before booking, and pay with a 50/50 milestone flow protected by Stripe Connect.
             </p>
             <div className="mt-6">
               <ServiceSearchBar />
+              <p className="mt-2 text-xs text-slate-500">
+                We use your selections to pre-fill the job post so you can publish and get offers faster.
+              </p>
             </div>
             <div className="mt-6 flex flex-col sm:flex-row gap-3 text-sm text-slate-600">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-emerald-500" />
-                ID-verified providers
+                ID-verified community pros
               </div>
               <div className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4 text-blue-500" />
-                In-app chat support
+                In-app chat before you commit
               </div>
             </div>
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <Link href="/booking" className="btn btn-primary btn-lg text-white">
-                Post a Job in 30 Seconds
+                Post a Job & Get Offers
               </Link>
               <Link href="/become-provider" className="btn btn-outline btn-lg border-2 border-blue-200 hover:border-blue-500">
-                Become a Provider
+                Find Local Jobs
               </Link>
             </div>
+            <p className="mt-3 text-xs text-slate-500">
+              Prefer to hand-pick your help? <Link href="/providers" className="text-blue-600 font-semibold hover:underline">Browse verified providers</Link> and invite them to apply.
+            </p>
           </div>
           <div className="w-full lg:w-1/2 flex justify-center">
             <LottieWrapper
@@ -175,17 +181,25 @@ const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-          {services.map((service) => (
-            <div
-              key={service.id}
-              className="bg-white rounded-2xl shadow-md border border-slate-100 p-6 flex flex-col items-center text-center hover:shadow-lg transition-shadow duration-300"
-            >
-              <div className="w-full flex justify-center mb-4">{service.icon}</div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">{service.name}</h3>
-              <p className="text-sm text-slate-600">{service.description}</p>
-            </div>
-          ))}
+        <section className="mb-16">
+          <div className="max-w-2xl mx-auto text-center mb-10">
+            <h2 className="text-3xl font-bold text-slate-900">Popular tasks neighbours are posting</h2>
+            <p className="mt-3 text-sm text-slate-600">
+              From Kawartha cottages to GTA condos, ZapTasks matches real jobs with real providers. Post what you need or browse offers from the community.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {services.map((service) => (
+              <div
+                key={service.id}
+                className="bg-white rounded-2xl shadow-md border border-slate-100 p-6 flex flex-col items-center text-center hover:shadow-lg transition-shadow duration-300"
+              >
+                <div className="w-full flex justify-center mb-4">{service.icon}</div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">{service.name}</h3>
+                <p className="text-sm text-slate-600">{service.description}</p>
+              </div>
+            ))}
+          </div>
         </section>
 
         <section id="before-and-after" className="mb-16">
@@ -205,7 +219,7 @@ const LandingPage: React.FC = () => {
             className="text-3xl font-bold mb-8 text-center"
           >
             <a href="#how-it-works-title" className="anchor-link">
-              How ZapTasks Works
+              How the Marketplace Works
             </a>
           </h3>
           <div className="flex flex-col md:flex-row items-center justify-between gap-10">
@@ -238,12 +252,12 @@ const LandingPage: React.FC = () => {
                 Marketplace Payment Structure
               </a>
             </h4>
-            <p>ZapTasks ensures secure, fair transactions for all marketplace users:</p>
+            <p>ZapTasks keeps peer-to-peer work transparent with milestone payments that protect both sides:</p>
             <ul className="list-disc list-inside mt-2">
-            <li>Pay a refundable 50% deposit to secure your booking.</li>
-            <li>Pay the remaining 50% after your task is completed to your satisfaction.</li>
-            <li>Our structure protects both clients and providers, ensuring quality and trust in every transaction.</li>
-          </ul>
+              <li>Pay a refundable 50% deposit when you accept a pro&apos;s offer.</li>
+              <li>Release the remaining 50% after the work is finished and you&apos;re satisfied.</li>
+              <li>Our dispute desk steps in fast if anything feels off, so neighbours stay confident to book locally.</li>
+            </ul>
           </div>
         </section>
 
@@ -268,7 +282,7 @@ const LandingPage: React.FC = () => {
         <section className="mb-16">
           <div className="bg-blue-50 border border-blue-100 rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="md:w-2/3">
-              <h3 className="text-2xl font-semibold text-blue-900">Built for trust across the Kawarthas & GTA</h3>
+              <h3 className="text-2xl font-semibold text-blue-900">Marketplace trust for the Kawarthas & GTA</h3>
               <ul className="mt-4 space-y-3 text-sm text-blue-900/80">
                 <li>• Stripe Identity verification with visible “Verified” badges on provider profiles.</li>
                 <li>• Escrow-style 50/50 payment flow handled by Stripe Connect for compliance and quick payouts.</li>
