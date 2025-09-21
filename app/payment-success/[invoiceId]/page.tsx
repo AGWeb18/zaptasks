@@ -238,13 +238,24 @@ function InvoiceDetails({ invoiceData }: { invoiceData: InvoiceData }) {
   );
 }
 
+type PaymentSuccessPageProps = {
+  params?: Promise<{ invoiceId: string }>;
+};
+
 export default async function PaymentSuccessPage({
   params,
-}: {
-  params: { invoiceId: string };
-}) {
+}: PaymentSuccessPageProps) {
   try {
-    const invoiceData = await getInvoiceData(params.invoiceId);
+    const resolvedParams = (params ? await params : {}) as {
+      invoiceId?: string;
+    };
+    const invoiceId = resolvedParams.invoiceId;
+
+    if (!invoiceId) {
+      throw new Error("Invoice ID is required");
+    }
+
+    const invoiceData = await getInvoiceData(invoiceId);
 
     return (
       <div className="min-h-screen bg-base-200">

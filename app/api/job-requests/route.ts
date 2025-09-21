@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { getAuth } from "@clerk/nextjs/server";
 import { createClient } from "@/app/utils/supabase/server";
 import {
@@ -13,7 +12,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const supabase = createClient(cookies());
+  const supabase = await createClient();
   const { searchParams } = new URL(req.url);
   const scope = searchParams.get("scope") ?? "mine";
 
@@ -58,7 +57,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required job details." }, { status: 400 });
     }
 
-    const supabase = createClient(cookies());
+    const supabase = await createClient();
     const { data, error } = await supabase
       .from("job_requests")
       .insert({
@@ -129,7 +128,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Missing job ID." }, { status: 400 });
     }
 
-    const supabase = createClient(cookies());
+    const supabase = await createClient();
 
     const { data: jobRequest, error: jobError } = await supabase
       .from("job_requests")

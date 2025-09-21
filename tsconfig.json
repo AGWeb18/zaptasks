@@ -1,6 +1,10 @@
 {
   "compilerOptions": {
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -18,9 +22,26 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
-    }
+      "@/*": [
+        "./*"
+      ]
+    },
+    "target": "ES2017"
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "app/onboarding/page.jsx", "app/onboarding/page.jsx", "app/components/CheckoutForm.tsx", "app/pages/api/create-checkout-session.jsx", "app/components/CheckoutPage.jsx", "app/invoice-confirmation/[invoiceId]/page.jsx", "app/components/TimeSelector.jsx"],
-  "exclude": ["node_modules"]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "app/onboarding/page.jsx",
+    "app/onboarding/page.jsx",
+    "app/components/CheckoutForm.tsx",
+    "app/pages/api/create-checkout-session.jsx",
+    "app/components/CheckoutPage.jsx",
+    "app/invoice-confirmation/[invoiceId]/page.jsx",
+    "app/components/TimeSelector.jsx"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

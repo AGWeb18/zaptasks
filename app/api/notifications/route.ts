@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { getAuth } from "@clerk/nextjs/server";
 import { createClient } from "@/app/utils/supabase/server";
 
@@ -9,7 +8,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const supabase = createClient(cookies());
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("notifications")
     .select("id, type, payload, created_at, read_at")
@@ -38,7 +37,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Missing notification ID." }, { status: 400 });
     }
 
-    const supabase = createClient(cookies());
+    const supabase = await createClient();
     const { error } = await supabase
       .from("notifications")
       .update({ read_at: new Date().toISOString() })

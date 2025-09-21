@@ -6,10 +6,11 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2024-06-20",
 });
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { invoiceId: string } }
-) {
+type GetInvoiceRouteContext = {
+  params: Promise<{ invoiceId: string }>;
+};
+
+export async function GET(req: NextRequest, context: GetInvoiceRouteContext) {
   try {
     const { userId } = getAuth(req);
 
@@ -17,7 +18,14 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const invoice = await stripe.invoices.retrieve(params.invoiceId);
+    const params = (await context.params) ?? {};
+    const invoiceId = params.invoiceId;
+
+    if (!invoiceId) {
+      return NextResponse.json({ error: "Invoice ID is required" }, { status: 400 });
+    }
+
+    const invoice = await stripe.invoices.retrieve(invoiceId);
     
     let paymentIntent = null;
     if (invoice.payment_intent) {
