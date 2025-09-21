@@ -44,12 +44,20 @@ const Navbar: React.FC = () => {
                 </Link>
               </li>
               <li>
+                <Link
+                  href="/pro/jobs"
+                  className="hover:text-blue-600 transition-colors"
+                >
+                  Open Jobs
+                </Link>
+              </li>
+              <li>
                 <SignedIn>
                   <Link
                     href="/manage-booking"
                     className="hover:text-blue-600 transition-colors"
                   >
-                    My Bookings
+                    My Job Requests
                   </Link>
                 </SignedIn>
               </li>
@@ -106,12 +114,20 @@ const Navbar: React.FC = () => {
                 </Link>
               </li>
               <li>
+                <Link
+                  href="/pro/jobs"
+                  className="block hover:text-blue-600"
+                >
+                  Open Jobs
+                </Link>
+              </li>
+              <li>
                 <SignedIn>
                   <Link
                     href="/manage-booking"
                     className="block hover:text-blue-600"
                   >
-                    My Bookings
+                    My Job Requests
                   </Link>
                 </SignedIn>
               </li>

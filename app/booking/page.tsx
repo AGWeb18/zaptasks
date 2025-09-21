@@ -1,9 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { createClient } from "../utils/supabase/client";
-import { useUser, useAuth } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import Navbar from "../components/NavBar";
 import TimeSelector from "../components/TimeSelector";
 import { format, addDays } from "date-fns";
@@ -20,8 +18,6 @@ import {
   Hammer,
 } from "lucide-react";
 import AddressAutocomplete from "../components/AddressAutocomplete";
-import { loadStripe } from "@stripe/stripe-js";
-import { Elements } from "@stripe/react-stripe-js";
 
 interface Service {
   id: string;
@@ -70,83 +66,6 @@ const services: Service[] = [
   },
 ];
 
-const PROVIDER_SERVICE_LABELS: Record<string, string> = {
-  "Snow & Lawn Care": "Snow Removal & Ice Control",
-  "Handyman & Repairs": "Winter Repairs & Weatherproofing",
-  "Home Cleaning": "Holiday Clean-Up & Turnover",
-  "Painting & Finishing": "Interior Touch-Ups",
-};
-
-const formatServiceLabel = (value: string | null | undefined) =>
-  value ? PROVIDER_SERVICE_LABELS[value] ?? value : "Seasonal service";
-
-const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
-);
-
-type PricingInfo = {
-  currency?: string;
-  pricingType?: "hourly" | "flat";
-  hourlyRate?: number | null;
-  flatFee?: number | null;
-  minimumHours?: number | null;
-  display?: string;
-};
-
-type ProviderOption = {
-  id: string;
-  name: string;
-  service: string;
-  price: string | null;
-};
-
-// 10% platform fee applied to both homeowner and pro transactions
-const PLATFORM_FEE_RATE = 0.1;
-
-const parsePricingInfo = (raw: string | null | undefined): PricingInfo | null => {
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw);
-    if (typeof parsed === "object" && parsed !== null) {
-      return parsed as PricingInfo;
-    }
-  } catch {
-    const amountMatch = raw.match(/\$?\s*(\d+(?:\.\d{1,2})?)/);
-    if (amountMatch) {
-      const value = Number(amountMatch[1]);
-      if (raw.toLowerCase().includes("flat")) {
-        return {
-          currency: "CAD",
-          pricingType: "flat",
-          flatFee: value,
-          display: raw,
-        };
-      }
-      return {
-        currency: "CAD",
-        pricingType: "hourly",
-        hourlyRate: value,
-        display: raw,
-      };
-    }
-  }
-  return null;
-};
-
-const formatProviderPricing = (raw: string | null | undefined): string => {
-  const info = parsePricingInfo(raw);
-  if (!info) return raw ?? "Pricing pending";
-  if (info.display) return info.display;
-  if (info.pricingType === "flat" && info.flatFee) {
-    return `$${info.flatFee.toFixed(0)} flat project fee`;
-  }
-  if (info.pricingType === "hourly" && info.hourlyRate) {
-    const minimum = info.minimumHours ? `${info.minimumHours} hr min` : "2 hr min";
-    return `$${info.hourlyRate.toFixed(0)}/hr • ${minimum}`;
-  }
-  return raw ?? "Pricing pending";
-};
-
 const formatCurrency = (value: number) =>
   value.toLocaleString("en-CA", { style: "currency", currency: "CAD" });
 
@@ -157,7 +76,7 @@ ZapTasks Terms and Conditions
    ZapTasks is a platform connecting clients with independent service providers. We do not guarantee service quality or completion.
 
 2. Payments and Cancellations:
-   A 50% deposit is required at booking. Full payment is due upon service completion. Cancellations within 24 hours may incur a 50% fee.
+   Once you accept a pro&apos;s proposal, a 50% deposit is collected through ZapTasks. The remaining balance is due after service completion. Cancellations within 24 hours of the confirmed start time may incur a 50% fee.
 
 3. Service Scheduling:
    No same-day service is available. All bookings must be made at least 24 hours in advance.
@@ -177,145 +96,43 @@ ZapTasks Terms and Conditions
 By using ZapTasks, you agree to these terms and conditions.
 `;
 
-// Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient();
-
 const BookingPage: React.FC = () => {
-  const { isLoaded, isSignedIn, user } = useUser();
-  const { userId, sessionId } = useAuth();
+  const { isLoaded, user } = useUser();
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [expandedService, setExpandedService] = useState<string | null>(null);
+  const [jobTitle, setJobTitle] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [hours, setHours] = useState(2);
   const [people, setPeople] = useState(1);
   const [description, setDescription] = useState("");
   const [bringEquipment, setBringEquipment] = useState(false);
-  const [bringEquipmentFee, setBringEquipmentFee] = useState(0);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<string>("");
   const [selectedLat, setSelectedLat] = useState<number | null>(null);
   const [selectedLng, setSelectedLng] = useState<number | null>(null);
+  const [budgetType, setBudgetType] = useState<"flat" | "hourly">("flat");
+  const [budgetAmount, setBudgetAmount] = useState<string>("");
+  const [budgetNotes, setBudgetNotes] = useState<string>("");
+  const [contactPreference, setContactPreference] = useState<"messages" | "phone" | "email">("messages");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
-  const [depositClientSecret, setDepositClientSecret] = useState("");
-  const [remainingIntentId, setRemainingIntentId] = useState("");
-  const [paymentStep, setPaymentStep] = useState<
-    "initial" | "deposit" | "final"
-  >("initial");
-
-  const [paymentStatus, setPaymentStatus] = useState<
-    "idle" | "success" | "error"
-  >("idle");
-  const [errorMessage, setErrorMessage] = useState("");
-  const [clientSecret, setClientSecret] = useState("");
   const [minDate, setMinDate] = useState("");
-  const [selectedProviderId, setSelectedProviderId] = useState<string>("");
-
-  const [providerOptions, setProviderOptions] = useState<ProviderOption[]>([]);
-  useEffect(() => {
-    const supabase = createClient();
-    supabase
-      .from("providers")
-      .select("id, name, service, price")
-      .then(({ data, error }) => {
-        if (!error && data) {
-          const normalized = data.map((provider) => ({
-            id: provider.id,
-            name: provider.name,
-            service: provider.service,
-            price: provider.price ?? null,
-          }));
-          setProviderOptions(normalized);
-        }
-      });
-  }, []);
-
-  const selectedProvider = React.useMemo(
-    () => providerOptions.find((option) => option.id === selectedProviderId) || null,
-    [providerOptions, selectedProviderId]
-  );
-
-  const selectedPricing = React.useMemo(
-    () => parsePricingInfo(selectedProvider?.price),
-    [selectedProvider]
-  );
-
-  const minimumHoursRequired = React.useMemo(() => {
-    if (selectedPricing?.pricingType === "hourly") {
-      return Math.max(selectedPricing.minimumHours ?? 2, 1);
-    }
-    return 1;
-  }, [selectedPricing]);
+  const [submissionStatus, setSubmissionStatus] = useState<"idle" | "success">("idle");
 
   useEffect(() => {
-    if (selectedPricing?.pricingType === "hourly" && hours < minimumHoursRequired) {
-      setHours(minimumHoursRequired);
+    if (hours < 1) {
+      setHours(1);
     }
-  }, [selectedPricing, minimumHoursRequired, hours]);
+  }, [hours]);
 
-  const pricingDetails = React.useMemo(() => {
-    const equipmentFee = bringEquipment ? bringEquipmentFee : 0;
-
-    const calculateBreakdown = (baseAmount: number) => {
-      const jobSubtotal = baseAmount + equipmentFee;
-      const customerFee = jobSubtotal * PLATFORM_FEE_RATE;
-      const customerTotal = jobSubtotal + customerFee;
-      const providerFee = jobSubtotal * PLATFORM_FEE_RATE;
-      const providerNetTotal = jobSubtotal - providerFee;
-
-      const customerDeposit = customerTotal * 0.5;
-      const customerRemainder = customerTotal - customerDeposit;
-      const providerDeposit = providerNetTotal * 0.5;
-      const providerRemainder = providerNetTotal - providerDeposit;
-
-      return {
-        baseAmount,
-        equipmentFee,
-        totalAmount: jobSubtotal,
-        depositAmount: customerDeposit,
-        remainderAmount: customerRemainder,
-        platformFee: providerFee,
-        customerFee,
-        customerTotal,
-        providerNetTotal,
-        providerDeposit,
-        providerRemainder,
-      };
-    };
-
-    if (!selectedPricing) {
-      return {
-        ...calculateBreakdown(0),
-        pricingInfo: null as PricingInfo | null,
-      };
-    }
-
-    let baseAmount = 0;
-
-    if (selectedPricing.pricingType === "hourly" && selectedPricing.hourlyRate) {
-      const billableHours = Math.max(hours, minimumHoursRequired);
-      baseAmount = selectedPricing.hourlyRate * billableHours * Math.max(people, 1);
-    } else if (selectedPricing.pricingType === "flat" && selectedPricing.flatFee) {
-      baseAmount = selectedPricing.flatFee;
-    }
-
-    return {
-      ...calculateBreakdown(baseAmount),
-      pricingInfo: selectedPricing,
-    };
-  }, [selectedPricing, hours, people, bringEquipment, bringEquipmentFee, minimumHoursRequired]);
-
-  const isReadyToBook = Boolean(
-    selectedProvider &&
-    selectedPricing &&
-    pricingDetails.totalAmount > 0 &&
+  const isReadyToRequest = Boolean(
+    jobTitle.trim() &&
+    selectedServices.length > 0 &&
     date &&
     time &&
-    selectedServices.length > 0
+    description.trim() &&
+    budgetAmount.trim()
   );
 
   const handleServiceToggle = (serviceId: string) => {
@@ -327,118 +144,96 @@ const BookingPage: React.FC = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    // Prevent the default form submission behavior
     e.preventDefault();
+    setSubmissionStatus("idle");
 
-    // Check if the user has agreed to the terms and conditions
     if (!agreeToTerms) {
       setError("Please agree to the terms and conditions before submitting.");
       return;
     }
 
-    // Ensure the user is logged in
     if (!isLoaded || !user) {
-      setError("Please log in to book a service.");
+      setError("Please log in to request a service.");
       return;
     }
 
-    if (!selectedProvider || !selectedPricing) {
-      setIsLoading(false);
-      setError("Please choose a pro with published pricing to continue.");
+    if (!isReadyToRequest) {
+      setError("Please complete the required details before posting your job request.");
       return;
     }
 
-    if (pricingDetails.totalAmount <= 0) {
-      setIsLoading(false);
-      setError(
-        "Unable to calculate the job total from this pro's pricing. Please adjust your selections or choose a different expert."
-      );
+    const parsedBudgetAmount = Number(budgetAmount);
+    if (Number.isNaN(parsedBudgetAmount) || parsedBudgetAmount <= 0) {
+      setError("Please enter a valid budget amount greater than zero.");
       return;
     }
 
-    // Set loading state and clear any previous errors
     setIsLoading(true);
     setError(null);
 
     try {
-      // Check if the user is already a Stripe customer
-      const checkCustomerResponse = await fetch("/api/check-customer", {
+      const response = await fetch("/api/job-requests", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: user.primaryEmailAddress?.emailAddress,
-        }),
-      });
-
-      if (!checkCustomerResponse.ok) {
-        throw new Error("Failed to check customer status");
-      }
-
-      const { isCustomer, customerId } = await checkCustomerResponse.json();
-
-      // If not a customer, create one
-      let stripeCustomerId = customerId;
-      if (!isCustomer) {
-        const createCustomerResponse = await fetch("/api/create-customer", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: user.fullName,
-            email: user.primaryEmailAddress?.emailAddress,
-          }),
-        });
-
-        if (!createCustomerResponse.ok) {
-          throw new Error("Failed to create customer");
-        }
-
-        const { customerId: newCustomerId } =
-          await createCustomerResponse.json();
-        stripeCustomerId = newCustomerId;
-      }
-
-      // Create the invoice
-      const invoiceResponse = await fetch("/api/create-invoice", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          amount: pricingDetails.totalAmount,
-          customerId: stripeCustomerId,
-          name: user.fullName,
-          email: user.primaryEmailAddress?.emailAddress,
+          homeownerId: user.id,
+          homeownerName: user.fullName,
+          homeownerEmail: user.primaryEmailAddress?.emailAddress,
+          jobTitle,
           services: selectedServices,
+          description,
           date,
           time,
           hours,
           people,
-          description,
-          address: selectedAddress,
           bringEquipment,
-          providerId: selectedProviderId, // Pass selected provider
+          address: selectedAddress,
+          latitude: selectedLat,
+          longitude: selectedLng,
+          budget: {
+            type: budgetType,
+            amount: parsedBudgetAmount,
+            notes: budgetNotes,
+          },
+          contactPreference,
         }),
       });
 
-      if (!invoiceResponse.ok) {
-        throw new Error("Failed to create invoice");
+      if (!response.ok) {
+        throw new Error("Failed to submit job request");
       }
 
-      const invoiceData = await invoiceResponse.json();
+      await response.json();
 
-      // Navigate to invoice confirmation or show success message
-      router.push(`/invoice-confirmation/${invoiceData.depositInvoiceId}`);
+      setSubmissionStatus("success");
+
+      setSelectedServices([]);
+      setExpandedService(null);
+      setJobTitle("");
+      setDate("");
+      setTime("");
+      setHours(1);
+      setPeople(1);
+      setDescription("");
+      setBringEquipment(false);
+      setSelectedAddress("");
+      setSelectedLat(null);
+      setSelectedLng(null);
+      setBudgetType("flat");
+      setBudgetAmount("");
+      setBudgetNotes("");
+      setContactPreference("messages");
+      setAgreeToTerms(false);
+
+      // Optionally route to a confirmation page in future
     } catch (error) {
-      console.error("Error during booking process:", error);
+      console.error("Error creating job request:", error);
       setError(
-        "An error occurred during the booking process. Please try again."
+        "We couldn’t post your job request. Please review the details and try again."
       );
     } finally {
-      // Reset loading state regardless of success or failure
       setIsLoading(false);
     }
   };
@@ -457,33 +252,9 @@ const BookingPage: React.FC = () => {
     }
   };
 
-  const options = {
-    clientSecret,
-    appearance: { theme: "stripe" as const },
-  };
-
   const handleBringEquipmentChange = (checked: boolean) => {
     setBringEquipment(checked);
-    setBringEquipmentFee(checked ? 50 : 0);
   };
-
-  const handleSuccess = () => {
-    setPaymentStatus("success");
-    setErrorMessage("");
-  };
-
-  const handleError = (error: string) => {
-    setPaymentStatus("error");
-    setErrorMessage(error);
-  };
-
-  const appearance = {
-    theme: "stripe",
-  };
-  //   const options = {
-  //     clientSecret,
-  //     appearance,
-  //   };
 
   useEffect(() => {
     // Set the minimum date to tomorrow
@@ -497,40 +268,33 @@ const BookingPage: React.FC = () => {
       <div className="min-h-screen bg-slate-300 py-12">
         <div className="container mx-auto px-4 ">
           <h1 className="text-4xl font-bold text-center mb-4 text-blue-600">
-            Book Seasonal Home Help
+            Request Seasonal Home Help
           </h1>
           <p className="text-center text-base-content/70 mb-8">
-            Secure Kawarthas and GTA pros for snow removal, winter prep, and holiday-ready homes—all with Canadian Stripe payments.
+            Post your job once and let vetted Kawarthas and GTA pros apply. Review proposals, pick your favourite, and we&apos;ll handle the secure Canadian payments.
           </p>
 
           <div className="card shadow-xl max-w-3xl mx-auto bg-slate-100">
             <div className="card-body">
-              <h2 className="card-title">Plan Your Seasonal Services</h2>
+              <h2 className="card-title">Tell us what you need</h2>
               <p className="text-base-content/70">
-                Pick the fall and winter jobs you want covered
+                Share the fall and winter jobs you want covered so local experts can raise their hand
               </p>
 
               <form onSubmit={handleSubmit}>
                 <div className="mb-6">
-                  <label className="block mb-2 font-semibold">Choose a local pro</label>
-                  <select
-                    className="select select-bordered w-full bg-white text-gray-900"
-                    value={selectedProviderId}
-                    onChange={e => setSelectedProviderId(e.target.value)}
+                  <label className="block mb-2 font-semibold" htmlFor="jobTitle">
+                    Job headline
+                  </label>
+                  <input
+                    id="jobTitle"
+                    type="text"
+                    className="input input-bordered w-full bg-white text-gray-900"
+                    placeholder="e.g. Clear driveway before Monday morning"
+                    value={jobTitle}
+                    onChange={(e) => setJobTitle(e.target.value)}
                     required
-                  >
-                    <option value="" disabled>Select a pro...</option>
-                    {providerOptions.map((provider) => (
-                      <option key={provider.id} value={provider.id}>
-                        {provider.name} • {formatServiceLabel(provider.service)} • {formatProviderPricing(provider.price)}
-                      </option>
-                    ))}
-                  </select>
-                  {selectedProvider && (
-                    <p className="mt-2 text-sm text-gray-600">
-                      {formatProviderPricing(selectedProvider.price)}. ZapTasks collects a {Math.round(PLATFORM_FEE_RATE * 100)}% service fee from the pro payout through Stripe Connect.
-                    </p>
-                  )}
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-6">
@@ -634,7 +398,7 @@ const BookingPage: React.FC = () => {
                     <div className="form-control flex-1">
                       <label className="label" htmlFor="hours">
                         <span className="label-text">
-                          Number of Hours (minimum {selectedPricing?.pricingType === "hourly" ? minimumHoursRequired : 1})
+                          Estimated hours needed (minimum 1)
                         </span>
                       </label>
                       <div className="relative">
@@ -645,28 +409,21 @@ const BookingPage: React.FC = () => {
                         <input
                           id="hours"
                           type="number"
-                          min={selectedPricing?.pricingType === "hourly" ? minimumHoursRequired : 1}
+                          min={1}
                           value={hours}
                           onChange={(e) => {
                             const value = parseInt(e.target.value);
-                            const min = selectedPricing?.pricingType === "hourly" ? minimumHoursRequired : 1;
+                            const min = 1;
                             setHours(isNaN(value) ? min : Math.max(min, value));
                           }}
                           onBlur={() => {
-                            const min = selectedPricing?.pricingType === "hourly" ? minimumHoursRequired : 1;
+                            const min = 1;
                             if (hours < min) setHours(min);
                           }}
                           className="input input-bordered pl-10 w-full text-gray-900"
                           required
                         />
                       </div>
-                      {selectedPricing?.pricingType === "hourly" && hours < minimumHoursRequired && (
-                        <label className="label">
-                          <span className="label-text-alt text-error">
-                            Minimum {minimumHoursRequired} hours required
-                          </span>
-                        </label>
-                      )}
                     </div>
                     <div className="form-control flex-1">
                       <label className="label" htmlFor="people">
@@ -739,6 +496,81 @@ const BookingPage: React.FC = () => {
                     />
                   </div>
 
+                  {/* Budget */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="form-control">
+                      <label className="label" htmlFor="budgetAmount">
+                        <span className="label-text">Preferred budget (CAD)</span>
+                      </label>
+                      <input
+                        id="budgetAmount"
+                        type="number"
+                        min="1"
+                        className="input input-bordered w-full text-gray-900"
+                        placeholder="e.g. 250"
+                        value={budgetAmount}
+                        onChange={(e) => setBudgetAmount(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="form-control">
+                      <label className="label" htmlFor="budgetType">
+                        <span className="label-text">Budget type</span>
+                      </label>
+                      <select
+                        id="budgetType"
+                        className="select select-bordered w-full bg-white text-gray-900"
+                        value={budgetType}
+                        onChange={(e) => setBudgetType(e.target.value as "flat" | "hourly")}
+                      >
+                        <option value="flat">Flat project estimate</option>
+                        <option value="hourly">Hourly estimate</option>
+                      </select>
+                    </div>
+                    <div className="form-control md:col-span-2">
+                      <label className="label" htmlFor="budgetNotes">
+                        <span className="label-text">Budget notes (optional)</span>
+                      </label>
+                      <textarea
+                        id="budgetNotes"
+                        className="textarea textarea-bordered text-gray-900"
+                        placeholder="Share any pricing details, materials supplied, or flexibility."
+                        value={budgetNotes}
+                        onChange={(e) => setBudgetNotes(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Contact preference */}
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text">How should pros reach you?</span>
+                    </label>
+                    <div className="flex flex-col md:flex-row gap-3">
+                      {[
+                        { value: "messages", label: "ZapTasks messages" },
+                        { value: "email", label: "Email" },
+                        { value: "phone", label: "Phone call" },
+                      ].map((option) => (
+                        <label
+                          key={option.value}
+                          className="cursor-pointer flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg hover:border-blue-500 transition"
+                        >
+                          <input
+                            type="radio"
+                            name="contactPreference"
+                            value={option.value}
+                            checked={contactPreference === option.value}
+                            onChange={() =>
+                              setContactPreference(option.value as "messages" | "email" | "phone")
+                            }
+                          />
+                          <span>{option.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Bring equipment checkbox */}
                   <div className="form-control">
                     <label className="label cursor-pointer justify-start space-x-3">
@@ -784,62 +616,64 @@ const BookingPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Pricing summary and submit */}
+                {/* Request summary and submit */}
                 <div className="mt-6 space-y-4">
-                  <div className="bg-white border border-slate-200 rounded-lg p-4 space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span>Service subtotal</span>
-                      <span className="font-semibold">{formatCurrency(pricingDetails.baseAmount)}</span>
+                  {error && (
+                    <div className="alert alert-error shadow-sm">
+                      <span>{error}</span>
                     </div>
-                    {pricingDetails.equipmentFee > 0 && (
-                      <div className="flex justify-between">
-                        <span>Equipment & supplies</span>
-                        <span className="font-semibold">{formatCurrency(pricingDetails.equipmentFee)}</span>
+                  )}
+                  {submissionStatus === "success" && (
+                    <div className="alert alert-success shadow-sm">
+                      <div>
+                        <h3 className="font-semibold">
+                          Job request posted!
+                        </h3>
+                        <p className="text-sm">
+                          We&apos;ll notify local pros so they can apply. You&apos;ll choose who to hire once the proposals arrive.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="bg-white border border-slate-200 rounded-lg p-4 space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="font-medium">Preferred budget</span>
+                      <span>
+                        {budgetAmount ? formatCurrency(Number(budgetAmount)) : "Not set"}
+                        {budgetType === "hourly" ? "/hr" : " flat"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Service window</span>
+                      <span>{date ? format(new Date(date), "MMM d, yyyy") : "TBD"} • {time || "Flexible"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Crew size needed</span>
+                      <span>{people} {people === 1 ? "person" : "people"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Contact preference</span>
+                      <span className="capitalize">{contactPreference}</span>
+                    </div>
+                    {budgetNotes && (
+                      <div className="pt-2 border-t border-dashed border-slate-200">
+                        <span className="font-medium block mb-1">Budget notes</span>
+                        <p className="text-gray-600 text-sm">{budgetNotes}</p>
                       </div>
                     )}
-                    <div className="flex justify-between">
-                      <span>ZapTasks service fee (homeowner 10%)</span>
-                      <span className="font-semibold">{formatCurrency(pricingDetails.customerFee)}</span>
-                    </div>
-                    <div className="flex justify-between border-t border-slate-200 pt-2 text-base font-semibold">
-                      <span>Total due from homeowner</span>
-                      <span>{formatCurrency(pricingDetails.customerTotal)}</span>
-                    </div>
                   </div>
 
-                  <div className="bg-slate-200 border border-slate-300 rounded-lg p-4 space-y-2 text-sm">
-                    <div className="flex justify-between text-base font-semibold">
-                      <span>Due today (50% deposit inc. fees)</span>
-                      <span>{formatCurrency(pricingDetails.depositAmount)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Due after completion (inc. fees)</span>
-                      <span>{formatCurrency(pricingDetails.remainderAmount)}</span>
-                    </div>
-                    <p className="text-xs text-gray-600 pt-2">
-                      ZapTasks routes payments through Stripe Connect and retains a {Math.round(PLATFORM_FEE_RATE * 100)}% service fee from both the pro payout and homeowner transaction.
-                    </p>
-                  </div>
-
-                  {clientSecret && (
-                    <Elements stripe={stripePromise} options={options}>
-                      <button className="btn btn-primary w-full text-white btn-lg">
-                        Book Now
-                      </button>
-                    </Elements>
-                  )}
-                  {!clientSecret && (
-                    <button
-                      type="submit"
-                      className="btn btn-primary btn-block"
-                      disabled={!agreeToTerms || !isReadyToBook || isLoading}
-                    >
-                      {isLoading ? "Processing..." : "Proceed to Payment"}
-                    </button>
-                  )}
-                  {!selectedProvider && (
+                  <button
+                    type="submit"
+                    className="btn btn-primary btn-block"
+                    disabled={!agreeToTerms || !isReadyToRequest || isLoading}
+                  >
+                    {isLoading ? "Posting request..." : "Post Job Request"}
+                  </button>
+                  {!isReadyToRequest && (
                     <p className="text-xs text-error">
-                      Select a pro to unlock pricing and the booking button.
+                      Add a headline, pick services, and include a budget to share your request with local pros.
                     </p>
                   )}
                   {selectedServices.length === 0 && (
