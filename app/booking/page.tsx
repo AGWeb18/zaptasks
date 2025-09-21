@@ -16,9 +16,7 @@ import {
   Clock,
   Users,
   MapPin,
-  Sparkles,
-  ChevronDown,
-  ChevronUp,
+  ShoppingCart,
   Hammer,
   Trees,
 } from "lucide-react";
@@ -34,28 +32,40 @@ interface Service {
 
 const services: Service[] = [
   {
-    id: "small-grocery",
-    name: "Small Grocery Run (&lt;10 items)",
-    icon: <Sparkles className="w-6 h-6" />,
+    id: "grocery-runs",
+    name: "Grocery Runs",
+    icon: <ShoppingCart className="w-6 h-6" />,
     examples: [
-      "Essentials pickup (milk, bread, meds)",
-      "Quick pharmacy or corner store run",
-      "Light shopping for 1-2 people",
+      "Weekly grocery or pharmacy pickup",
+      "Bulk or specialty store runs within Kawarthas & GTA",
+      "Apartment drop-off with specific access notes",
     ],
     description:
-      "Door-to-door delivery for small orders under 10 items and within 5km. Ideal for seniors needing quick essentials without leaving home. $25 flat fee (helpers earn ~$40/hr after 5-10% platform fee).",
+      "Door-to-door delivery for small or large orders. Perfect for seniors, busy families, or anyone needing a quick assist. Helpers coordinate via in-app chat before pickup.",
   },
   {
-    id: "large-grocery",
-    name: "Large Grocery Run (10+ items or &gt;5km)",
-    icon: <Hammer className="w-6 h-6" />,
+    id: "property-cleanup",
+    name: "Property Clean-Up",
+    icon: <Trees className="w-6 h-6" />,
     examples: [
-      "Full weekly shop from supermarket",
-      "Bulk items or longer distance pickup",
-      "Apartment drop-off with special instructions",
+      "Leaf raking, snow shovelling, or garden tidy-ups",
+      "Cottage turnover prep between guests",
+      "Yard waste bagging and curbside staging",
     ],
     description:
-      "Secure door-to-door for bigger orders or farther trips. Leave notes for &apos;no entry&apos; drop-offs like under mat or at door 2B. $35 flat fee (helpers earn ~$40/hr after 5-10% platform fee).",
+      "Keep properties guest-ready with seasonal yard work and exterior clean-up. Share photos so neighbours know what tools to bring or if you have equipment on-site.",
+  },
+  {
+    id: "handyman-jobs",
+    name: "Handyman Jobs",
+    icon: <Hammer className="w-6 h-6" />,
+    examples: [
+      "Furniture assembly or wall mounting",
+      "Minor drywall or paint touch-ups",
+      "Fixture installs and small repairs",
+    ],
+    description:
+      "Quick fixes and punch-list items tackled by reviewed neighbours. Clarify scope, materials, and timing so the right person applies.",
   },
 ];
 
@@ -133,20 +143,23 @@ const BookingPage: React.FC = () => {
   const [itemCount, setItemCount] = useState(5); // New: for auto-pricing
   const [estimatedDistance, setEstimatedDistance] = useState(3); // New: km, from geolocation/zip
   const [dropOffNotes, setDropOffNotes] = useState(""); // New: for messaging drop-off details
+  const [hasRequestedGeo, setHasRequestedGeo] = useState(false);
   const [calculatedPrice, setCalculatedPrice] = useState(25); // New: auto-calc
   const searchParams = useSearchParams();
+  const hasGrocerySelected = selectedServices.includes("grocery-runs");
 
   useEffect(() => {
     const presetService = searchParams.get("service");
     const presetLocation = searchParams.get("location");
     const mappedService = (() => {
       switch (presetService) {
+        case "grocery":
+          return "grocery-runs";
         case "handyman":
-          return "home-repairs";
-        case "cleaning":
-          return "cleaning";
+          return "handyman-jobs";
         case "outdoor":
-          return "outdoor";
+        case "cleaning":
+          return "property-cleanup";
         default:
           return null;
       }
@@ -173,31 +186,49 @@ const BookingPage: React.FC = () => {
   }, [hours]);
 
   useEffect(() => {
+    if (!hasGrocerySelected) {
+      return;
+    }
     // Auto-calculate price based on items and distance
     const isSmallOrder = itemCount < 10 && estimatedDistance <= 5;
     setCalculatedPrice(isSmallOrder ? 25 : 35);
     setBudgetAmount(isSmallOrder ? "25" : "35");
-  }, [itemCount, estimatedDistance]);
+  }, [itemCount, estimatedDistance, hasGrocerySelected]);
 
   useEffect(() => {
-    // Geolocation for distance (fallback to zip/manual)
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          // Mock distance calc (integrate Google Distance Matrix API in prod)
-          setEstimatedDistance(3); // Placeholder: calculate from lat/lng to store
-        },
-        () => {
-          // Fallback: prompt for zip code
-          const zip = prompt("Enter your zip code for distance estimate");
-          if (zip) {
-            // Mock API call
-            setEstimatedDistance(4); // Placeholder
-          }
-        }
-      );
+    if (hasGrocerySelected && budgetType !== "flat") {
+      setBudgetType("flat");
     }
-  }, []);
+  }, [hasGrocerySelected, budgetType]);
+
+  useEffect(() => {
+    if (!hasGrocerySelected || hasRequestedGeo) {
+      return;
+    }
+    if (!navigator.geolocation) {
+      setHasRequestedGeo(true);
+      return;
+    }
+
+    setHasRequestedGeo(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        // Mock distance calc (integrate Google Distance Matrix API in prod)
+        setEstimatedDistance(3); // Placeholder: calculate from lat/lng to store
+      },
+      () => {
+        // Fallback: prompt for postal code
+        const postalCode = prompt(
+          "Enter your postal code for a quick distance estimate"
+        );
+        if (postalCode) {
+          // Mock API call
+          setEstimatedDistance(4); // Placeholder
+        }
+      }
+    );
+  }, [hasGrocerySelected, hasRequestedGeo]);
 
   const isReadyToRequest = Boolean(
     jobTitle.trim() &&
@@ -487,11 +518,12 @@ const BookingPage: React.FC = () => {
       <div className="min-h-screen bg-slate-300 py-12">
         <div className="container mx-auto px-4">
           <h1 className="text-2xl md:text-4xl font-bold text-center mb-4 text-blue-600">
-            Need Groceries Delivered? Tap Here
+            Book Trusted Local Help in Minutes
           </h1>
           <p className="text-center text-base-content/70 mb-8 text-lg">
-            ZapTasks: Power Through Chores. Door-to-door grocery runs for
-            seniors in neighborhoods and apartments—no entry required.
+            ZapTasks connects Kawarthas &amp; GTA neighbours for grocery runs,
+            property clean-ups, and handyman jobs. Post your task once and let
+            verified locals apply.
           </p>
 
           {/* Demo Video */}
@@ -500,29 +532,28 @@ const BookingPage: React.FC = () => {
               width="100%"
               height="315"
               src="https://www.youtube.com/embed/VIDEO_ID" // Replace with 30s demo video URL
-              title="Door-to-Door Grocery Delivery Demo"
+              title="ZapTasks Marketplace Walkthrough"
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
               className="max-w-2xl mx-auto rounded-lg shadow-lg"
             ></iframe>
             <p className="text-sm text-gray-600 mt-2">
-              30-second demo: How we deliver groceries door-to-door without
-              entering your home.
+              30-second demo: See how easy it is to post a job, review
+              applicants, and release milestone payments.
             </p>
           </div>
 
           <div className="card shadow-xl max-w-3xl mx-auto bg-slate-100">
             <div className="card-body">
-              <h2 className="card-title text-xl">Post Your Grocery Run</h2>
+              <h2 className="card-title text-xl">Post Your Task Details</h2>
               <p className="text-base-content/70 text-lg">
-                Share your shopping list needs. Helpers will pick up and deliver
-                door-to-door. Use notes for special drop-offs like 'under mat'
-                or 'apt 2B'.
+                Outline the work, timing, and budget. Neighbours will apply with
+                availability so you can chat, compare, and book with confidence.
               </p>
 
               <form onSubmit={handleSubmit}>
-                {/* Services - Now grocery-focused */}
+                {/* Service categories */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
                   {services.map((service) => (
                     <div key={service.id} className="form-control">
@@ -544,13 +575,10 @@ const BookingPage: React.FC = () => {
                   ))}
                 </div>
 
-                {/* Selected Services Expansion - Update descriptions for grocery */}
+                {/* Selected services expansion */}
                 {selectedServices.length > 0 && (
                   <div className="mt-8 space-y-4">
-                    <h3 className="text-xl font-semibold">
-                      Selected Grocery Run
-                    </h3>{" "}
-                    {/* Larger */}
+                    <h3 className="text-xl font-semibold">Selected Services</h3>
                     {selectedServices.map((serviceId) => {
                       const service = services.find((s) => s.id === serviceId);
                       const isExpanded = expandedService === serviceId;
@@ -600,90 +628,87 @@ const BookingPage: React.FC = () => {
                   </div>
                 )}
 
-                {/* Item Count for Pricing */}
-                <div className="form-control mb-6">
-                  <label className="label text-lg" htmlFor="itemCount">
-                    {" "}
-                    {/* Larger */}
-                    <span className="label-text">
-                      Estimated number of items
-                    </span>
-                  </label>
-                  <input
-                    id="itemCount"
-                    type="number"
-                    min="1"
-                    className="input input-bordered w-full text-gray-900 text-lg" // Larger
-                    placeholder="e.g. 8"
-                    value={itemCount}
-                    onChange={(e) => setItemCount(Number(e.target.value))}
-                    required
-                  />
-                  <p className="text-sm text-gray-600 mt-1">
-                    This helps calculate the fee: $25 for &lt;10 items &amp;
-                    ≤5km, $35 otherwise.
-                  </p>
-                </div>
+                {hasGrocerySelected && (
+                  <>
+                    {/* Item Count for Pricing */}
+                    <div className="form-control mb-6">
+                      <label className="label text-lg" htmlFor="itemCount">
+                        <span className="label-text">
+                          Estimated number of items
+                        </span>
+                      </label>
+                      <input
+                        id="itemCount"
+                        type="number"
+                        min="1"
+                        className="input input-bordered w-full text-gray-900 text-lg"
+                        placeholder="e.g. 8"
+                        value={itemCount}
+                        onChange={(e) => setItemCount(Number(e.target.value))}
+                        required
+                      />
+                      <p className="text-sm text-gray-600 mt-1">
+                        This helps calculate the fee: $25 for &lt;10 items &amp;
+                        ≤5km, $35 otherwise.
+                      </p>
+                    </div>
 
-                {/* Distance Estimate */}
-                <div className="form-control mb-6">
-                  <label className="label text-lg" htmlFor="distance">
-                    {" "}
-                    {/* Larger */}
-                    <span className="label-text">
-                      Estimated distance to store (km)
-                    </span>
-                  </label>
-                  <input
-                    id="distance"
-                    type="number"
-                    min="0.1"
-                    step="0.1"
-                    className="input input-bordered w-full text-gray-900 text-lg"
-                    placeholder="e.g. 2.5"
-                    value={estimatedDistance}
-                    onChange={(e) =>
-                      setEstimatedDistance(Number(e.target.value))
-                    }
-                    required
-                  />
-                  <p className="text-sm text-gray-600 mt-1">
-                    We&apos;ll use your location or zip code to estimate.
-                    One-way distance.
-                  </p>
-                </div>
+                    {/* Distance Estimate */}
+                    <div className="form-control mb-6">
+                      <label className="label text-lg" htmlFor="distance">
+                        <span className="label-text">
+                          Estimated distance to store (km)
+                        </span>
+                      </label>
+                      <input
+                        id="distance"
+                        type="number"
+                        min="0.1"
+                        step="0.1"
+                        className="input input-bordered w-full text-gray-900 text-lg"
+                        placeholder="e.g. 2.5"
+                        value={estimatedDistance}
+                        onChange={(e) =>
+                          setEstimatedDistance(Number(e.target.value))
+                        }
+                        required
+                      />
+                      <p className="text-sm text-gray-600 mt-1">
+                        We&apos;ll use your location or postal code to estimate.
+                        One-way distance.
+                      </p>
+                    </div>
 
-                {/* Auto-Calculated Price Display */}
-                <div className="alert alert-info mb-6 text-lg">
-                  {" "}
-                  {/* Larger */}
-                  <span>
-                    Estimated fee: {formatCurrency(calculatedPrice)} (includes
-                    5-10% platform fee; helpers earn ~$40/hr)
-                  </span>
-                </div>
+                    {/* Auto-Calculated Price Display */}
+                    <div className="alert alert-info mb-6 text-lg">
+                      <span>
+                        Estimated grocery run fee:{" "}
+                        {formatCurrency(calculatedPrice)}
+                        (includes 5-10% platform fee; helpers earn ~$40/hr)
+                      </span>
+                    </div>
 
-                {/* Drop-off Notes for Messaging */}
-                <div className="form-control mb-6">
-                  <label className="label text-lg" htmlFor="dropOffNotes">
-                    {" "}
-                    {/* Larger */}
-                    <span className="label-text">
-                      Drop-off instructions (for in-app messaging)
-                    </span>
-                  </label>
-                  <textarea
-                    id="dropOffNotes"
-                    className="textarea textarea-bordered h-20 text-gray-900 text-lg"
-                    placeholder="e.g. Leave bag under welcome mat or knock at apartment 2B—no entry needed"
-                    value={dropOffNotes}
-                    onChange={(e) => setDropOffNotes(e.target.value)}
-                  />
-                  <p className="text-sm text-gray-600 mt-1">
-                    Helpers will message via app for confirmation. Builds trust
-                    for secure delivery.
-                  </p>
-                </div>
+                    {/* Drop-off Notes for Messaging */}
+                    <div className="form-control mb-6">
+                      <label className="label text-lg" htmlFor="dropOffNotes">
+                        <span className="label-text">
+                          Drop-off instructions (for in-app messaging)
+                        </span>
+                      </label>
+                      <textarea
+                        id="dropOffNotes"
+                        className="textarea textarea-bordered h-20 text-gray-900 text-lg"
+                        placeholder="e.g. Leave bag under welcome mat or knock at apartment 2B—no entry needed"
+                        value={dropOffNotes}
+                        onChange={(e) => setDropOffNotes(e.target.value)}
+                      />
+                      <p className="text-sm text-gray-600 mt-1">
+                        Helpers will message via app for confirmation. Builds
+                        trust for secure delivery.
+                      </p>
+                    </div>
+                  </>
+                )}
 
                 {/* Date and Time inputs */}
                 <div className="flex space-x-4">
@@ -878,10 +903,10 @@ const BookingPage: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <div className="form-control">
                     <label className="label text-lg" htmlFor="budgetAmount">
-                      {" "}
-                      {/* Larger */}
                       <span className="label-text">
-                        Auto-calculated fee (CAD)
+                        {hasGrocerySelected
+                          ? "Auto-calculated fee (CAD)"
+                          : "Your budget (CAD)"}
                       </span>
                     </label>
                     <input
@@ -889,34 +914,43 @@ const BookingPage: React.FC = () => {
                       type="number"
                       min="1"
                       className="input input-bordered w-full text-gray-900 text-lg"
-                      value={calculatedPrice}
-                      readOnly // Auto-filled
+                      value={budgetAmount}
+                      onChange={(e) => setBudgetAmount(e.target.value)}
+                      readOnly={hasGrocerySelected}
+                      placeholder={hasGrocerySelected ? undefined : "e.g. 120"}
                       required
                     />
                   </div>
                   <div className="form-control">
                     <label className="label text-lg" htmlFor="budgetType">
-                      {" "}
-                      {/* Larger */}
                       <span className="label-text">Fee type</span>
                     </label>
                     <select
                       id="budgetType"
                       className="select select-bordered w-full bg-white text-gray-900 text-lg"
                       value={budgetType}
-                      disabled // Fixed for grocery
+                      onChange={(e) =>
+                        setBudgetType(e.target.value as "flat" | "hourly")
+                      }
+                      disabled={hasGrocerySelected}
                     >
-                      <option value="flat">Flat delivery fee</option>
+                      <option value="flat">
+                        {hasGrocerySelected
+                          ? "Flat delivery fee"
+                          : "Flat project fee"}
+                      </option>
+                      {!hasGrocerySelected && (
+                        <option value="hourly">Hourly rate</option>
+                      )}
                     </select>
                   </div>
-                  {/* Remove budgetNotes as it's auto */}
                 </div>
 
                 {/* Contact preference */}
                 <div className="form-control">
                   <label className="label">
                     <span className="label-text">
-                      How should pros reach you?
+                      How should neighbours reach you?
                     </span>
                   </label>
                   <div className="flex flex-col md:flex-row gap-3">
@@ -1002,7 +1036,7 @@ const BookingPage: React.FC = () => {
                       <div>
                         <h3 className="font-semibold">Job request posted!</h3>
                         <p className="text-sm">
-                          We&apos;ll notify local pros so they can apply.
+                          We&apos;ll notify nearby neighbours so they can apply.
                           You&apos;ll choose who to hire once the proposals
                           arrive.
                         </p>
@@ -1049,17 +1083,15 @@ const BookingPage: React.FC = () => {
 
                   <button
                     type="submit"
-                    className="btn btn-primary btn-block text-lg py-4" // Larger
+                    className="btn btn-primary btn-block text-lg py-4"
                     disabled={!agreeToTerms || !isReadyToRequest || isLoading}
                   >
-                    {isLoading
-                      ? "Posting Grocery Request..."
-                      : "Post Grocery Request"}
+                    {isLoading ? "Posting Your Task..." : "Post Your Task"}
                   </button>
                   {!isReadyToRequest && (
                     <p className="text-xs text-error">
                       Add a headline, pick services, and include a budget to
-                      share your request with local pros.
+                      share your request with local neighbours.
                     </p>
                   )}
                   {selectedServices.length === 0 && (
