@@ -8,7 +8,6 @@ import { Menu, X } from "lucide-react";
 const primaryLinks = [
   { href: "/booking", label: "Post a Job" },
   { href: "/pro/jobs", label: "Browse Jobs" },
-  { href: "/pricing", label: "Pricing" },
   { href: "/faq", label: "Help & Safety" },
 ];
 

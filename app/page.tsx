@@ -290,9 +290,12 @@ const LandingPage: React.FC = () => {
               </ul>
             </div>
             <div className="md:w-1/3 space-y-3">
-              <Link href="/pricing" className="btn btn-primary w-full text-white">
-                View Pricing & Platform Fees
-              </Link>
+              <div className="bg-white border border-blue-200 rounded-2xl p-4 text-center shadow-sm">
+                <p className="text-lg font-semibold text-blue-900">Flat 10% marketplace fee</p>
+                <p className="text-xs text-blue-900/70 mt-2">
+                  Every job supports verification, escrow-style payments, and dispute resolution with one transparent 10% ZapTasks fee.
+                </p>
+              </div>
               <Link href="/faq" className="btn btn-outline w-full border-blue-300">
                 See Trust & Safety FAQ
               </Link>

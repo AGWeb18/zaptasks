@@ -3,8 +3,8 @@ import { Mail, MapPin, ShieldCheck } from "lucide-react";
 
 const footerLinks = [
   { href: "/providers", label: "Browse Services" },
-  { href: "/pricing", label: "Pricing" },
   { href: "/blog", label: "Blog" },
+  { href: "/faq", label: "Marketplace fee (10%)" },
   { href: "/legal", label: "Privacy & Terms" },
   { href: "/faq", label: "Trust & Support" },
 ];
@@ -32,7 +32,7 @@ export function SiteFooter() {
             </h4>
             <ul className="space-y-2 text-sm">
               {footerLinks.map((link) => (
-                <li key={link.href}>
+                <li key={`${link.href}-${link.label}`}>
                   <Link
                     href={link.href}
                     className="hover:text-white transition-colors"
