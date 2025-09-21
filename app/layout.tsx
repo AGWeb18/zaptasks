@@ -4,6 +4,7 @@ import { GoogleAnalytics } from "@next/third-parties/google";
 import Script from "next/script";
 import ChatWidget from "./components/ChatWidget";
 import NewsletterModal from "./components/NewsletterModal";
+import { Analytics } from "@vercel/analytics/next";
 
 export default function RootLayout({
   children,
@@ -70,6 +71,7 @@ export default function RootLayout({
           <NewsletterModal />
           <main>{children}</main>
           <GoogleAnalytics gaId="G-K9GLWHQEGZ" />
+          <Analytics />
         </body>
       </html>
     </ClerkProvider>
