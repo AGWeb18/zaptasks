@@ -1,12 +1,15 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
+
+export const dynamic = "force-dynamic";
+
 import { GoogleAnalytics } from "@next/third-parties/google";
 import Script from "next/script";
 import ChatWidget from "./components/ChatWidget";
 import NewsletterModal from "./components/NewsletterModal";
 import { Analytics } from "@vercel/analytics/next";
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;

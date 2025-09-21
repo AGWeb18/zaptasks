@@ -120,7 +120,7 @@ export function ServiceSearchBar({ className }: { className?: string }) {
   return (
     <div
       className={clsx(
-        "relative w-full rounded-2xl bg-white p-2 shadow-lg ring-1 ring-black/5",
+        "relative w-full rounded-2xl bg-white px-4 py-3 shadow-lg ring-1 ring-black/5 overflow-hidden",
         className
       )}
     >
@@ -165,7 +165,7 @@ export function ServiceSearchBar({ className }: { className?: string }) {
           />
         </div>
 
-        <div className="flex w-full items-center gap-1 sm:w-auto">
+        <div className="flex w-full sm:w-auto items-center justify-end gap-1 sm:justify-center">
           <button
             type="button"
             onClick={handleGeolocate}
@@ -181,7 +181,7 @@ export function ServiceSearchBar({ className }: { className?: string }) {
 
           <button
             type="submit"
-            className="btn btn-primary rounded-full flex-grow"
+            className="btn btn-primary rounded-full min-w-[80px]"
             aria-label="Search"
           >
             <Search className="h-5 w-5" />
