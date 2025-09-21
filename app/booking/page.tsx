@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { useUser } from "@clerk/nextjs";
 import Navbar from "../components/NavBar";
 import TimeSelector from "../components/TimeSelector";
 import { format, addDays } from "date-fns";
 import { useSearchParams } from "next/navigation";
+import { createClient } from "../utils/supabase/client";
 
 import {
   Calendar,
@@ -67,6 +69,17 @@ const services: Service[] = [
   },
 ];
 
+const MAX_PHOTOS = 3;
+const MAX_PHOTO_SIZE_MB = 5;
+const ACCEPTED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const JOB_PHOTO_BUCKET = "job-media";
+
+type PhotoAttachment = {
+  id: string;
+  file: File;
+  previewUrl: string;
+};
+
 const formatCurrency = (value: number) =>
   value.toLocaleString("en-CA", { style: "currency", currency: "CAD" });
 
@@ -120,6 +133,9 @@ const BookingPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [minDate, setMinDate] = useState("");
   const [submissionStatus, setSubmissionStatus] = useState<"idle" | "success">("idle");
+  const [photos, setPhotos] = useState<PhotoAttachment[]>([]);
+  const photosRef = useRef<PhotoAttachment[]>([]);
+  const [photoUploadError, setPhotoUploadError] = useState<string | null>(null);
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -200,8 +216,49 @@ const BookingPage: React.FC = () => {
 
     setIsLoading(true);
     setError(null);
+    setPhotoUploadError(null);
 
     try {
+      let uploadedPhotoUrls: string[] = [];
+      if (photos.length > 0) {
+        try {
+          const supabase = createClient();
+          const baseFolder = `job-photos/${user.id}`;
+
+          for (const attachment of photos) {
+            const extension = attachment.file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+            const filePath = `${baseFolder}/${attachment.id}.${extension}`;
+            const { error: uploadError } = await supabase.storage
+              .from(JOB_PHOTO_BUCKET)
+              .upload(filePath, attachment.file, {
+                cacheControl: "3600",
+                upsert: false,
+                contentType: attachment.file.type,
+              });
+
+            if (uploadError) {
+              throw new Error("PHOTO_UPLOAD_FAILED");
+            }
+
+            const { data } = supabase.storage
+              .from(JOB_PHOTO_BUCKET)
+              .getPublicUrl(filePath);
+
+            if (!data?.publicUrl) {
+              throw new Error("PHOTO_UPLOAD_FAILED");
+            }
+
+            uploadedPhotoUrls.push(data.publicUrl);
+          }
+        } catch (photoError) {
+          console.error("Error uploading job photos:", photoError);
+          setPhotoUploadError(
+            "We couldn't upload your photos. Please try again or continue without them.",
+          );
+          throw new Error("PHOTO_UPLOAD_FAILED");
+        }
+      }
+
       const response = await fetch("/api/job-requests", {
         method: "POST",
         headers: {
@@ -228,6 +285,7 @@ const BookingPage: React.FC = () => {
             notes: budgetNotes,
           },
           contactPreference,
+          photoUrls: uploadedPhotoUrls,
         }),
       });
 
@@ -256,13 +314,17 @@ const BookingPage: React.FC = () => {
       setBudgetNotes("");
       setContactPreference("messages");
       setAgreeToTerms(false);
+      clearPhotos();
+      setPhotoUploadError(null);
 
       // Optionally route to a confirmation page in future
     } catch (error) {
       console.error("Error creating job request:", error);
-      setError(
-        "We couldn’t post your job request. Please review the details and try again."
-      );
+      if (!(error instanceof Error && error.message === "PHOTO_UPLOAD_FAILED")) {
+        setError(
+          "We couldn’t post your job request. Please review the details and try again."
+        );
+      }
     } finally {
       setIsLoading(false);
     }
@@ -286,10 +348,103 @@ const BookingPage: React.FC = () => {
     setBringEquipment(checked);
   };
 
+  const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
+
+    if (files.length === 0) {
+      return;
+    }
+
+    const validAttachments: PhotoAttachment[] = [];
+    let message: string | null = null;
+
+    files.forEach((file) => {
+      if (!ACCEPTED_PHOTO_TYPES.includes(file.type)) {
+        message = message ?? "Supported formats are JPG, PNG, or WEBP.";
+        return;
+      }
+      if (file.size > MAX_PHOTO_SIZE_MB * 1024 * 1024) {
+        message = message ?? `Images must be under ${MAX_PHOTO_SIZE_MB}MB.`;
+        return;
+      }
+
+      const id =
+        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random()}`;
+
+      validAttachments.push({
+        id,
+        file,
+        previewUrl: URL.createObjectURL(file),
+      });
+    });
+
+    if (validAttachments.length === 0) {
+      if (message) {
+        setPhotoUploadError(message);
+      }
+      return;
+    }
+
+    const availableSlots = MAX_PHOTOS - photos.length;
+
+    if (availableSlots <= 0) {
+      validAttachments.forEach((attachment) =>
+        URL.revokeObjectURL(attachment.previewUrl),
+      );
+      setPhotoUploadError(`You can upload up to ${MAX_PHOTOS} photos.`);
+      return;
+    }
+
+    const accepted = validAttachments.slice(0, availableSlots);
+    const overflow = validAttachments.slice(availableSlots);
+
+    overflow.forEach((attachment) =>
+      URL.revokeObjectURL(attachment.previewUrl),
+    );
+
+    if (overflow.length > 0) {
+      message = `You can upload up to ${MAX_PHOTOS} photos.`;
+    }
+
+    setPhotos((prev) => [...prev, ...accepted]);
+    setPhotoUploadError(message);
+  };
+
+  const removePhoto = (id: string) => {
+    setPhotos((prev) => {
+      const target = prev.find((photo) => photo.id === id);
+      if (target) {
+        URL.revokeObjectURL(target.previewUrl);
+      }
+      return prev.filter((photo) => photo.id !== id);
+    });
+  };
+
+  const clearPhotos = () => {
+    setPhotos((prev) => {
+      prev.forEach((photo) => URL.revokeObjectURL(photo.previewUrl));
+      return [];
+    });
+    setPhotoUploadError(null);
+  };
+
   useEffect(() => {
     // Set the minimum date to tomorrow
     const tomorrow = addDays(new Date(), 1);
     setMinDate(format(tomorrow, "yyyy-MM-dd"));
+  }, []);
+
+  useEffect(() => {
+    photosRef.current = photos;
+  }, [photos]);
+
+  useEffect(() => {
+    return () => {
+      photosRef.current.forEach((photo) => URL.revokeObjectURL(photo.previewUrl));
+    };
   }, []);
 
   return (
@@ -298,17 +453,17 @@ const BookingPage: React.FC = () => {
       <div className="min-h-screen bg-slate-300 py-12">
         <div className="container mx-auto px-4 ">
           <h1 className="text-4xl font-bold text-center mb-4 text-blue-600">
-            Request Seasonal Home Help
+            Post a home service job
           </h1>
           <p className="text-center text-base-content/70 mb-8">
-            Post your job once and let vetted Kawarthas and GTA pros apply. Review proposals, pick your favourite, and we&apos;ll handle the secure Canadian payments.
+            Share what you need done and let vetted Kawarthas and GTA neighbours apply. Compare proposals, pick your favourite, and we&apos;ll handle the secure Canadian payments.
           </p>
 
           <div className="card shadow-xl max-w-3xl mx-auto bg-slate-100">
             <div className="card-body">
               <h2 className="card-title">Tell us what you need</h2>
               <p className="text-base-content/70">
-                Share the fall and winter jobs you want covered so local experts can raise their hand
+                Tell the community what you need—photos and details help the right people apply fast.
               </p>
 
               <form onSubmit={handleSubmit}>
@@ -524,6 +679,53 @@ const BookingPage: React.FC = () => {
                       className="textarea textarea-bordered h-24 text-gray-900"
                       required
                     />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold mb-2">Photos (optional)</label>
+                    <p className="text-xs text-base-content/60 mb-3">
+                      Add up to {MAX_PHOTOS} photos so neighbours understand the space or repair needed. Clear visuals help your job stand out.
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      {photos.map((attachment) => (
+                        <div
+                          key={attachment.id}
+                          className="relative w-28 h-28 rounded-lg overflow-hidden border border-slate-200 bg-slate-100"
+                        >
+                          <Image
+                            src={attachment.previewUrl}
+                            alt="Selected job"
+                            fill
+                            className="object-cover"
+                            sizes="112px"
+                            unoptimized
+                          />
+                          <button
+                            type="button"
+                            className="absolute top-1 right-1 bg-white/90 hover:bg-white text-xs px-2 py-1 rounded-md shadow-sm"
+                            onClick={() => removePhoto(attachment.id)}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                      {photos.length < MAX_PHOTOS && (
+                        <label className="w-28 h-28 border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center text-xs text-slate-500 cursor-pointer hover:border-blue-400 hover:text-blue-600 transition">
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            multiple
+                            className="hidden"
+                            onChange={handlePhotoChange}
+                          />
+                          <span className="font-semibold text-center">Upload</span>
+                          <span className="mt-1 text-[10px] text-center leading-tight">JPG, PNG or WEBP<br />Max {MAX_PHOTO_SIZE_MB}MB</span>
+                        </label>
+                      )}
+                    </div>
+                    {photoUploadError && (
+                      <p className="text-xs text-red-500 mt-2">{photoUploadError}</p>
+                    )}
                   </div>
 
                   {/* Budget */}

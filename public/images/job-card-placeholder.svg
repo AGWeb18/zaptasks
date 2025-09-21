@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#dbeafe"/>
+      <stop offset="100%" stop-color="#f1f5f9"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#grad)"/>
+  <g fill="#1d4ed8" font-family="'Inter', 'Segoe UI', sans-serif" text-anchor="middle">
+    <text x="400" y="280" font-size="48" font-weight="700">Job photo coming soon</text>
+    <text x="400" y="340" font-size="24">Add pictures when you post to build trust</text>
+  </g>
+</svg>

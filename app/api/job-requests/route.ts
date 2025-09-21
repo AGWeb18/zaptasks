@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
         budget_amount: body.budget?.amount,
         budget_notes: body.budget?.notes,
         contact_preference: body.contactPreference,
+        photo_urls: Array.isArray(body.photoUrls) && body.photoUrls.length > 0 ? body.photoUrls : null,
         status: "open",
       })
       .select("id")

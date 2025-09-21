@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import Navbar from "@/app/components/NavBar";
@@ -40,6 +41,7 @@ interface OpenJobRequest {
   status: string;
   created_at: string;
   job_applications?: JobApplicationMeta[];
+  photo_urls?: string[] | null;
 }
 
 interface NotificationItem {
@@ -350,12 +352,23 @@ const ProJobsPage = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 pb-2">
                 {jobs.map((job) => {
                   const applied = hasApplied(job.id);
+                  const primaryPhoto = job.photo_urls?.[0] ?? "/images/job-card-placeholder.svg";
                   return (
                     <article
                       key={job.id}
                       className="bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col h-full"
                     >
                       <div className="flex-1 flex flex-col p-6">
+                        <div className="relative w-full h-40 rounded-xl overflow-hidden mb-4 bg-slate-200">
+                          <Image
+                            src={primaryPhoto}
+                            alt={`${job.job_title} photo`}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 1024px) 50vw, 33vw"
+                            unoptimized={primaryPhoto.startsWith("/images/")}
+                          />
+                        </div>
                         <div className="flex items-start justify-between gap-3 mb-3">
                           <div>
                             <h3 className="text-xl font-semibold text-gray-900">{job.job_title}</h3>
