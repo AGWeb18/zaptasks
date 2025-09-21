@@ -5,6 +5,16 @@ import Link from "next/link";
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { Menu, X } from "lucide-react";
 
+const primaryLinks = [
+  { href: "/booking", label: "Post a Job" },
+  { href: "/providers", label: "Browse Pros" },
+  { href: "/become-provider", label: "Become a Pro" },
+  { href: "/pricing", label: "Pricing" },
+  { href: "/faq", label: "Help & Safety" },
+];
+
+const signedInLinks = [{ href: "/manage-booking", label: "My Jobs" }];
+
 const Navbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -19,72 +29,28 @@ const Navbar: React.FC = () => {
           {/* Desktop Navigation */}
           <nav className="hidden md:block">
             <ul className="flex space-x-5 items-center text-sm font-medium text-gray-600">
-              <li>
-                <Link
-                  href="/providers"
-                  className="hover:text-blue-600 transition-colors"
-                >
-                  Find Services
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/booking"
-                  className="hover:text-blue-600 transition-colors"
-                >
-                  Book a Service
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/become-provider"
-                  className="hover:text-blue-600 transition-colors"
-                >
-                  Offer Your Skills
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/pro/jobs"
-                  className="hover:text-blue-600 transition-colors"
-                >
-                  Open Jobs
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/pricing"
-                  className="hover:text-blue-600 transition-colors"
-                >
-                  Pricing
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/blog"
-                  className="hover:text-blue-600 transition-colors"
-                >
-                  Blog
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/faq"
-                  className="hover:text-blue-600 transition-colors"
-                >
-                  Trust & FAQ
-                </Link>
-              </li>
-              <li>
-                <SignedIn>
+              {primaryLinks.map((link) => (
+                <li key={link.href}>
                   <Link
-                    href="/manage-booking"
+                    href={link.href}
                     className="hover:text-blue-600 transition-colors"
                   >
-                    My Job Requests
+                    {link.label}
                   </Link>
-                </SignedIn>
-              </li>
+                </li>
+              ))}
+              <SignedIn>
+                {signedInLinks.map((link) => (
+                  <li key={link.href}>
+                    <Link
+                      href={link.href}
+                      className="hover:text-blue-600 transition-colors"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </SignedIn>
               <li>
                 <SignedOut>
                   <SignInButton />
@@ -113,72 +79,28 @@ const Navbar: React.FC = () => {
         {isMenuOpen && (
           <nav className="md:hidden mt-4">
             <ul className="flex flex-col space-y-3 text-gray-600">
-              <li>
-                <Link
-                  href="/providers"
-                  className="block hover:text-blue-600"
-                >
-                  Find Services
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/booking"
-                  className="block hover:text-blue-600"
-                >
-                  Book a Service
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/become-provider"
-                  className="block hover:text-blue-600"
-                >
-                  Offer Your Skills
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/pro/jobs"
-                  className="block hover:text-blue-600"
-                >
-                  Open Jobs
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/pricing"
-                  className="block hover:text-blue-600"
-                >
-                  Pricing
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/blog"
-                  className="block hover:text-blue-600"
-                >
-                  Blog
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/faq"
-                  className="block hover:text-blue-600"
-                >
-                  Trust & FAQ
-                </Link>
-              </li>
-              <li>
-                <SignedIn>
+              {primaryLinks.map((link) => (
+                <li key={link.href}>
                   <Link
-                    href="/manage-booking"
+                    href={link.href}
                     className="block hover:text-blue-600"
                   >
-                    My Job Requests
+                    {link.label}
                   </Link>
-                </SignedIn>
-              </li>
+                </li>
+              ))}
+              <SignedIn>
+                {signedInLinks.map((link) => (
+                  <li key={link.href}>
+                    <Link
+                      href={link.href}
+                      className="block hover:text-blue-600"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </SignedIn>
               <li>
                 <SignedOut>
                   <SignInButton />
