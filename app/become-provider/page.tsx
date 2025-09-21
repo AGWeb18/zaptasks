@@ -6,13 +6,12 @@ import { createClient } from "../utils/supabase/client";
 import { useUser } from "@clerk/nextjs";
 
 const SERVICE_OPTIONS = [
-  "Handyman & Repairs",
-  "Home Cleaning",
-  "Painting & Finishing",
-  "Snow & Lawn Care",
+  { value: "Snow & Lawn Care", label: "Snow removal & ice control" },
+  { value: "Handyman & Repairs", label: "Winter repairs & weatherproofing" },
+  { value: "Home Cleaning", label: "Holiday cleaning & turnover" },
 ];
 
-export default function BecomeProviderPage() {
+export default function OfferServicesPage() {
   const { user } = useUser();
   const [form, setForm] = useState({
     name: "",
@@ -119,35 +118,35 @@ export default function BecomeProviderPage() {
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white text-gray-800">
       <Navbar />
       <div className="container mx-auto px-4 py-12 max-w-xl">
-        <h1 className="text-3xl font-bold mb-2 text-center">Become a Service Provider</h1>
+        <h1 className="text-3xl font-bold mb-2 text-center">Offer Your Home Services</h1>
         <p className="text-center text-gray-600 mb-6">
-          Join our Canadian-owned marketplace and connect with homeowners across the Kawarthas and GTA.
+          Join our Canadian-owned marketplace and help Kawarthas and GTA neighbours get winter-ready—from ice control to holiday clean-ups.
         </p>
         {submitted ? (
           <div className="bg-green-100 p-6 rounded text-center">
-            <h2 className="text-xl font-semibold mb-2">Thank you for signing up!</h2>
-            <p>We will review your submission and contact you soon.</p>
+            <h2 className="text-xl font-semibold mb-2">Thanks for listing your skills!</h2>
+            <p>We&apos;ll review your details and follow up with next steps so you can start accepting seasonal jobs.</p>
             <button
               type="button"
               className="btn btn-outline w-full mt-2"
               onClick={handleStripeOnboard}
               disabled={onboardingLoading || loading}
             >
-              {onboardingLoading ? "Redirecting to Stripe..." : "Connect Stripe for Payouts"}
+              {onboardingLoading ? "Redirecting to Stripe..." : "Set up payouts with Stripe"}
             </button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 bg-white p-6 rounded shadow">
             <input
               className="input input-bordered w-full bg-white text-gray-900 placeholder-gray-500"
-              placeholder="Company Name"
+              placeholder="Business or trade name"
               value={form.name}
               onChange={e => setForm({ ...form, name: e.target.value })}
               required
             />
             <input
               className="input input-bordered w-full bg-white text-gray-900 placeholder-gray-500"
-              placeholder="Location"
+              placeholder="Service area (city or region)"
               value={form.location}
               onChange={e => setForm({ ...form, location: e.target.value })}
               required
@@ -158,14 +157,14 @@ export default function BecomeProviderPage() {
               onChange={e => setForm({ ...form, service: e.target.value })}
               required
             >
-              <option value="" disabled>Select a Service</option>
+              <option value="" disabled>Select a seasonal specialty</option>
               {SERVICE_OPTIONS.map(option => (
-                <option key={option} value={option}>{option}</option>
+                <option key={option.value} value={option.value}>{option.label}</option>
               ))}
             </select>
             <textarea
               className="textarea textarea-bordered w-full bg-white text-gray-900 placeholder-gray-500"
-              placeholder="Service Description"
+              placeholder="Describe your fall & winter specialties"
               value={form.description}
               onChange={e => setForm({ ...form, description: e.target.value })}
               required
@@ -173,7 +172,7 @@ export default function BecomeProviderPage() {
             <div className="bg-slate-50 border border-slate-200 rounded-md p-4 space-y-4">
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-semibold text-gray-700" htmlFor="pricingType">
-                  Pricing Model
+                  Pricing model
                 </label>
                 <select
                   id="pricingType"
@@ -181,7 +180,7 @@ export default function BecomeProviderPage() {
                   value={pricingType}
                   onChange={e => setPricingType(e.target.value as "hourly" | "flat")}
                 >
-                  <option value="hourly">Hourly rate (platform handles deposit)</option>
+                  <option value="hourly">Hourly rate (winter rush friendly)</option>
                   <option value="flat">Flat project fee</option>
                 </select>
               </div>
@@ -190,7 +189,7 @@ export default function BecomeProviderPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-2">
                     <label className="text-sm font-semibold text-gray-700" htmlFor="hourlyRate">
-                      Hourly Rate (CAD)
+                      Hourly rate (CAD)
                     </label>
                     <input
                       id="hourlyRate"
@@ -204,7 +203,7 @@ export default function BecomeProviderPage() {
                   </div>
                   <div className="flex flex-col gap-2">
                     <label className="text-sm font-semibold text-gray-700" htmlFor="minimumHours">
-                      Minimum Billable Hours
+                      Minimum billable hours
                     </label>
                     <input
                       id="minimumHours"
@@ -220,7 +219,7 @@ export default function BecomeProviderPage() {
               ) : (
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-semibold text-gray-700" htmlFor="flatFee">
-                    Flat Project Fee (CAD)
+                    Flat project fee (CAD)
                   </label>
                   <input
                     id="flatFee"
@@ -235,14 +234,14 @@ export default function BecomeProviderPage() {
               )}
 
               <p className="text-sm text-gray-600">
-                Homeowners pay a 50% deposit up front. ZapTasks automatically deducts our platform fee through Stripe Connect.
+                Homeowners pay a 50% deposit up front. ZapTasks automatically retains a 10% service fee from both sides through Stripe Connect, so you never chase payments.
               </p>
               <div className="rounded bg-white border border-dashed border-slate-300 p-3 text-sm text-gray-700">
                 <span className="font-semibold">Displayed to homeowners:</span> {pricingDisplay}
               </div>
             </div>
             <button className="btn btn-primary w-full" type="submit" disabled={loading}>
-              {loading ? "Submitting..." : "Submit"}
+              {loading ? "Submitting..." : "List my seasonal service"}
             </button>
             {error && <p className="text-red-500 text-center mt-2">{error}</p>}
           </form>

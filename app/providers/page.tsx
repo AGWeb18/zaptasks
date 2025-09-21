@@ -3,13 +3,28 @@
 import { useState, useEffect } from "react";
 import { createClient } from "../utils/supabase/client";
 import Navbar from "../components/NavBar";
-import { useUser } from "@clerk/nextjs";
 
-const SERVICE_OPTIONS = [
-  "Handyman & Repairs",
-  "Home Cleaning",
-  "Painting & Finishing",
-  "Snow & Lawn Care",
+const SERVICE_LABELS: Record<string, string> = {
+  "Snow & Lawn Care": "Snow Removal & Ice Control",
+  "Handyman & Repairs": "Winter Repairs & Weatherproofing",
+  "Home Cleaning": "Holiday Clean-Up & Turnover",
+  "Painting & Finishing": "Interior Touch-Ups",
+};
+
+const SERVICE_FILTERS = [
+  { value: "", label: "All fall & winter services" },
+  {
+    value: "Snow & Lawn Care",
+    label: SERVICE_LABELS["Snow & Lawn Care"],
+  },
+  {
+    value: "Handyman & Repairs",
+    label: SERVICE_LABELS["Handyman & Repairs"],
+  },
+  {
+    value: "Home Cleaning",
+    label: SERVICE_LABELS["Home Cleaning"],
+  },
 ];
 
 type PricingInfo = {
@@ -21,7 +36,7 @@ type PricingInfo = {
   display?: string;
 };
 
-type Provider = {
+type Pro = {
   id?: string;
   name: string;
   email?: string;
@@ -76,11 +91,10 @@ const formatPricing = (raw: string | null): string => {
 };
 
 export default function ProvidersPage() {
-  const [providers, setProviders] = useState<Provider[]>([]);
+  const [pros, setPros] = useState<Pro[]>([]);
   const [search, setSearch] = useState("");
   const [selectedService, setSelectedService] = useState("");
   const [loading, setLoading] = useState(true);
-  const { user } = useUser();
 
   useEffect(() => {
     const fetchProviders = async () => {
@@ -90,13 +104,13 @@ export default function ProvidersPage() {
         query = query.eq("service", selectedService);
       }
       const { data, error } = await query;
-      if (!error && data) setProviders(data);
+      if (!error && data) setPros(data);
       setLoading(false);
     };
     fetchProviders();
   }, [selectedService]);
 
-  const filteredProviders = providers.filter((p) => {
+  const filteredPros = pros.filter((p) => {
     const s = search.toLowerCase();
     return (
       p.name?.toLowerCase().includes(s) ||
@@ -109,9 +123,9 @@ export default function ProvidersPage() {
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white text-gray-800">
       <Navbar />
       <div className="container mx-auto px-4 py-12">
-        <h1 className="text-3xl font-bold mb-2 text-center">Browse Service Providers</h1>
+        <h1 className="text-3xl font-bold mb-2 text-center">Find Trusted Home Pros</h1>
         <p className="text-center text-gray-600 mb-6">
-          Verified pros serving the Kawarthas and Greater Toronto Area with Canadian-backed payments.
+          Cozy up for fall and winter with vetted Kawarthas and GTA specialists. Every booking is processed by our Canadian-owned marketplace.
         </p>
         <div className="mb-8 flex flex-col md:flex-row md:items-center md:space-x-4 space-y-4 md:space-y-0 justify-center">
           <input
@@ -125,30 +139,37 @@ export default function ProvidersPage() {
             value={selectedService}
             onChange={e => setSelectedService(e.target.value)}
           >
-            <option value="">All Services</option>
-            {SERVICE_OPTIONS.map(option => (
-              <option key={option} value={option}>{option}</option>
+            {SERVICE_FILTERS.map(option => (
+              <option key={option.value || "all"} value={option.value}>
+                {option.label}
+              </option>
             ))}
           </select>
         </div>
+        <div className="flex flex-wrap justify-center gap-2 mb-10 text-xs uppercase tracking-wide text-blue-700">
+          <span className="badge badge-outline">Roof & gutter prep</span>
+          <span className="badge badge-outline">Snow shovelling routes</span>
+          <span className="badge badge-outline">Holiday deep cleans</span>
+          <span className="badge badge-outline">Winter handyman fixes</span>
+        </div>
         {loading ? (
-          <div className="text-center">Loading providers...</div>
-        ) : filteredProviders.length === 0 ? (
-          <div className="text-center text-gray-500">No providers found.</div>
+          <div className="text-center">Loading local pros...</div>
+        ) : filteredPros.length === 0 ? (
+          <div className="text-center text-gray-500">No pros match that search yet. Try a different keyword or browse all fall & winter services.</div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {filteredProviders.map((provider) => (
+            {filteredPros.map((pro) => (
               <div
-                key={provider.id || provider.email}
+                key={pro.id || pro.email}
                 className="bg-white rounded-lg shadow-md p-6 flex flex-col justify-between hover:shadow-lg transition-shadow duration-300"
               >
                 <div>
-                  <h2 className="text-xl font-semibold mb-2">{provider.name}</h2>
-                  <p className="text-primary font-medium mb-1">{provider.service}</p>
-                  <p className="mb-2 text-gray-600">{provider.description}</p>
+                  <h2 className="text-xl font-semibold mb-2">{pro.name}</h2>
+                  <p className="text-primary font-medium mb-1">{SERVICE_LABELS[pro.service] ?? pro.service}</p>
+                  <p className="mb-2 text-gray-600">{pro.description}</p>
                 </div>
                 <div className="mt-4 flex flex-col gap-1 text-sm">
-                  <span className="font-bold text-lg text-blue-700">{formatPricing(provider.price)}</span>
+                  <span className="font-bold text-lg text-blue-700">{formatPricing(pro.price)}</span>
                   <span className="text-xs text-gray-500">
                     50% deposit via ZapTasks • Remaining 50% after homeowner sign-off
                   </span>

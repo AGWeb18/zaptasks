@@ -13,12 +13,12 @@ import {
   Clock,
   Users,
   MapPin,
-  PaintBucket,
-  Shovel,
+  Snowflake,
+  Sparkles,
   ChevronDown,
   ChevronUp,
+  Hammer,
 } from "lucide-react";
-import { Hammer, Trash2 } from "lucide-react";
 import AddressAutocomplete from "../components/AddressAutocomplete";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
@@ -33,38 +33,52 @@ interface Service {
 
 const services: Service[] = [
   {
-    id: "handyman",
-    name: "Handyman & Repairs",
+    id: "snow-ice",
+    name: "Snow Removal & Ice Control",
+    icon: <Snowflake className="w-6 h-6" />,
+    examples: [
+      "Driveway plowing",
+      "Walkway salting",
+      "Emergency snow blowing",
+    ],
+    description:
+      "Keep paths clear across the Kawarthas and GTA with on-call crews for overnight snowfalls and freeze-thaw cycles.",
+  },
+  {
+    id: "winterize",
+    name: "Winter Repairs & Weatherproofing",
     icon: <Hammer className="w-6 h-6" />,
-    examples: ["Fixture installs", "Drywall touch-ups", "Furniture assembly"],
+    examples: [
+      "Draft sealing & weatherstripping",
+      "Gutter guard installs",
+      "Cottage winter close-up",
+    ],
     description:
-      "Licensed and insured pros for punch-list fixes and seasonal maintenance in the Kawarthas and GTA.",
+      "Licensed pros tackling cold-weather fixes, roofline checks, and cottage winterization before deep freezes arrive.",
   },
   {
-    id: "cleaning",
-    name: "Home Cleaning",
-    icon: <Trash2 className="w-6 h-6" />,
-    examples: ["Move-in ready cleans", "Cottage turnover", "Deep sanitization"],
+    id: "holiday-clean",
+    name: "Holiday Clean-Up & Turnover",
+    icon: <Sparkles className="w-6 h-6" />,
+    examples: [
+      "Pre-guest deep clean",
+      "Rental turnover reset",
+      "Post-party refresh",
+    ],
     description:
-      "Detail-oriented teams delivering sparkling homes, condos, and lakeside retreats across Ontario.",
-  },
-  {
-    id: "painting",
-    name: "Painting & Finishing",
-    icon: <PaintBucket className="w-6 h-6" />,
-    examples: ["Interior refresh", "Exterior touch-up", "Trim finishing"],
-    description:
-      "Prep, paint, and finish work that stands up to Canadian winters and cottage humidity.",
-  },
-  {
-    id: "snow-lawn",
-    name: "Snow & Lawn Care",
-    icon: <Shovel className="w-6 h-6" />,
-    examples: ["Driveway plowing", "Salting & sanding", "Weekly lawn cuts"],
-    description:
-      "Seasonal outdoor care—plows, shovels, and landscaping crews ready for Kawarthas and GTA weather swings.",
+      "Detail-driven teams ready for spotless homes, condos, and lakeside retreats between holiday guests.",
   },
 ];
+
+const PROVIDER_SERVICE_LABELS: Record<string, string> = {
+  "Snow & Lawn Care": "Snow Removal & Ice Control",
+  "Handyman & Repairs": "Winter Repairs & Weatherproofing",
+  "Home Cleaning": "Holiday Clean-Up & Turnover",
+  "Painting & Finishing": "Interior Touch-Ups",
+};
+
+const formatServiceLabel = (value: string | null | undefined) =>
+  value ? PROVIDER_SERVICE_LABELS[value] ?? value : "Seasonal service";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
@@ -86,7 +100,7 @@ type ProviderOption = {
   price: string | null;
 };
 
-// 10% platform fee applied to both homeowner and provider transactions
+// 10% platform fee applied to both homeowner and pro transactions
 const PLATFORM_FEE_RATE = 0.1;
 
 const parsePricingInfo = (raw: string | null | undefined): PricingInfo | null => {
@@ -330,14 +344,14 @@ const BookingPage: React.FC = () => {
 
     if (!selectedProvider || !selectedPricing) {
       setIsLoading(false);
-      setError("Please select a provider with published pricing to continue.");
+      setError("Please choose a pro with published pricing to continue.");
       return;
     }
 
     if (pricingDetails.totalAmount <= 0) {
       setIsLoading(false);
       setError(
-        "Unable to calculate the job total from this provider's pricing. Please adjust your selections or choose a different pro."
+        "Unable to calculate the job total from this pro's pricing. Please adjust your selections or choose a different expert."
       );
       return;
     }
@@ -483,38 +497,38 @@ const BookingPage: React.FC = () => {
       <div className="min-h-screen bg-slate-300 py-12">
         <div className="container mx-auto px-4 ">
           <h1 className="text-4xl font-bold text-center mb-4 text-blue-600">
-            Book a Service
+            Book Seasonal Home Help
           </h1>
           <p className="text-center text-base-content/70 mb-8">
-            Lock in trusted Kawarthas and GTA professionals with a secure Canadian checkout and 50% deposit.
+            Secure Kawarthas and GTA pros for snow removal, winter prep, and holiday-ready homes—all with Canadian Stripe payments.
           </p>
 
           <div className="card shadow-xl max-w-3xl mx-auto bg-slate-100">
             <div className="card-body">
-              <h2 className="card-title">Select Your Services</h2>
+              <h2 className="card-title">Plan Your Seasonal Services</h2>
               <p className="text-base-content/70">
-                Choose one or more services you need assistance with
+                Pick the fall and winter jobs you want covered
               </p>
 
               <form onSubmit={handleSubmit}>
                 <div className="mb-6">
-                  <label className="block mb-2 font-semibold">Select a Provider</label>
+                  <label className="block mb-2 font-semibold">Choose a local pro</label>
                   <select
                     className="select select-bordered w-full bg-white text-gray-900"
                     value={selectedProviderId}
                     onChange={e => setSelectedProviderId(e.target.value)}
                     required
                   >
-                    <option value="" disabled>Select a provider...</option>
+                    <option value="" disabled>Select a pro...</option>
                     {providerOptions.map((provider) => (
                       <option key={provider.id} value={provider.id}>
-                        {provider.name} • {provider.service} • {formatProviderPricing(provider.price)}
+                        {provider.name} • {formatServiceLabel(provider.service)} • {formatProviderPricing(provider.price)}
                       </option>
                     ))}
                   </select>
                   {selectedProvider && (
                     <p className="mt-2 text-sm text-gray-600">
-                      {formatProviderPricing(selectedProvider.price)}. ZapTasks collects a {Math.round(PLATFORM_FEE_RATE * 100)}% service fee from the provider payout through Stripe Connect.
+                      {formatProviderPricing(selectedProvider.price)}. ZapTasks collects a {Math.round(PLATFORM_FEE_RATE * 100)}% service fee from the pro payout through Stripe Connect.
                     </p>
                   )}
                 </div>
@@ -803,7 +817,7 @@ const BookingPage: React.FC = () => {
                       <span>{formatCurrency(pricingDetails.remainderAmount)}</span>
                     </div>
                     <p className="text-xs text-gray-600 pt-2">
-                      ZapTasks routes payments through Stripe Connect and retains a {Math.round(PLATFORM_FEE_RATE * 100)}% service fee from both the provider payout and homeowner transaction.
+                      ZapTasks routes payments through Stripe Connect and retains a {Math.round(PLATFORM_FEE_RATE * 100)}% service fee from both the pro payout and homeowner transaction.
                     </p>
                   </div>
 
@@ -825,7 +839,7 @@ const BookingPage: React.FC = () => {
                   )}
                   {!selectedProvider && (
                     <p className="text-xs text-error">
-                      Select a provider to unlock pricing and the booking button.
+                      Select a pro to unlock pricing and the booking button.
                     </p>
                   )}
                   {selectedServices.length === 0 && (

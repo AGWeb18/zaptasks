@@ -18,46 +18,40 @@ const Navbar: React.FC = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:block">
-            <ul className="flex space-x-4 items-center">
+            <ul className="flex space-x-5 items-center text-sm font-medium text-gray-600">
               <li>
                 <Link
                   href="/providers"
-                  className="text-gray-600 hover:text-blue-600"
+                  className="hover:text-blue-600 transition-colors"
                 >
-                  Marketplace
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/become-provider"
-                  className="text-gray-600 hover:text-yellow-600"
-                >
-                  List Your Service
+                  Find Services
                 </Link>
               </li>
               <li>
                 <Link
                   href="/booking"
-                  className="text-gray-600 hover:text-blue-600"
+                  className="hover:text-blue-600 transition-colors"
                 >
-                  Book Now
+                  Book a Service
                 </Link>
               </li>
               <li>
                 <Link
-                  href="/manage-booking"
-                  className="text-gray-600 hover:text-blue-600"
+                  href="/become-provider"
+                  className="hover:text-blue-600 transition-colors"
                 >
-                  Manage Bookings
+                  Offer Your Skills
                 </Link>
               </li>
               <li>
-                <Link
-                  href="/subscriptions"
-                  className="text-gray-600 hover:text-blue-600"
-                >
-                  Subscriptions
-                </Link>
+                <SignedIn>
+                  <Link
+                    href="/manage-booking"
+                    className="hover:text-blue-600 transition-colors"
+                  >
+                    My Bookings
+                  </Link>
+                </SignedIn>
               </li>
               <li>
                 <SignedOut>
@@ -86,46 +80,40 @@ const Navbar: React.FC = () => {
         {/* Mobile Navigation */}
         {isMenuOpen && (
           <nav className="md:hidden mt-4">
-            <ul className="flex flex-col space-y-2">
+            <ul className="flex flex-col space-y-3 text-gray-600">
               <li>
                 <Link
                   href="/providers"
-                  className="block text-gray-600 hover:text-blue-600"
+                  className="block hover:text-blue-600"
                 >
-                  Marketplace
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/become-provider"
-                  className="block text-gray-600 hover:text-yellow-600"
-                >
-                  List Your Service
+                  Find Services
                 </Link>
               </li>
               <li>
                 <Link
                   href="/booking"
-                  className="block text-gray-600 hover:text-blue-600"
+                  className="block hover:text-blue-600"
                 >
-                  Book Now
+                  Book a Service
                 </Link>
               </li>
               <li>
                 <Link
-                  href="/manage-booking"
-                  className="block text-gray-600 hover:text-blue-600"
+                  href="/become-provider"
+                  className="block hover:text-blue-600"
                 >
-                  Manage Bookings
+                  Offer Your Skills
                 </Link>
               </li>
               <li>
-                <Link
-                  href="/subscriptions"
-                  className="block text-gray-600 hover:text-blue-600"
-                >
-                  Subscriptions
-                </Link>
+                <SignedIn>
+                  <Link
+                    href="/manage-booking"
+                    className="block hover:text-blue-600"
+                  >
+                    My Bookings
+                  </Link>
+                </SignedIn>
               </li>
               <li>
                 <SignedOut>
