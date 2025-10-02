@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { createClient } from "@/app/utils/supabase/client";
+import { getServiceLabels } from "@/app/lib/services/catalog";
 
 interface JobApplication {
   id: string;
@@ -342,9 +343,9 @@ const ManageJobsPage = () => {
                                     </span>
                                   </div>
                                   <div className="flex flex-wrap gap-2 text-sm text-blue-700 mb-3">
-                                    {job.services.map((service) => (
-                                      <span key={service} className="badge badge-outline">
-                                        {service}
+                                    {getServiceLabels(job.services).map((label) => (
+                                      <span key={label} className="badge badge-outline">
+                                        {label}
                                       </span>
                                     ))}
                                   </div>

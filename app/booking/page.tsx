@@ -2,354 +2,166 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import Image from "next/image";
+import React, { useEffect, useMemo, useState } from "react";
 import { useUser } from "@clerk/nextjs";
-import Navbar from "../components/NavBar";
-import TimeSelector from "../components/TimeSelector";
-import { format, addDays } from "date-fns";
 import { useSearchParams } from "next/navigation";
-import { createClient } from "../utils/supabase/client";
-
+import { addDays, format } from "date-fns";
 import {
   Calendar,
   Clock,
-  Users,
   MapPin,
-  ShoppingCart,
-  Hammer,
-  Trees,
   ShieldCheck,
-  AlertTriangle,
+  Sparkles,
+  Users,
 } from "lucide-react";
-import AddressAutocomplete from "../components/AddressAutocomplete";
 
-interface Service {
+import Navbar from "../components/NavBar";
+import AddressAutocomplete from "../components/AddressAutocomplete";
+import TimeSelector from "../components/TimeSelector";
+
+interface ServiceOption {
   id: string;
-  name: string;
-  icon: React.ReactNode;
+  label: string;
+  summary: string;
   examples: string[];
-  description: string;
 }
 
-const services: Service[] = [
+const serviceOptions: ServiceOption[] = [
   {
-    id: "grocery-runs",
-    name: "Grocery Runs",
-    icon: <ShoppingCart className="w-6 h-6" />,
+    id: "yard-care",
+    label: "Yard & Outdoor Care",
+    summary:
+      "Lawn mowing, garden tidy-ups, snow clearing, and seasonal curb appeal.",
     examples: [
-      "Weekly grocery or pharmacy pickup",
-      "Bulk or specialty store runs within Kawarthas & GTA",
-      "Apartment drop-off with specific access notes",
+      "Weekly lawn cuts",
+      "Leaf and branch cleanups",
+      "Deck or patio sweep",
     ],
-    description:
-      "Door-to-door delivery for small or large orders. Perfect for seniors, busy families, or anyone needing a quick assist. Helpers coordinate via in-app chat before pickup.",
   },
   {
-    id: "property-cleanup",
-    name: "Property Clean-Up",
-    icon: <Trees className="w-6 h-6" />,
+    id: "home-fixes",
+    label: "Home Fixes & Odd Jobs",
+    summary:
+      "Minor repairs, furniture assembly, and quick fixes handled by trusted locals.",
     examples: [
-      "Leaf raking, snow shovelling, or garden tidy-ups",
-      "Cottage turnover prep between guests",
-      "Yard waste bagging and curbside staging",
+      "Mount a TV",
+      "Repair drywall nicks",
+      "Assemble flat-pack furniture",
     ],
-    description:
-      "Keep properties guest-ready with seasonal yard work and exterior clean-up. Share photos so neighbours know what tools to bring or if you have equipment on-site.",
-  },
-  {
-    id: "handyman-jobs",
-    name: "Handyman Jobs",
-    icon: <Hammer className="w-6 h-6" />,
-    examples: [
-      "Furniture assembly or wall mounting",
-      "Minor drywall or paint touch-ups",
-      "Fixture installs and small repairs",
-    ],
-    description:
-      "Quick fixes and punch-list items tackled by reviewed neighbours. Clarify scope, materials, and timing so the right person applies.",
   },
 ];
-
-const GROCERY_SAFETY_OPTIONS = [
-  {
-    id: "sealed-packaging",
-    label:
-      "Keep items sealed and share a quick photo of the receipt before drop-off",
-  },
-  {
-    id: "no-substitutions",
-    label: "Confirm any substitutions in chat before purchasing",
-  },
-  {
-    id: "contactless",
-    label: "Contactless handoff - leave bags at the door and knock",
-  },
-];
-
-const HANDYMAN_MATERIAL_OPTIONS = [
-  { id: "provided", label: "I have materials ready" },
-  { id: "helper-source", label: "Helper should pick up materials (reimburse)" },
-  { id: "confirm-together", label: "Let's confirm materials during chat" },
-];
-
-const HANDYMAN_PRICING_APPROACH = [
-  { id: "need-quote", label: "Looking for quotes/estimates" },
-  { id: "have-budget", label: "I have a target budget" },
-];
-
-const YARD_SIZE_OPTIONS = [
-  { id: "small", label: "Small (townhome / <1/4 acre)" },
-  { id: "medium", label: "Medium (1/4 - 1/2 acre)" },
-  { id: "large", label: "Large (1/2 acre + / corner lot)" },
-  { id: "not-sure", label: "Not sure - need neighbour to assess" },
-];
-
-const MAX_PHOTOS = 3;
-const MAX_PHOTO_SIZE_MB = 5;
-const ACCEPTED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const JOB_PHOTO_BUCKET = "job-media";
-
-type PhotoAttachment = {
-  id: string;
-  file: File;
-  previewUrl: string;
-};
 
 const formatCurrency = (value: number) =>
-  value.toLocaleString("en-CA", { style: "currency", currency: "CAD" });
+  Number.isFinite(value)
+    ? value.toLocaleString("en-CA", { style: "currency", currency: "CAD" })
+    : "";
 
 const termsAndConditions = `
-ZapTasks Terms and Conditions
+ZapTasks Terms & Conditions
 
-1. Platform Role:
-   ZapTasks is a platform connecting clients with independent service providers. We do not guarantee service quality or completion.
-
-2. Payments and Cancellations:
-   Once you accept a pro&apos;s proposal, a 50% deposit is collected through ZapTasks. The remaining balance is due after service completion. Cancellations within 24 hours of the confirmed start time may incur a 50% fee.
-
-3. Service Scheduling:
-   No same-day service is available. All bookings must be made at least 24 hours in advance.
-
-4. Liability:
-   ZapTasks is not liable for any damages, losses, or incomplete services. Clients are responsible for providing a safe work environment. Service providers may perform liability checks before starting work.
-
-5. Documentation:
-   Service providers have the right to take photos before and after the service for quality assurance and dispute resolution purposes.
-
-6. Dispute Resolution:
-   Unresolved issues must be reported within 48 hours. ZapTasks will mediate and may offer refunds at its sole discretion.
-
-7. Platform Usage:
-   ZapTasks may modify services, pricing, or these terms at any time. We reserve the right to terminate user accounts for any reason.
-
-By using ZapTasks, you agree to these terms and conditions.
-`;
+• ZapTasks connects homeowners with independent Canadian service providers. We do not guarantee service outcomes.
+• When you approve a provider, 50% of the agreed price is collected up front via secure Stripe escrow. The remaining 50% is released once you mark the job complete.
+• Cancellations inside 24 hours of the scheduled start may forfeit the deposit. Report any disputes to ZapTasks within 48 hours so we can help mediate.
+• Providers may request photos or ID verification before arriving. Ensure the work area is safe and accessible.
+• Using ZapTasks means you accept these terms and agree to our Privacy Policy and Terms of Service.`;
 
 const BookingPage: React.FC = () => {
   const { isLoaded, user } = useUser();
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [expandedService, setExpandedService] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+
+  const [selectedService, setSelectedService] = useState<string | null>(null);
   const [jobTitle, setJobTitle] = useState("");
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
-  const [hours, setHours] = useState(2);
-  const [people, setPeople] = useState(1);
   const [description, setDescription] = useState("");
-  const [bringEquipment, setBringEquipment] = useState(false);
-  const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<string>("");
   const [selectedLat, setSelectedLat] = useState<number | null>(null);
   const [selectedLng, setSelectedLng] = useState<number | null>(null);
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [hours, setHours] = useState(2);
+  const [bringEquipment, setBringEquipment] = useState(true);
   const [budgetType, setBudgetType] = useState<"flat" | "hourly">("flat");
   const [budgetAmount, setBudgetAmount] = useState<string>("");
   const [budgetNotes, setBudgetNotes] = useState<string>("");
   const [contactPreference, setContactPreference] = useState<
     "messages" | "phone" | "email"
   >("messages");
-  const [isLoading, setIsLoading] = useState(false);
+  const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [minDate, setMinDate] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [submissionStatus, setSubmissionStatus] = useState<"idle" | "success">(
     "idle"
   );
-  const [photos, setPhotos] = useState<PhotoAttachment[]>([]);
-  const photosRef = useRef<PhotoAttachment[]>([]);
-  const [photoUploadError, setPhotoUploadError] = useState<string | null>(null);
-  const [itemCount, setItemCount] = useState(5); // New: for auto-pricing
-  const [estimatedDistance, setEstimatedDistance] = useState(3); // New: km, from geolocation/zip
-  const [dropOffNotes, setDropOffNotes] = useState(""); // New: for messaging drop-off details
-  const [hasRequestedGeo, setHasRequestedGeo] = useState(false);
-  const [grocerySafetySelections, setGrocerySafetySelections] = useState<string[]>([]);
-  const [handymanMaterialPreference, setHandymanMaterialPreference] =
-    useState<"provided" | "helper-source" | "confirm-together">(
-      "confirm-together"
-    );
-  const [handymanPricingFocus, setHandymanPricingFocus] =
-    useState<"need-quote" | "have-budget">("need-quote");
-  const [handymanExtraNotes, setHandymanExtraNotes] = useState("");
-  const [yardSize, setYardSize] = useState<string>("not-sure");
-  const [yardAccessNotes, setYardAccessNotes] = useState("");
-  const [calculatedPrice, setCalculatedPrice] = useState(25); // New: auto-calc
-  const searchParams = useSearchParams();
-  const hasGrocerySelected = selectedServices.includes("grocery-runs");
-  const hasHandymanSelected = selectedServices.includes("handyman-jobs");
-  const hasPropertyCleanupSelected = selectedServices.includes("property-cleanup");
+  const [minDate, setMinDate] = useState("");
 
-  const summaryHighlights: string[] = [];
-  if (hasGrocerySelected) {
-    summaryHighlights.push(
-      `Grocery run: ~${itemCount} items | ~${estimatedDistance}km`
-    );
-    if (grocerySafetySelections.length > 0) {
-      const labels = grocerySafetySelections
-        .map(
-          (id) =>
-            GROCERY_SAFETY_OPTIONS.find((option) => option.id === id)?.label ??
-            null
-        )
-        .filter((label): label is string => Boolean(label));
-      if (labels.length > 0) {
-        summaryHighlights.push(`Handoff prefs: ${labels.join(", ")}`);
-      }
+  const suggestedTitle = useMemo(() => {
+    if (selectedService === "yard-care") {
+      return "Need yard help in Kawarthas";
     }
-    if (dropOffNotes.trim()) {
-      summaryHighlights.push(`Drop-off: ${dropOffNotes.trim()}`);
+    if (selectedService === "home-fixes") {
+      return "Local help needed for a quick fix";
     }
-  }
+    return "";
+  }, [selectedService]);
 
-  if (hasPropertyCleanupSelected) {
-    const yardLabel =
-      YARD_SIZE_OPTIONS.find((option) => option.id === yardSize)?.label ??
-      yardSize;
-    summaryHighlights.push(`Yard size: ${yardLabel}`);
-    if (yardAccessNotes.trim()) {
-      summaryHighlights.push(`Yard notes: ${yardAccessNotes.trim()}`);
-    }
-  }
-
-  if (hasHandymanSelected) {
-    const materialLabel =
-      HANDYMAN_MATERIAL_OPTIONS.find(
-        (option) => option.id === handymanMaterialPreference
-      )?.label ?? handymanMaterialPreference;
-    const pricingLabel =
-      HANDYMAN_PRICING_APPROACH.find(
-        (option) => option.id === handymanPricingFocus
-      )?.label ?? handymanPricingFocus;
-
-    summaryHighlights.push(`Materials: ${materialLabel}`);
-    summaryHighlights.push(`Pricing: ${pricingLabel}`);
-    if (handymanExtraNotes.trim()) {
-      summaryHighlights.push(`Handyman notes: ${handymanExtraNotes.trim()}`);
-    }
-  }
+  useEffect(() => {
+    const tomorrow = addDays(new Date(), 1);
+    setMinDate(format(tomorrow, "yyyy-MM-dd"));
+  }, []);
 
   useEffect(() => {
     const presetService = searchParams.get("service");
-    const presetLocation = searchParams.get("location");
-    const mappedService = (() => {
+    const mapped = (() => {
       switch (presetService) {
-        case "grocery":
-          return "grocery-runs";
-        case "handyman":
-          return "handyman-jobs";
+        case "yard":
         case "outdoor":
-        case "cleaning":
-          return "property-cleanup";
+        case "lawn":
+          return "yard-care";
+        case "handyman":
+        case "fix":
+          return "home-fixes";
         default:
           return null;
       }
     })();
 
-    if (mappedService) {
-      setSelectedServices([mappedService]);
-      const serviceName = services.find(
-        (service) => service.id === mappedService
-      )?.name;
-      if (serviceName && !jobTitle) {
-        setJobTitle(`${serviceName} help needed`);
+    if (mapped) {
+      setSelectedService(mapped);
+      if (!jobTitle) {
+        setJobTitle(
+          mapped === "yard-care"
+            ? "Looking for yard help"
+            : "Need a reliable local pro"
+        );
       }
-    }
-    if (presetLocation) {
-      setSelectedAddress(presetLocation);
     }
   }, [jobTitle, searchParams]);
 
-  useEffect(() => {
-    if (hours < 1) {
-      setHours(1);
-    }
-  }, [hours]);
-
-  useEffect(() => {
-    if (!hasGrocerySelected) {
-      return;
-    }
-    // Auto-calculate price based on items and distance
-    const isSmallOrder = itemCount < 10 && estimatedDistance <= 5;
-    setCalculatedPrice(isSmallOrder ? 25 : 35);
-    setBudgetAmount(isSmallOrder ? "25" : "35");
-  }, [itemCount, estimatedDistance, hasGrocerySelected]);
-
-  useEffect(() => {
-    if (hasGrocerySelected && budgetType !== "flat") {
-      setBudgetType("flat");
-    }
-  }, [hasGrocerySelected, budgetType]);
-
-  useEffect(() => {
-    if (!hasGrocerySelected || hasRequestedGeo) {
-      return;
-    }
-    if (!navigator.geolocation) {
-      setHasRequestedGeo(true);
-      return;
-    }
-
-    setHasRequestedGeo(true);
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        // Mock distance calc (integrate Google Distance Matrix API in prod)
-        setEstimatedDistance(3); // Placeholder: calculate from lat/lng to store
-      },
-      () => {
-        // Fallback: prompt for postal code
-        const postalCode = prompt(
-          "Enter your postal code for a quick distance estimate"
-        );
-        if (postalCode) {
-          // Mock API call
-          setEstimatedDistance(4); // Placeholder
-        }
-      }
-    );
-  }, [hasGrocerySelected, hasRequestedGeo]);
-
-  const isReadyToRequest = Boolean(
-    jobTitle.trim() &&
-      selectedServices.length > 0 &&
-      date &&
-      time &&
+  const isReadyToSubmit = Boolean(
+    selectedService &&
+      jobTitle.trim() &&
       description.trim() &&
-      budgetAmount.trim()
+      budgetAmount.trim() &&
+      date &&
+      time
   );
 
-  const handleServiceToggle = (serviceId: string) => {
-    setSelectedServices((prev) =>
-      prev.includes(serviceId)
-        ? prev.filter((id) => id !== serviceId)
-        : [...prev, serviceId]
-    );
+  const handleServiceSelect = (serviceId: string) => {
+    setSelectedService(serviceId);
+    if (!jobTitle.trim()) {
+      setJobTitle(
+        serviceId === "yard-care"
+          ? "Need lawn & yard help"
+          : "Need a small home fix"
+      );
+    }
   };
 
-  const toggleGrocerySafety = (optionId: string) => {
-    setGrocerySafetySelections((prev) =>
-      prev.includes(optionId)
-        ? prev.filter((id) => id !== optionId)
-        : [...prev, optionId]
-    );
+  const handlePlaceSelected = (place: google.maps.places.PlaceResult) => {
+    setSelectedAddress(place.formatted_address ?? "");
+    const lat = place.geometry?.location?.lat?.();
+    const lng = place.geometry?.location?.lng?.();
+    setSelectedLat(typeof lat === "number" ? lat : null);
+    setSelectedLng(typeof lng === "number" ? lng : null);
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -357,142 +169,30 @@ const BookingPage: React.FC = () => {
     setSubmissionStatus("idle");
 
     if (!agreeToTerms) {
-      setError("Please agree to the terms and conditions before submitting.");
+      setError("Please accept the terms before posting your request.");
       return;
     }
 
     if (!isLoaded || !user) {
-      setError("Please log in to request a service.");
+      setError("Please sign in so nearby providers can message you.");
       return;
     }
 
-    if (!isReadyToRequest) {
-      setError(
-        "Please complete the required details before posting your job request."
-      );
+    if (!isReadyToSubmit) {
+      setError("Add the basics — service type, title, timing, and budget.");
       return;
     }
 
     const parsedBudgetAmount = Number(budgetAmount);
-    if (Number.isNaN(parsedBudgetAmount) || parsedBudgetAmount <= 0) {
-      setError("Please enter a valid budget amount greater than zero.");
+    if (!Number.isFinite(parsedBudgetAmount) || parsedBudgetAmount <= 0) {
+      setError("Enter a valid budget amount in Canadian dollars.");
       return;
     }
 
     setIsLoading(true);
     setError(null);
-    setPhotoUploadError(null);
 
     try {
-      let uploadedPhotoUrls: string[] = [];
-      if (photos.length > 0) {
-        try {
-          const supabase = createClient();
-          const baseFolder = `job-photos/${user.id}`;
-
-          for (const attachment of photos) {
-            const extension =
-              attachment.file.name.split(".").pop()?.toLowerCase() ?? "jpg";
-            const filePath = `${baseFolder}/${attachment.id}.${extension}`;
-            const { error: uploadError } = await supabase.storage
-              .from(JOB_PHOTO_BUCKET)
-              .upload(filePath, attachment.file, {
-                cacheControl: "3600",
-                upsert: false,
-                contentType: attachment.file.type,
-              });
-
-            if (uploadError) {
-              throw new Error("PHOTO_UPLOAD_FAILED");
-            }
-
-            const { data } = supabase.storage
-              .from(JOB_PHOTO_BUCKET)
-              .getPublicUrl(filePath);
-
-            if (!data?.publicUrl) {
-              throw new Error("PHOTO_UPLOAD_FAILED");
-            }
-
-            uploadedPhotoUrls.push(data.publicUrl);
-          }
-        } catch (photoError) {
-          console.error("Error uploading job photos:", photoError);
-          setPhotoUploadError(
-            "We couldn&apos;t upload your photos. Please try again or continue without them."
-          );
-          throw new Error("PHOTO_UPLOAD_FAILED");
-        }
-      }
-
-      const serviceSpecificNotes: string[] = [];
-
-      if (hasGrocerySelected) {
-        const selectedLabels = grocerySafetySelections
-          .map(
-            (id) =>
-              GROCERY_SAFETY_OPTIONS.find((option) => option.id === id)?.label ??
-              null
-          )
-          .filter((label): label is string => Boolean(label));
-
-        if (selectedLabels.length > 0) {
-          serviceSpecificNotes.push(
-            `Grocery safety preferences: ${selectedLabels.join(", ")}`
-          );
-        }
-
-        serviceSpecificNotes.push(
-          `Grocery order estimate: ~${itemCount} items, ~${estimatedDistance}km`
-        );
-
-        if (dropOffNotes.trim()) {
-          serviceSpecificNotes.push(
-            `Drop-off instructions: ${dropOffNotes.trim()}`
-          );
-        }
-      }
-
-      if (hasPropertyCleanupSelected) {
-        const yardLabel =
-          YARD_SIZE_OPTIONS.find((option) => option.id === yardSize)?.label ??
-          yardSize;
-        serviceSpecificNotes.push(`Yard size: ${yardLabel}`);
-
-        if (yardAccessNotes.trim()) {
-          serviceSpecificNotes.push(
-            `Yard access/details: ${yardAccessNotes.trim()}`
-          );
-        }
-      }
-
-      if (hasHandymanSelected) {
-        const materialLabel =
-          HANDYMAN_MATERIAL_OPTIONS.find(
-            (option) => option.id === handymanMaterialPreference
-          )?.label ?? handymanMaterialPreference;
-        const pricingLabel =
-          HANDYMAN_PRICING_APPROACH.find(
-            (option) => option.id === handymanPricingFocus
-          )?.label ?? handymanPricingFocus;
-
-        serviceSpecificNotes.push(`Handyman materials: ${materialLabel}`);
-        serviceSpecificNotes.push(`Pricing approach: ${pricingLabel}`);
-
-        if (handymanExtraNotes.trim()) {
-          serviceSpecificNotes.push(
-            `Handyman scope notes: ${handymanExtraNotes.trim()}`
-          );
-        }
-      }
-
-      const combinedBudgetNotes = [
-        budgetNotes.trim(),
-        ...serviceSpecificNotes,
-      ]
-        .filter((entry) => entry.length > 0)
-        .join(" | ");
-
       const response = await fetch("/api/job-requests", {
         method: "POST",
         headers: {
@@ -503,12 +203,12 @@ const BookingPage: React.FC = () => {
           homeownerName: user.fullName,
           homeownerEmail: user.primaryEmailAddress?.emailAddress,
           jobTitle,
-          services: selectedServices,
+          services: selectedService ? [selectedService] : [],
           description,
           date,
           time,
           hours,
-          people,
+          people: 1,
           bringEquipment,
           address: selectedAddress,
           latitude: selectedLat,
@@ -516,10 +216,10 @@ const BookingPage: React.FC = () => {
           budget: {
             type: budgetType,
             amount: parsedBudgetAmount,
-            notes: combinedBudgetNotes || null,
+            notes: budgetNotes.trim() || null,
           },
           contactPreference,
-          photoUrls: uploadedPhotoUrls,
+          photoUrls: [],
         }),
       });
 
@@ -527,995 +227,445 @@ const BookingPage: React.FC = () => {
         throw new Error("Failed to submit job request");
       }
 
-      await response.json();
-
       setSubmissionStatus("success");
-
-      setSelectedServices([]);
-      setExpandedService(null);
       setJobTitle("");
-      setDate("");
-      setTime("");
-      setHours(1);
-      setPeople(1);
       setDescription("");
-      setBringEquipment(false);
+      setSelectedService(null);
       setSelectedAddress("");
       setSelectedLat(null);
       setSelectedLng(null);
+      setDate("");
+      setTime("");
+      setHours(2);
+      setBringEquipment(true);
       setBudgetType("flat");
       setBudgetAmount("");
       setBudgetNotes("");
       setContactPreference("messages");
       setAgreeToTerms(false);
-      setItemCount(5);
-      setEstimatedDistance(3);
-      setDropOffNotes("");
-      setHasRequestedGeo(false);
-      setGrocerySafetySelections([]);
-      setHandymanMaterialPreference("confirm-together");
-      setHandymanPricingFocus("need-quote");
-      setHandymanExtraNotes("");
-      setYardSize("not-sure");
-      setYardAccessNotes("");
-      clearPhotos();
-      setPhotoUploadError(null);
-
-      // Optionally route to a confirmation page in future
-    } catch (error) {
-      console.error("Error creating job request:", error);
-      if (
-        !(error instanceof Error && error.message === "PHOTO_UPLOAD_FAILED")
-      ) {
-        setError(
-          "We couldn't post your job request. Please review the details and try again."
-        );
-      }
+    } catch (submitError) {
+      console.error(submitError);
+      setError("Something went wrong posting your job. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const toggleServiceExpansion = (serviceId: string) => {
-    setExpandedService((prev) => (prev === serviceId ? null : serviceId));
-  };
-
-  const handlePlaceSelected = (place: google.maps.places.PlaceResult) => {
-    if (place.formatted_address) {
-      setSelectedAddress(place.formatted_address);
-    }
-    if (place.geometry?.location) {
-      setSelectedLat(place.geometry.location.lat());
-      setSelectedLng(place.geometry.location.lng());
-    }
-  };
-
-  const handleBringEquipmentChange = (checked: boolean) => {
-    setBringEquipment(checked);
-  };
-
-  const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files ?? []);
-    event.target.value = "";
-
-    if (files.length === 0) {
-      return;
-    }
-
-    const validAttachments: PhotoAttachment[] = [];
-    let message: string | null = null;
-
-    files.forEach((file) => {
-      if (!ACCEPTED_PHOTO_TYPES.includes(file.type)) {
-        message = message ?? "Supported formats are JPG, PNG, or WEBP.";
-        return;
-      }
-      if (file.size > MAX_PHOTO_SIZE_MB * 1024 * 1024) {
-        message = message ?? `Images must be under ${MAX_PHOTO_SIZE_MB}MB.`;
-        return;
-      }
-
-      const id =
-        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-          ? crypto.randomUUID()
-          : `${Date.now()}-${Math.random()}`;
-
-      validAttachments.push({
-        id,
-        file,
-        previewUrl: URL.createObjectURL(file),
-      });
-    });
-
-    if (validAttachments.length === 0) {
-      if (message) {
-        setPhotoUploadError(message);
-      }
-      return;
-    }
-
-    const availableSlots = MAX_PHOTOS - photos.length;
-
-    if (availableSlots <= 0) {
-      validAttachments.forEach((attachment) =>
-        URL.revokeObjectURL(attachment.previewUrl)
-      );
-      setPhotoUploadError(`You can upload up to ${MAX_PHOTOS} photos.`);
-      return;
-    }
-
-    const accepted = validAttachments.slice(0, availableSlots);
-    const overflow = validAttachments.slice(availableSlots);
-
-    overflow.forEach((attachment) =>
-      URL.revokeObjectURL(attachment.previewUrl)
-    );
-
-    if (overflow.length > 0) {
-      message = `You can upload up to ${MAX_PHOTOS} photos.`;
-    }
-
-    setPhotos((prev) => [...prev, ...accepted]);
-    setPhotoUploadError(message);
-  };
-
-  const removePhoto = (id: string) => {
-    setPhotos((prev) => {
-      const target = prev.find((photo) => photo.id === id);
-      if (target) {
-        URL.revokeObjectURL(target.previewUrl);
-      }
-      return prev.filter((photo) => photo.id !== id);
-    });
-  };
-
-  const clearPhotos = () => {
-    setPhotos((prev) => {
-      prev.forEach((photo) => URL.revokeObjectURL(photo.previewUrl));
-      return [];
-    });
-    setPhotoUploadError(null);
-  };
-
-  useEffect(() => {
-    // Set the minimum date to tomorrow
-    const tomorrow = addDays(new Date(), 1);
-    setMinDate(format(tomorrow, "yyyy-MM-dd"));
-  }, []);
-
-  useEffect(() => {
-    photosRef.current = photos;
-  }, [photos]);
-
-  useEffect(() => {
-    return () => {
-      photosRef.current.forEach((photo) =>
-        URL.revokeObjectURL(photo.previewUrl)
-      );
-    };
-  }, []);
-
   return (
     <div data-theme="light">
       <Navbar />
-      <div className="min-h-screen bg-slate-300 py-12">
+      <main className="min-h-screen bg-slate-100 py-10">
         <div className="container mx-auto px-4">
-          <h1 className="text-2xl md:text-4xl font-bold text-center mb-4 text-blue-600">
-            Book Trusted Local Help in Minutes
-          </h1>
-          <p className="text-center text-base-content/70 mb-8 text-lg">
-            ZapTasks connects Kawarthas &amp; GTA neighbours for grocery runs,
-            property clean-ups, and handyman jobs. Post your task once and let
-            verified locals apply.
-          </p>
-
-          {/* Demo Video */}
-          <div className="mb-8 text-center">
-            <iframe
-              width="100%"
-              height="315"
-              src="https://www.youtube.com/embed/VIDEO_ID" // Replace with 30s demo video URL
-              title="ZapTasks Marketplace Walkthrough"
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              className="max-w-2xl mx-auto rounded-lg shadow-lg"
-            ></iframe>
-            <p className="text-sm text-gray-600 mt-2">
-              30-second demo: See how easy it is to post a job, review
-              applicants, and release milestone payments.
+          <section className="max-w-3xl mx-auto text-center mb-10">
+            <span className="inline-flex items-center gap-2 text-blue-700 font-semibold tracking-wide uppercase text-xs">
+              <Sparkles className="w-4 h-4" />
+              Built in Canada for the Kawarthas & GTA
+            </span>
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mt-3">
+              Post a local job and connect with trusted neighbours fast
+            </h1>
+            <p className="text-lg text-gray-600 mt-3">
+              ZapTasks makes it simple to share what you need, review
+              applicants, and release payments securely through Stripe Connect.
+              Three steps, one clear post, and you're on your way.
             </p>
-          </div>
+          </section>
 
-          <div className="card shadow-xl max-w-3xl mx-auto bg-slate-100">
-            <div className="card-body">
-              <h2 className="card-title text-xl">Post Your Task Details</h2>
-              <p className="text-base-content/70 text-lg">
-                Outline the work, timing, and budget. Neighbours will apply with
-                availability so you can chat, compare, and book with confidence.
-              </p>
-
-              <form onSubmit={handleSubmit}>
-                {/* Service categories */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-                  {services.map((service) => (
-                    <div key={service.id} className="form-control">
-                      <label className="label cursor-pointer justify-start space-x-3 text-lg">
-                        <input
-                          type="checkbox"
-                          name="service"
-                          className="checkbox checkbox-primary w-6 h-6" // Larger checkbox
-                          value={service.id}
-                          checked={selectedServices.includes(service.id)}
-                          onChange={() => handleServiceToggle(service.id)}
-                        />
-                        <span className="label-text flex items-center text-lg">
-                          {service.icon}
-                          <span className="ml-2">{service.name}</span>
-                        </span>
-                      </label>
-                    </div>
-                  ))}
+          <form
+            onSubmit={handleSubmit}
+            className="grid gap-8 max-w-4xl mx-auto"
+          >
+            <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+              <header className="flex items-start justify-between mb-4">
+                <div>
+                  <p className="text-xs uppercase tracking-widest text-blue-600 font-semibold">
+                    Step 1
+                  </p>
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Choose the type of help you need
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    We focus on high-demand neighbourhood requests to keep
+                    things simple.
+                  </p>
                 </div>
+              </header>
 
-                {/* Selected services expansion */}
-                {selectedServices.length > 0 && (
-                  <div className="mt-8 space-y-4">
-                    <h3 className="text-xl font-semibold">Selected Services</h3>
-                    {selectedServices.map((serviceId) => {
-                      const service = services.find((s) => s.id === serviceId);
-                      const isExpanded = expandedService === serviceId;
-                      return (
-                        <div
-                          key={serviceId}
-                          className="bg-white shadow rounded-lg p-4"
-                        >
-                          <div className="flex justify-between items-center">
-                            <h4 className="font-medium text-lg flex items-center">
-                              {" "}
-                              {/* Larger */}
-                              <span className="mr-2">{service?.icon}</span>
-                              {service?.name}
-                            </h4>
-                            <button
-                              type="button"
-                              onClick={() => toggleServiceExpansion(serviceId)}
-                              className="text-blue-600 text-lg hover:text-blue-800" // Larger
-                            >
-                              {isExpanded ? "Less info" : "More info"}
-                            </button>
-                          </div>
-                          {isExpanded && (
-                            <div className="mt-3 text-base">
-                              {" "}
-                              {/* Larger */}
-                              <p className="text-gray-600 mb-2">
-                                {service?.description}
-                              </p>
-                              <h5 className="font-medium mb-1 text-lg">
-                                Examples:
-                              </h5>{" "}
-                              {/* Larger */}
-                              <ul className="list-disc pl-5 text-gray-600">
-                                {service?.examples.map((example, index) => (
-                                  <li key={index} className="mb-1 text-base">
-                                    {example}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {hasGrocerySelected && (
-                  <>
-                    <div className="alert bg-emerald-50 border border-emerald-200 text-emerald-900">
-                      <ShieldCheck className="w-5 h-5" />
-                      <div>
-                        <p className="font-semibold text-sm">
-                          Food-handling peace of mind
-                        </p>
-                        <p className="text-xs md:text-sm text-emerald-900/80">
-                          Helpers must follow your handoff instructions. Pick the
-                          safeguards you prefer so groceries stay sealed and
-                          tamper-free.
-                        </p>
+              <div className="grid gap-4 md:grid-cols-2">
+                {serviceOptions.map((option) => {
+                  const isSelected = option.id === selectedService;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => handleServiceSelect(option.id)}
+                      className={`text-left rounded-lg border px-4 py-3 transition focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        isSelected
+                          ? "border-blue-600 bg-blue-50 text-blue-800"
+                          : "border-slate-200 bg-white hover:border-blue-400"
+                      }`}
+                    >
+                      <div className="font-semibold text-base flex items-center justify-between">
+                        {option.label}
+                        {isSelected && <ShieldCheck className="w-4 h-4" />}
                       </div>
-                    </div>
-
-                    <div className="bg-white border border-emerald-100 rounded-xl p-4 mb-6 shadow-sm">
-                      <p className="font-semibold text-slate-900 text-sm md:text-base">
-                        Handoff preferences
+                      <p className="text-sm mt-2 text-gray-600">
+                        {option.summary}
                       </p>
-                      <p className="text-xs md:text-sm text-slate-600 mb-3">
-                        Select the steps you&apos;d like your neighbour to follow.
-                        You can chat to confirm anything else.
-                      </p>
-                      <div className="space-y-2">
-                        {GROCERY_SAFETY_OPTIONS.map((option) => {
-                          const isChecked = grocerySafetySelections.includes(option.id);
-                          return (
-                            <label
-                              key={option.id}
-                              className="flex items-start gap-2 text-sm text-slate-700"
-                            >
-                              <input
-                                type="checkbox"
-                                className="checkbox checkbox-sm mt-1"
-                                checked={isChecked}
-                                onChange={() => toggleGrocerySafety(option.id)}
-                              />
-                              <span>{option.label}</span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </div>
+                      <ul className="mt-3 text-xs text-gray-500 space-y-1">
+                        {option.examples.map((example) => (
+                          <li key={example}>• {example}</li>
+                        ))}
+                      </ul>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
 
-                    {/* Item Count for Pricing */}
-                    <div className="form-control mb-6">
-                      <label className="label text-lg" htmlFor="itemCount">
-                        <span className="label-text">
-                          Estimated number of items
-                        </span>
-                      </label>
-                      <input
-                        id="itemCount"
-                        type="number"
-                        min="1"
-                        className="input input-bordered w-full text-gray-900 text-lg"
-                        placeholder="e.g. 8"
-                        value={itemCount}
-                        onChange={(e) => setItemCount(Number(e.target.value))}
-                        required
-                      />
-                      <p className="text-sm text-gray-600 mt-1">
-                        This helps calculate the fee: $25 for &lt;10 items &amp;
-                        &lt;=5km, $35 otherwise.
-                      </p>
-                    </div>
-
-                    {/* Distance Estimate */}
-                    <div className="form-control mb-6">
-                      <label className="label text-lg" htmlFor="distance">
-                        <span className="label-text">
-                          Estimated distance to store (km)
-                        </span>
-                      </label>
-                      <input
-                        id="distance"
-                        type="number"
-                        min="0.1"
-                        step="0.1"
-                        className="input input-bordered w-full text-gray-900 text-lg"
-                        placeholder="e.g. 2.5"
-                        value={estimatedDistance}
-                        onChange={(e) =>
-                          setEstimatedDistance(Number(e.target.value))
-                        }
-                        required
-                      />
-                      <p className="text-sm text-gray-600 mt-1">
-                        We&apos;ll use your location or postal code to estimate.
-                        One-way distance.
-                      </p>
-                    </div>
-
-                    {/* Auto-Calculated Price Display */}
-                    <div className="alert alert-info mb-6 text-lg">
-                      <span>
-                        Estimated grocery run fee:{" "}
-                        {formatCurrency(calculatedPrice)}
-                        (includes 5-10% platform fee; helpers earn ~$40/hr)
-                      </span>
-                    </div>
-
-                    {/* Drop-off Notes for Messaging */}
-                    <div className="form-control mb-6">
-                      <label className="label text-lg" htmlFor="dropOffNotes">
-                        <span className="label-text">
-                          Drop-off instructions (for in-app messaging)
-                        </span>
-                      </label>
-                      <textarea
-                        id="dropOffNotes"
-                        className="textarea textarea-bordered h-20 text-gray-900 text-lg"
-                        placeholder="e.g. Leave bag under welcome mat or knock at apartment 2B - no entry needed"
-                        value={dropOffNotes}
-                        onChange={(e) => setDropOffNotes(e.target.value)}
-                      />
-                      <p className="text-sm text-gray-600 mt-1">
-                        Helpers will message via app for confirmation. Builds
-                        trust for secure delivery.
-                      </p>
-                    </div>
-                  </>
-                )}
-
-                {hasPropertyCleanupSelected && (
-                  <div className="mb-6 space-y-4">
-                    <div className="alert bg-amber-50 border border-amber-200 text-amber-900">
-                      <AlertTriangle className="w-5 h-5" />
-                      <div>
-                        <p className="font-semibold text-sm">
-                          Yard sizes can vary a ton
-                        </p>
-                        <p className="text-xs md:text-sm text-amber-900/80">
-                          Give neighbours a quick sense of the space so they can
-                          quote accurately. Add a photo for extra clarity.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="form-control">
-                        <label className="label text-lg" htmlFor="yardSize">
-                          <span className="label-text">Approximate yard size</span>
-                        </label>
-                        <select
-                          id="yardSize"
-                          className="select select-bordered w-full bg-white text-gray-900 text-lg"
-                          value={yardSize}
-                          onChange={(e) => setYardSize(e.target.value)}
-                        >
-                          {YARD_SIZE_OPTIONS.map((option) => (
-                            <option key={option.id} value={option.id}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="form-control">
-                        <label className="label text-lg" htmlFor="yardAccessNotes">
-                          <span className="label-text">
-                            Access &amp; equipment notes (optional)
-                          </span>
-                        </label>
-                        <textarea
-                          id="yardAccessNotes"
-                          className="textarea textarea-bordered h-20 text-gray-900 text-lg"
-                          placeholder="Gate width, slope, pet areas, on-site tools, or disposal notes"
-                          value={yardAccessNotes}
-                          onChange={(e) => setYardAccessNotes(e.target.value)}
-                        />
-                        <p className="text-xs text-slate-500 mt-1">
-                          Unsure on size? Mark "Not sure" and ask helpers to
-                          confirm during chat.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {hasHandymanSelected && (
-                  <div className="mb-6 space-y-4">
-                    <div className="alert bg-blue-50 border border-blue-200 text-blue-900">
-                      <Hammer className="w-5 h-5" />
-                      <div>
-                        <p className="font-semibold text-sm">
-                          Handyman rates depend on scope &amp; materials
-                        </p>
-                        <p className="text-xs md:text-sm text-blue-900/80">
-                          Share how complex the job is, who&apos;s providing
-                          materials, and whether you&apos;re expecting hourly quotes
-                          or flat bids.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="form-control">
-                        <label className="label text-lg">
-                          <span className="label-text">Materials</span>
-                        </label>
-                        <div className="space-y-2">
-                          {HANDYMAN_MATERIAL_OPTIONS.map((option) => (
-                            <label
-                              key={option.id}
-                              className="flex items-center gap-2 text-sm text-slate-700"
-                            >
-                              <input
-                                type="radio"
-                                name="handyman-materials"
-                                className="radio radio-sm"
-                                value={option.id}
-                                checked={handymanMaterialPreference === option.id}
-                                onChange={(e) =>
-                                  setHandymanMaterialPreference(
-                                    e.target.value as
-                                      | "provided"
-                                      | "helper-source"
-                                      | "confirm-together"
-                                  )
-                                }
-                              />
-                              {option.label}
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="form-control">
-                        <label className="label text-lg">
-                          <span className="label-text">Pricing approach</span>
-                        </label>
-                        <div className="space-y-2">
-                          {HANDYMAN_PRICING_APPROACH.map((option) => (
-                            <label
-                              key={option.id}
-                              className="flex items-center gap-2 text-sm text-slate-700"
-                            >
-                              <input
-                                type="radio"
-                                name="handyman-pricing"
-                                className="radio radio-sm"
-                                value={option.id}
-                                checked={handymanPricingFocus === option.id}
-                                onChange={(e) =>
-                                  setHandymanPricingFocus(
-                                    e.target.value as "need-quote" | "have-budget"
-                                  )
-                                }
-                              />
-                              {option.label}
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="form-control">
-                      <label className="label text-lg" htmlFor="handymanExtraNotes">
-                        <span className="label-text">
-                          Scope or specialty notes (optional)
-                        </span>
-                      </label>
-                      <textarea
-                        id="handymanExtraNotes"
-                        className="textarea textarea-bordered h-20 text-gray-900 text-lg"
-                        placeholder="e.g. Condo job - need proof of insurance, skill saw required, replacing 3 faucets, etc."
-                        value={handymanExtraNotes}
-                        onChange={(e) => setHandymanExtraNotes(e.target.value)}
-                      />
-                      <p className="text-xs text-slate-500 mt-1">
-                        The more detail you add, the more accurate the quotes.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Date and Time inputs */}
-                <div className="flex space-x-4">
-                  <div className="form-control flex-1">
-                    <label className="label" htmlFor="date">
-                      <span className="label-text">Date</span>
-                    </label>
-                    <div className="relative">
-                      <Calendar
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-base-content/50"
-                        size={20}
-                      />
-                      <input
-                        id="date"
-                        type="date"
-                        value={date}
-                        onChange={(e) => setDate(e.target.value)}
-                        min={minDate}
-                        className="input input-bordered pl-10 w-full text-gray-900"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <TimeSelector
-                    value={time}
-                    onChange={(newTime: string) => setTime(newTime)}
-                  />{" "}
+            <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+              <header className="flex items-start justify-between mb-4">
+                <div>
+                  <p className="text-xs uppercase tracking-widest text-blue-600 font-semibold">
+                    Step 2
+                  </p>
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Share the job details
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Give neighbours enough context to decide if it's a good fit.
+                    Clear jobs get faster replies.
+                  </p>
                 </div>
+              </header>
 
-                {/* Hours and People inputs */}
-                {/* Hours and People inputs */}
-                <div className="flex space-x-4">
-                  <div className="form-control flex-1">
-                    <label className="label" htmlFor="hours">
-                      <span className="label-text">
-                        Estimated hours needed (minimum 1)
-                      </span>
-                    </label>
-                    <div className="relative">
-                      <Clock
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-base-content/50"
-                        size={20}
-                      />
-                      <input
-                        id="hours"
-                        type="number"
-                        min={1}
-                        value={hours}
-                        onChange={(e) => {
-                          const value = parseInt(e.target.value);
-                          const min = 1;
-                          setHours(isNaN(value) ? min : Math.max(min, value));
-                        }}
-                        onBlur={() => {
-                          const min = 1;
-                          if (hours < min) setHours(min);
-                        }}
-                        className="input input-bordered pl-10 w-full text-gray-900"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="form-control flex-1">
-                    <label className="label" htmlFor="people">
-                      <span className="label-text">
-                        Number of People (minimum 1)
-                      </span>
-                    </label>
-                    <div className="relative">
-                      <Users
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-base-content/50"
-                        size={20}
-                      />
-                      <input
-                        id="people"
-                        type="number"
-                        min="1"
-                        value={people}
-                        onChange={(e) => {
-                          const value = parseInt(e.target.value);
-                          setPeople(isNaN(value) ? 1 : Math.max(1, value));
-                        }}
-                        onBlur={() => {
-                          if (people < 1) setPeople(1);
-                        }}
-                        className="input input-bordered pl-10 w-full text-gray-900"
-                        required
-                      />
-                    </div>
-                    {people < 1 && (
-                      <label className="label">
-                        <span className="label-text-alt text-error">
-                          Minimum 1 person required
-                        </span>
-                      </label>
-                    )}
-                  </div>
-                </div>
-
-                {/* Location input */}
-                <div className="form-control">
-                  <label className="label" htmlFor="location">
-                    <span className="label-text">Approximate Location</span>
-                  </label>
-                  <div className="relative">
-                    <MapPin
-                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-base-content/50"
-                      size={20}
-                    />
-                    <AddressAutocomplete
-                      onPlaceSelected={handlePlaceSelected}
-                      apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""}
-                    />
-                  </div>
-                </div>
-
-                {/* Description input */}
-                <div className="form-control">
-                  <label className="label" htmlFor="description">
-                    <span className="label-text">Task Description</span>
-                  </label>
-                  <textarea
-                    id="description"
-                    placeholder="Describe the task you need help with..."
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="textarea textarea-bordered h-24 text-gray-900"
+              <div className="grid gap-4">
+                <label className="form-control">
+                  <span className="label-text font-medium text-gray-800">
+                    Job headline
+                  </span>
+                  <input
+                    type="text"
+                    value={jobTitle}
+                    placeholder={
+                      suggestedTitle || "e.g. Lawn mowing for this weekend"
+                    }
+                    onChange={(e) => setJobTitle(e.target.value)}
+                    className="input input-bordered w-full"
                     required
                   />
-                </div>
+                </label>
 
-                <div>
-                  <label className="block font-semibold mb-2">
-                    Photos (optional)
-                  </label>
-                  <p className="text-xs text-base-content/60 mb-3">
-                    Add up to {MAX_PHOTOS} photos so neighbours understand the
-                    space or repair needed. Clear visuals help your job stand
-                    out.
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    {photos.map((attachment) => (
-                      <div
-                        key={attachment.id}
-                        className="relative w-28 h-28 rounded-lg overflow-hidden border border-slate-200 bg-slate-100"
-                      >
-                        <Image
-                          src={attachment.previewUrl}
-                          alt="Selected job"
-                          fill
-                          className="object-cover"
-                          sizes="112px"
-                          unoptimized
-                        />
-                        <button
-                          type="button"
-                          className="absolute top-1 right-1 bg-white/90 hover:bg-white text-xs px-2 py-1 rounded-md shadow-sm"
-                          onClick={() => removePhoto(attachment.id)}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
-                    {photos.length < MAX_PHOTOS && (
-                      <label className="w-28 h-28 border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center text-xs text-slate-500 cursor-pointer hover:border-blue-400 hover:text-blue-600 transition">
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp"
-                          multiple
-                          className="hidden"
-                          onChange={handlePhotoChange}
-                        />
-                        <span className="font-semibold text-center">
-                          Upload
-                        </span>
-                        <span className="mt-1 text-[10px] text-center leading-tight">
-                          JPG, PNG or WEBP
-                          <br />
-                          Max {MAX_PHOTO_SIZE_MB}MB
-                        </span>
-                      </label>
-                    )}
-                  </div>
-                  {photoUploadError && (
-                    <p className="text-xs text-red-500 mt-2">
-                      {photoUploadError}
-                    </p>
-                  )}
-                </div>
-
-                {/* Budget */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div className="form-control">
-                    <label className="label text-lg" htmlFor="budgetAmount">
-                      <span className="label-text">
-                        {hasGrocerySelected
-                          ? "Auto-calculated fee (CAD)"
-                          : "Your budget (CAD)"}
-                      </span>
-                    </label>
-                    <input
-                      id="budgetAmount"
-                      type="number"
-                      min="1"
-                      className="input input-bordered w-full text-gray-900 text-lg"
-                      value={budgetAmount}
-                      onChange={(e) => setBudgetAmount(e.target.value)}
-                      readOnly={hasGrocerySelected}
-                      placeholder={hasGrocerySelected ? undefined : "e.g. 120"}
-                      required
-                    />
-                  </div>
-                  <div className="form-control">
-                    <label className="label text-lg" htmlFor="budgetType">
-                      <span className="label-text">Fee type</span>
-                    </label>
-                    <select
-                      id="budgetType"
-                      className="select select-bordered w-full bg-white text-gray-900 text-lg"
-                      value={budgetType}
-                      onChange={(e) =>
-                        setBudgetType(e.target.value as "flat" | "hourly")
-                      }
-                      disabled={hasGrocerySelected}
-                    >
-                      <option value="flat">
-                        {hasGrocerySelected
-                          ? "Flat delivery fee"
-                          : "Flat project fee"}
-                      </option>
-                      {!hasGrocerySelected && (
-                        <option value="hourly">Hourly rate</option>
-                      )}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="form-control mb-6">
-                  <label className="label text-lg" htmlFor="budgetNotes">
-                    <span className="label-text">
-                      Pricing context for neighbours (optional)
-                    </span>
-                  </label>
+                <label className="form-control">
+                  <span className="label-text font-medium text-gray-800">
+                    Describe what you need
+                  </span>
                   <textarea
-                    id="budgetNotes"
-                    className="textarea textarea-bordered h-20 text-gray-900 text-lg"
-                    placeholder={hasHandymanSelected
-                      ? "e.g. Expecting quotes around $250, labour only. I can reimburse materials with receipt."
-                      : hasPropertyCleanupSelected
-                      ? "e.g. Hoping to spend under $180, willing to adjust if it takes longer."
-                      : "Share flexibility, reimbursements, or anything neighbours should know about payment."}
-                    value={budgetNotes}
-                    onChange={(e) => setBudgetNotes(e.target.value)}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Share the scope, access notes, and anything a local pro should know."
+                    className="textarea textarea-bordered h-28"
+                    required
                   />
-                  <p className="text-xs text-slate-500 mt-1">
-                    Clear pricing expectations help neighbours respond with the
-                    right offer. It&apos;s okay to say you&apos;re looking for quotes.
+                  <span className="label-text-alt text-xs text-gray-500 mt-1">
+                    Tip: mention the property type, parking access, and if
+                    you've got equipment ready.
+                  </span>
+                </label>
+
+                <label className="form-control">
+                  <span className="label-text font-medium text-gray-800">
+                    Approximate location
+                  </span>
+                  <div className="relative">
+                    <MapPin
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                      size={18}
+                    />
+                    <div className="pl-9">
+                      <AddressAutocomplete
+                        onPlaceSelected={handlePlaceSelected}
+                        apiKey={
+                          process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
+                        }
+                      />
+                    </div>
+                  </div>
+                  <span className="label-text-alt text-xs text-gray-500 mt-1">
+                    Street address stays private until you book. Postal code is
+                    enough for now.
+                  </span>
+                </label>
+              </div>
+            </section>
+
+            <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+              <header className="flex items-start justify-between mb-4">
+                <div>
+                  <p className="text-xs uppercase tracking-widest text-blue-600 font-semibold">
+                    Step 3
+                  </p>
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Set timing and budget
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    We collect a 50% deposit through Stripe when you accept a
+                    provider. The rest is released once the job is done.
                   </p>
                 </div>
+                <ShieldCheck className="w-6 h-6 text-emerald-500" />
+              </header>
 
-                {/* Contact preference */}
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text">
-                      How should neighbours reach you?
-                    </span>
-                  </label>
-                  <div className="flex flex-col md:flex-row gap-3">
-                    {[
-                      { value: "messages", label: "ZapTasks messages" },
-                      { value: "email", label: "Email" },
-                      { value: "phone", label: "Phone call" },
-                    ].map((option) => (
-                      <label
-                        key={option.value}
-                        className="cursor-pointer flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg hover:border-blue-500 transition"
-                      >
-                        <input
-                          type="radio"
-                          name="contactPreference"
-                          value={option.value}
-                          checked={contactPreference === option.value}
-                          onChange={() =>
-                            setContactPreference(
-                              option.value as "messages" | "email" | "phone"
-                            )
-                          }
-                        />
-                        <span>{option.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Bring equipment checkbox */}
-                <div className="form-control">
-                  <label className="label cursor-pointer justify-start space-x-3">
-                    <input
-                      type="checkbox"
-                      className="checkbox checkbox-primary"
-                      checked={bringEquipment}
-                      onChange={(e) =>
-                        handleBringEquipmentChange(e.target.checked)
-                      }
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="form-control">
+                  <span className="label-text font-medium text-gray-800">
+                    Preferred date
+                  </span>
+                  <div className="relative">
+                    <Calendar
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                      size={18}
                     />
-                    <span className="label-text">
-                      Subcontractor brings own equipment (additional fee may
-                      apply)
-                    </span>
-                  </label>
-                </div>
-
-                {/* Terms and conditions */}
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text text-gray-900">
-                      Terms and Conditions
-                    </span>
-                  </label>
-                  <div className="bg-base-200 p-4 rounded-md text-sm h-40 overflow-y-auto mb-2 text-gray-900">
-                    <pre className="whitespace-pre-wrap">
-                      {termsAndConditions}
-                    </pre>
-                  </div>
-                  <label className="label cursor-pointer justify-start space-x-3">
                     <input
-                      type="checkbox"
-                      className="checkbox checkbox-primary"
-                      checked={agreeToTerms}
-                      onChange={(e) => setAgreeToTerms(e.target.checked)}
+                      type="date"
+                      min={minDate}
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      className="input input-bordered pl-9"
                       required
                     />
-                    <span className="label-text">
-                      I agree to the terms and conditions
-                    </span>
-                  </label>
-                </div>
-
-                {/* Request summary and submit */}
-                <div className="mt-6 space-y-4">
-                  {error && (
-                    <div className="alert alert-error shadow-sm">
-                      <span>{error}</span>
-                    </div>
-                  )}
-                  {submissionStatus === "success" && (
-                    <div className="alert alert-success shadow-sm">
-                      <div>
-                        <h3 className="font-semibold">Job request posted!</h3>
-                        <p className="text-sm">
-                          We&apos;ll notify nearby neighbours so they can apply.
-                          You&apos;ll choose who to hire once the proposals
-                          arrive.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="bg-white border border-slate-200 rounded-lg p-4 space-y-3 text-sm">
-                    <div className="flex justify-between">
-                      <span className="font-medium">Preferred budget</span>
-                      <span>
-                        {budgetAmount
-                          ? formatCurrency(Number(budgetAmount))
-                          : "Not set"}
-                        {budgetType === "hourly" ? "/hr" : " flat"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Service window</span>
-                      <span>
-                        {date ? format(new Date(date), "MMM d, yyyy") : "TBD"} | {" "}
-                        {time || "Flexible"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Crew size needed</span>
-                      <span>
-                        {people} {people === 1 ? "person" : "people"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Contact preference</span>
-                      <span className="capitalize">{contactPreference}</span>
-                    </div>
-                    {budgetNotes && (
-                      <div className="pt-2 border-t border-dashed border-slate-200">
-                        <span className="font-medium block mb-1">
-                          Budget notes
-                        </span>
-                        <p className="text-gray-600 text-sm">{budgetNotes}</p>
-                      </div>
-                    )}
-                    {summaryHighlights.length > 0 && (
-                      <div className="pt-2 border-t border-dashed border-slate-200">
-                        <span className="font-medium block mb-1">
-                          Service specifics
-                        </span>
-                        <ul className="text-gray-600 text-sm space-y-1">
-                          {summaryHighlights.map((highlight, index) => (
-                            <li key={`${highlight}-${index}`}>{highlight}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
                   </div>
+                </label>
 
-                  <button
-                    type="submit"
-                    className="btn btn-primary btn-block text-lg py-4"
-                    disabled={!agreeToTerms || !isReadyToRequest || isLoading}
+                <label className="form-control">
+                  <span className="label-text font-medium text-gray-800">
+                    Preferred start time
+                  </span>
+                  <div className="relative">
+                    <Clock
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                      size={18}
+                    />
+                    <div className="pl-9">
+                      <TimeSelector
+                        value={time}
+                        onChange={(newTime: string) => setTime(newTime)}
+                      />
+                    </div>
+                  </div>
+                </label>
+
+                <label className="form-control">
+                  <span className="label-text font-medium text-gray-800">
+                    Estimated hours of work
+                  </span>
+                  <div className="relative">
+                    <Users
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                      size={18}
+                    />
+                    <input
+                      type="number"
+                      min={1}
+                      value={hours}
+                      onChange={(e) => {
+                        const value = Number(e.target.value);
+                        setHours(
+                          Number.isFinite(value) && value >= 1 ? value : 1
+                        );
+                      }}
+                      className="input input-bordered pl-9"
+                    />
+                  </div>
+                  <span className="label-text-alt text-xs text-gray-500 mt-1">
+                    Providers use this to plan crew size and availability.
+                  </span>
+                </label>
+
+                <label className="form-control">
+                  <span className="label-text font-medium text-gray-800">
+                    Budget (CAD)
+                  </span>
+                  <input
+                    type="number"
+                    min={25}
+                    value={budgetAmount}
+                    onChange={(e) => setBudgetAmount(e.target.value)}
+                    placeholder="e.g. 120"
+                    className="input input-bordered"
+                    required
+                  />
+                </label>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2 mt-4">
+                <label className="form-control">
+                  <span className="label-text font-medium text-gray-800">
+                    Budget type
+                  </span>
+                  <select
+                    value={budgetType}
+                    onChange={(e) =>
+                      setBudgetType(e.target.value as "flat" | "hourly")
+                    }
+                    className="select select-bordered"
                   >
-                    {isLoading ? "Posting Your Task..." : "Post Your Task"}
-                  </button>
-                  {!isReadyToRequest && (
-                    <p className="text-xs text-error">
-                      Add a headline, pick services, and include a budget to
-                      share your request with local neighbours.
-                    </p>
-                  )}
-                  {selectedServices.length === 0 && (
-                    <p className="text-xs text-error">
-                      Choose at least one service category to continue.
-                    </p>
-                  )}
+                    <option value="flat">Flat project fee</option>
+                    <option value="hourly">Hourly budget</option>
+                  </select>
+                </label>
+
+                <label className="form-control">
+                  <span className="label-text font-medium text-gray-800">
+                    Contact preference
+                  </span>
+                  <select
+                    value={contactPreference}
+                    onChange={(e) =>
+                      setContactPreference(
+                        e.target.value as "messages" | "phone" | "email"
+                      )
+                    }
+                    className="select select-bordered"
+                  >
+                    <option value="messages">ZapTasks messages</option>
+                    <option value="phone">Phone call</option>
+                    <option value="email">Email</option>
+                  </select>
+                </label>
+              </div>
+
+              <label className="form-control mt-4">
+                <span className="label-text font-medium text-gray-800">
+                  Anything else providers should know?
+                </span>
+                <textarea
+                  value={budgetNotes}
+                  onChange={(e) => setBudgetNotes(e.target.value)}
+                  placeholder="Add parking notes, gate codes, or photo links."
+                  className="textarea textarea-bordered h-20"
+                />
+              </label>
+
+              <label className="label cursor-pointer justify-start gap-3 mt-4">
+                <input
+                  type="checkbox"
+                  className="checkbox checkbox-primary"
+                  checked={bringEquipment}
+                  onChange={(e) => setBringEquipment(e.target.checked)}
+                />
+                <span className="label-text text-sm text-gray-700">
+                  Providers should bring their own tools and equipment
+                </span>
+              </label>
+            </section>
+
+            <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+              <header className="flex items-start justify-between mb-4">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Review and submit
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Once you submit, nearby providers in the Kawarthas & GTA can
+                    apply right away.
+                  </p>
                 </div>
-              </form>
-            </div>
-          </div>
+              </header>
+
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 text-sm text-gray-700 space-y-2">
+                <div className="flex justify-between">
+                  <span className="font-medium">Selected service</span>
+                  <span>
+                    {selectedService
+                      ? serviceOptions.find(
+                          (option) => option.id === selectedService
+                        )?.label
+                      : "Not selected"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Preferred schedule</span>
+                  <span>
+                    {date ? format(new Date(date), "MMM d, yyyy") : "TBD"}{" "}
+                    {time ? `@ ${time}` : ""}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Budget</span>
+                  <span>
+                    {budgetAmount
+                      ? `${formatCurrency(Number(budgetAmount))}${
+                          budgetType === "hourly" ? "/hr" : " flat"
+                        }`
+                      : "Not set"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Deposit model</span>
+                  <span>50/50 secure payout through Stripe Connect</span>
+                </div>
+                {budgetNotes && (
+                  <div className="pt-2 border-t border-dashed border-slate-200">
+                    <span className="font-medium block mb-1">Extra notes</span>
+                    <p className="text-sm text-gray-600">{budgetNotes}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6">
+                <div className="h-32 overflow-y-auto border border-slate-200 rounded-md bg-slate-50 p-3 text-xs text-gray-700 whitespace-pre-wrap">
+                  {termsAndConditions}
+                </div>
+                <label className="label cursor-pointer justify-start gap-3 mt-3">
+                  <input
+                    type="checkbox"
+                    className="checkbox checkbox-primary"
+                    checked={agreeToTerms}
+                    onChange={(e) => setAgreeToTerms(e.target.checked)}
+                    required
+                  />
+                  <span className="label-text text-sm text-gray-700">
+                    I agree to the ZapTasks terms and understand the 50/50
+                    payment schedule.
+                  </span>
+                </label>
+              </div>
+
+              {error && (
+                <div className="alert alert-error mt-4">
+                  <span>{error}</span>
+                </div>
+              )}
+
+              {submissionStatus === "success" && (
+                <div className="alert alert-success mt-4">
+                  <div>
+                    <h3 className="font-semibold">Job posted!</h3>
+                    <p className="text-sm">
+                      We'll notify nearby providers so they can apply. Review
+                      profiles, chat, and hire with confidence.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="btn btn-primary btn-block mt-6 text-base"
+                disabled={!isReadyToSubmit || !agreeToTerms || isLoading}
+              >
+                {isLoading ? "Posting..." : "Post my job to ZapTasks"}
+              </button>
+              {!isReadyToSubmit && (
+                <p className="text-xs text-error mt-2">
+                  Add the essentials above to continue.
+                </p>
+              )}
+            </section>
+          </form>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

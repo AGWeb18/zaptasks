@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { createClient } from "@/app/utils/supabase/client";
+import { getServiceLabels } from "@/app/lib/services/catalog";
 
 interface JobApplicationMeta {
   provider_id: string | null;
@@ -353,6 +354,7 @@ const ProJobsPage = () => {
                 {jobs.map((job) => {
                   const applied = hasApplied(job.id);
                   const primaryPhoto = job.photo_urls?.[0] ?? "/images/job-card-placeholder.svg";
+                  const serviceLabels = getServiceLabels(job.services);
                   return (
                     <article
                       key={job.id}
@@ -373,9 +375,9 @@ const ProJobsPage = () => {
                           <div>
                             <h3 className="text-xl font-semibold text-gray-900">{job.job_title}</h3>
                             <div className="flex flex-wrap gap-2 mt-2 text-xs text-blue-700">
-                              {job.services.map((service) => (
-                                <span key={service} className="badge badge-outline">
-                                  {service}
+                              {serviceLabels.map((label) => (
+                                <span key={label} className="badge badge-outline">
+                                  {label}
                                 </span>
                               ))}
                             </div>

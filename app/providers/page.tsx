@@ -92,7 +92,9 @@ const formatPricing = (raw: string | null): string => {
     return `$${info.flatFee.toFixed(0)} flat project fee`;
   }
   if (info.pricingType === "hourly" && info.hourlyRate) {
-    const minimum = info.minimumHours ? `${info.minimumHours} hr min` : "2 hr min";
+    const minimum = info.minimumHours
+      ? `${info.minimumHours} hr min`
+      : "2 hr min";
     return `$${info.hourlyRate.toFixed(0)}/hr • ${minimum}`;
   }
   return raw ?? "Pricing pending";
@@ -120,16 +122,20 @@ export default function ProvidersPage() {
       if (!error && data) {
         const enriched = data.map((pro, index): EnrichedPro => {
           const pricing = parsePricingInfo(pro.price);
-          const effectiveRate = pricing?.pricingType === "hourly"
-            ? pricing.hourlyRate ?? null
-            : pricing?.flatFee ?? null;
+          const effectiveRate =
+            pricing?.pricingType === "hourly"
+              ? pricing.hourlyRate ?? null
+              : pricing?.flatFee ?? null;
           const ratingBase = pro.rating ?? 4.4 + (index % 3) * 0.2;
           const rating = Math.min(5, Number(ratingBase?.toFixed(1)) || 4.6);
           const availabilityLabel = pro.availability ?? "Weekdays & weekends";
           const responseTimeMinutes = pro.response_time_minutes ?? 90;
-          const responseTimeLabel = responseTimeMinutes <= 60
-            ? "Responds in under an hour"
-            : `Responds in ~${Math.round(responseTimeMinutes / 30) * 30} mins`;
+          const responseTimeLabel =
+            responseTimeMinutes <= 60
+              ? "Responds in under an hour"
+              : `Responds in ~${
+                  Math.round(responseTimeMinutes / 30) * 30
+                } mins`;
 
           return {
             ...pro,
@@ -162,8 +168,12 @@ export default function ProvidersPage() {
           pro.availabilityLabel.toLowerCase().includes(availabilityFilter);
         const numericPrice = pro.effectiveRate;
         const matchesPrice =
-          pro.pricingType !== "hourly" || !numericPrice || numericPrice <= maxPrice;
-        return matchesSearch && matchesRating && matchesAvailability && matchesPrice;
+          pro.pricingType !== "hourly" ||
+          !numericPrice ||
+          numericPrice <= maxPrice;
+        return (
+          matchesSearch && matchesRating && matchesAvailability && matchesPrice
+        );
       })
       .sort((a, b) => {
         if (sortBy === "rating") return b.rating - a.rating;
@@ -182,8 +192,8 @@ export default function ProvidersPage() {
       prev.includes(id)
         ? prev.filter((value) => value !== id)
         : prev.length >= 3
-          ? [...prev.slice(1), id]
-          : [...prev, id],
+        ? [...prev.slice(1), id]
+        : [...prev, id]
     );
   };
 
@@ -191,23 +201,26 @@ export default function ProvidersPage() {
     <div className="min-h-screen bg-gradient-to-b from-blue-50/50 to-white text-slate-800 flex flex-col">
       <Navbar />
       <div className="container mx-auto px-4 py-12 flex-1">
-        <h1 className="text-3xl font-bold mb-2 text-center">Browse verified home providers</h1>
+        <h1 className="text-3xl font-bold mb-2 text-center">
+          Browse verified home providers
+        </h1>
         <p className="text-center text-gray-600 mb-6">
-          Handpick trusted neighbours for any task across the Kawarthas and GTA. Every booking stays protected through our Canadian-owned marketplace.
+          Handpick trusted neighbours for any task across the Kawarthas and GTA.
+          Every booking stays protected through our Canadian-owned marketplace.
         </p>
         <div className="mb-6 grid grid-cols-1 lg:grid-cols-5 gap-4">
           <input
             className="input input-bordered w-full bg-white text-gray-900 placeholder-gray-500 lg:col-span-2"
             placeholder="Search by name, skill, or neighbourhood"
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
           />
           <select
             className="select select-bordered w-full bg-white text-gray-900"
             value={selectedService}
-            onChange={e => setSelectedService(e.target.value)}
+            onChange={(e) => setSelectedService(e.target.value)}
           >
-            {SERVICE_FILTERS.map(option => (
+            {SERVICE_FILTERS.map((option) => (
               <option key={option.value || "all"} value={option.value}>
                 {option.label}
               </option>
@@ -216,7 +229,7 @@ export default function ProvidersPage() {
           <select
             className="select select-bordered w-full bg-white text-gray-900"
             value={minRating}
-            onChange={e => setMinRating(Number(e.target.value))}
+            onChange={(e) => setMinRating(Number(e.target.value))}
           >
             <option value={4}>Rating 4.0+</option>
             <option value={4.5}>Rating 4.5+</option>
@@ -225,7 +238,7 @@ export default function ProvidersPage() {
           <select
             className="select select-bordered w-full bg-white text-gray-900"
             value={sortBy}
-            onChange={e => setSortBy(e.target.value)}
+            onChange={(e) => setSortBy(e.target.value)}
           >
             <option value="best-match">Best match</option>
             <option value="rating">Highest rated</option>
@@ -235,45 +248,64 @@ export default function ProvidersPage() {
 
         <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-slate-600">
           <label className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col gap-2">
-            <span className="font-semibold text-slate-700">Max hourly rate (CAD)</span>
+            <span className="font-semibold text-slate-700">
+              Max hourly rate (CAD)
+            </span>
             <input
               type="range"
               min={25}
               max={250}
               value={maxPrice}
-              onChange={e => setMaxPrice(Number(e.target.value))}
+              onChange={(e) => setMaxPrice(Number(e.target.value))}
               className="range range-primary"
             />
-            <span className="text-xs text-slate-500">Showing providers ≤ ${maxPrice}/hr</span>
+            <span className="text-xs text-slate-500">
+              Showing providers ≤ ${maxPrice}/hr
+            </span>
           </label>
           <label className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col gap-2">
             <span className="font-semibold text-slate-700">Availability</span>
             <select
               className="select select-bordered bg-white"
               value={availabilityFilter}
-              onChange={e => setAvailabilityFilter(e.target.value)}
+              onChange={(e) => setAvailabilityFilter(e.target.value)}
             >
               <option value="any">Any time</option>
               <option value="weekend">Weekends</option>
               <option value="evening">Evenings</option>
             </select>
-            <span className="text-xs text-slate-500">Filter based on provider calendar notes.</span>
+            <span className="text-xs text-slate-500">
+              Filter based on provider calendar notes.
+            </span>
           </label>
           <div className="bg-white border border-slate-200 rounded-xl p-4">
-            <span className="font-semibold text-slate-700">Need help choosing?</span>
+            <span className="font-semibold text-slate-700">
+              Need help choosing?
+            </span>
             <p className="text-xs text-slate-500 mt-1">
-              Select up to three providers to compare reviews, rates, and response times side-by-side.
+              Select up to three providers to compare reviews, rates, and
+              response times side-by-side.
             </p>
           </div>
         </div>
 
         <p className="text-center text-xs text-slate-500 mb-8">
-          Not sure who to message? <Link href="/booking" className="text-blue-600 font-semibold hover:underline">Post a job</Link> so local providers can apply in minutes.
+          Not sure who to message?{" "}
+          <Link
+            href="/booking"
+            className="text-blue-600 font-semibold hover:underline"
+          >
+            Post a job
+          </Link>{" "}
+          so local providers can apply in minutes.
         </p>
         {loading ? (
           <div className="text-center">Loading local pros...</div>
         ) : filteredPros.length === 0 ? (
-          <div className="text-center text-gray-500">No providers match that search yet. Try a different keyword or switch back to all services.</div>
+          <div className="text-center text-gray-500">
+            No providers match that search yet. Try a different keyword or
+            switch back to all services.
+          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredPros.map((pro) => (
@@ -284,23 +316,35 @@ export default function ProvidersPage() {
                 <div>
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h2 className="text-xl font-semibold text-slate-900">{pro.name}</h2>
-                      <p className="text-primary font-medium mb-1">{SERVICE_LABELS[pro.service] ?? pro.service}</p>
+                      <h2 className="text-xl font-semibold text-slate-900">
+                        {pro.name}
+                      </h2>
+                      <p className="text-primary font-medium mb-1">
+                        {SERVICE_LABELS[pro.service] ?? pro.service}
+                      </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => toggleCompare(pro.id)}
-                      className={`btn btn-xs ${selectedProviders.includes(pro.id || "") ? "btn-primary" : "btn-outline"}`}
+                      className={`btn btn-xs ${
+                        selectedProviders.includes(pro.id || "")
+                          ? "btn-primary"
+                          : "btn-outline"
+                      }`}
                     >
                       Compare
                     </button>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-amber-500 mt-2">
                     <Star className="h-4 w-4" fill="currentColor" />
-                    <span className="font-semibold text-slate-900">{pro.rating.toFixed(1)}</span>
+                    <span className="font-semibold text-slate-900">
+                      {pro.rating.toFixed(1)}
+                    </span>
                     <span className="text-slate-500">• Verified</span>
                   </div>
-                  <p className="mt-3 text-sm text-gray-600">{pro.description}</p>
+                  <p className="mt-3 text-sm text-gray-600">
+                    {pro.description}
+                  </p>
                   <div className="mt-4 flex flex-wrap gap-3 text-xs text-slate-500">
                     {pro.location ? (
                       <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded-full">
@@ -322,9 +366,12 @@ export default function ProvidersPage() {
                   </div>
                 </div>
                 <div className="mt-4 flex flex-col gap-1 text-sm">
-                  <span className="font-bold text-lg text-blue-700">{formatPricing(pro.price)}</span>
+                  <span className="font-bold text-lg text-blue-700">
+                    {formatPricing(pro.price)}
+                  </span>
                   <span className="text-xs text-gray-500">
-                    50% deposit via ZapTasks • Remaining 50% after homeowner sign-off
+                    50% deposit via ZapTasks • Remaining 50% after homeowner
+                    sign-off
                   </span>
                 </div>
               </div>
@@ -340,14 +387,18 @@ export default function ProvidersPage() {
                 Comparing {selectedProviders.length} providers
               </p>
               <p className="text-xs text-slate-500">
-                Download the summary or start a group chat to clarify details before booking.
+                Download the summary or start a group chat to clarify details
+                before booking.
               </p>
             </div>
             <div className="flex gap-3">
               <button type="button" className="btn btn-outline btn-sm">
                 Export comparison
               </button>
-              <button type="button" className="btn btn-primary btn-sm text-white">
+              <button
+                type="button"
+                className="btn btn-primary btn-sm text-white"
+              >
                 Start shared chat
               </button>
             </div>
