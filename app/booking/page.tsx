@@ -72,6 +72,24 @@ const BookingPage: React.FC = () => {
   const [submissionStatus, setSubmissionStatus] = useState<"idle" | "success">(
     "idle"
   );
+  const addTag = useCallback(
+    (tag: string, options?: { allowDuplicate?: boolean }) => {
+      const trimmed = tag.trim();
+      if (!trimmed) return;
+
+      setServiceTags((prev) => {
+        const exists = prev.some(
+          (existing) => existing.toLowerCase() === trimmed.toLowerCase()
+        );
+        if (exists && !options?.allowDuplicate) {
+          return prev;
+        }
+        return [...prev, trimmed];
+      });
+    },
+    []
+  );
+
   const [minDate, setMinDate] = useState("");
 
   useEffect(() => {
@@ -105,24 +123,6 @@ const BookingPage: React.FC = () => {
     }
   }, [jobTitle, serviceTags]);
 
-  const addTag = useCallback(
-    (tag: string, options?: { allowDuplicate?: boolean }) => {
-      const trimmed = tag.trim();
-      if (!trimmed) return;
-
-      setServiceTags((prev) => {
-        const exists = prev.some(
-          (existing) => existing.toLowerCase() === trimmed.toLowerCase()
-        );
-        if (exists && !options?.allowDuplicate) {
-          return prev;
-        }
-        return [...prev, trimmed];
-      });
-    },
-    []
-  );
-
   const removeTag = (tag: string) => {
     setServiceTags((prev) => prev.filter((item) => item !== tag));
   };
@@ -138,7 +138,7 @@ const BookingPage: React.FC = () => {
   );
 
   const handlePlaceSelected = (details: {
-    formatted_address: string;
+    formatted_address?: string | null;
     geometry?: { location?: { lat: () => number; lng: () => number } };
   }) => {
     setSelectedAddress(details.formatted_address ?? "");
