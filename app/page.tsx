@@ -70,7 +70,7 @@ const bookingSteps = [
   {
     icon: <CheckCircle className="w-6 h-6 text-blue-600" />,
     title: "Post your job",
-    copy: "Share what you need done, set your budget, and target Kawarthas or GTA neighbourhoods in under 60 seconds.",
+    copy: "Share what you need done, set your budget, and reach nearby neighbours in under 60 seconds.",
   },
   {
     icon: <MessageSquare className="w-6 h-6 text-blue-600" />,
@@ -92,8 +92,7 @@ const testimonials: Testimonial[] = [
     role: "Cottage owner",
     rating: 5,
     quote:
-      "ZapTasks lined up a snow removal crew in Fenelon Falls within an hour. The 50/50 payment flow kept everything super transparent.",
-    location: "Kawartha Lakes, ON",
+      "ZapTasks lined up a snow removal crew within an hour. The 50/50 payment flow kept everything super transparent.",
   },
   {
     id: "2",
@@ -102,7 +101,7 @@ const testimonials: Testimonial[] = [
     rating: 5,
     quote:
       "Provider onboarding took minutes. ID verification plus Stripe payouts means I can focus on the work, not chasing invoices.",
-    location: "Oshawa, ON",
+    location: "Winnipeg, MB",
   },
   {
     id: "3",
@@ -111,7 +110,7 @@ const testimonials: Testimonial[] = [
     rating: 4,
     quote:
       "Loved the in-app chat. I booked a deep clean and follow-up touch-ups without digging through emails.",
-    location: "Toronto, ON",
+    location: "Vancouver, BC",
   },
 ];
 
@@ -123,7 +122,7 @@ const LandingPage: React.FC = () => {
         <section className="flex flex-col-reverse lg:flex-row items-center gap-12 mb-16">
           <div className="w-full lg:w-1/2">
             <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-blue-700 shadow-sm">
-              🇨🇦 Proudly Canadian • Kawarthas & GTA
+              🇨🇦 Proudly Canadian • Built for local communities
             </span>
             <h1 className="mt-4 text-4xl md:text-5xl font-bold text-slate-900 leading-tight">
               Need a hand? Post a task and get help from a neighbour.
@@ -190,7 +189,7 @@ const LandingPage: React.FC = () => {
               Popular tasks neighbours are helping with
             </h2>
             <p className="mt-3 text-sm text-slate-600">
-              From Kawartha cottages to GTA condos, ZapTasks connects you with
+              From coastal cottages to downtown condos across Canada, ZapTasks connects you with
               friendly neighbours for everyday help.
             </p>
           </div>
@@ -310,7 +309,7 @@ const LandingPage: React.FC = () => {
           <div className="bg-blue-50 border border-blue-100 rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="md:w-2/3">
               <h3 className="text-2xl font-semibold text-blue-900">
-                Marketplace trust for the Kawarthas & GTA
+                Marketplace trust for Canadian communities
               </h3>
               <ul className="mt-4 space-y-3 text-sm text-blue-900/80">
                 <li>

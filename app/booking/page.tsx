@@ -95,7 +95,7 @@ const BookingPage: React.FC = () => {
 
   const suggestedTitle = useMemo(() => {
     if (selectedService === "yard-care") {
-      return "Need yard help in Kawarthas";
+      return "Need yard help nearby";
     }
     if (selectedService === "home-fixes") {
       return "Local help needed for a quick fix";
@@ -259,7 +259,7 @@ const BookingPage: React.FC = () => {
           <section className="max-w-3xl mx-auto text-center mb-10">
             <span className="inline-flex items-center gap-2 text-blue-700 font-semibold tracking-wide uppercase text-xs">
               <Sparkles className="w-4 h-4" />
-              Built in Canada for the Kawarthas & GTA
+              Built in Canada for local communities
             </span>
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mt-3">
               Post a local job and connect with trusted neighbours fast
@@ -567,8 +567,8 @@ const BookingPage: React.FC = () => {
                     Review and submit
                   </h2>
                   <p className="text-sm text-gray-600 mt-1">
-                    Once you submit, nearby providers in the Kawarthas & GTA can
-                    apply right away.
+                    Once you submit, nearby providers across Canada can apply
+                    right away.
                   </p>
                 </div>
               </header>

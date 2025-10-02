@@ -21,10 +21,10 @@ export default async function RootLayout({
     <ClerkProvider>
       <html lang="en">
         <head>
-          <title>ZapTasks - Home Services Marketplace in Kawarthas & GTA</title>
+          <title>ZapTasks - Canadian Home Services Marketplace</title>
           <meta
             name="description"
-            content="Connect homeowners with trusted local providers for cleaning, handyman, yard work, and more in the Kawarthas and GTA. Canadian-owned platform with secure payments."
+            content="Connect homeowners across Canada with trusted local providers for cleaning, handyman, yard work, and more. Canadian-owned platform with secure payments."
           />
           <meta name="viewport" content="width=device-width, initial-scale=1" />
           <meta

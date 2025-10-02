@@ -36,7 +36,7 @@ export function NewsletterModal() {
           ✕
         </button>
         <h3 className="text-xl font-semibold text-slate-900 mb-2">
-          Unlock 10% off your first Kawarthas or GTA booking
+          Unlock 10% off your first ZapTasks booking
         </h3>
         <p className="text-sm text-slate-600 mb-4">
           Join our Canadian homeowner newsletter for seasonal checklists, top-rated pros, and exclusive launch offers.
@@ -58,7 +58,7 @@ export function NewsletterModal() {
           </button>
         </form>
         <p className="mt-4 text-xs text-slate-500">
-          We&apos;re proudly Canadian. No spam—just local tips for Kawarthas & GTA homeowners. Unsubscribe anytime.
+          We&apos;re proudly Canadian. No spam—just local tips for homeowners across Canada. Unsubscribe anytime.
         </p>
       </div>
     </div>

@@ -205,7 +205,7 @@ export default function ProvidersPage() {
           Browse verified home providers
         </h1>
         <p className="text-center text-gray-600 mb-6">
-          Handpick trusted neighbours for any task across the Kawarthas and GTA.
+          Handpick trusted neighbours for any task across Canada.
           Every booking stays protected through our Canadian-owned marketplace.
         </p>
         <div className="mb-6 grid grid-cols-1 lg:grid-cols-5 gap-4">

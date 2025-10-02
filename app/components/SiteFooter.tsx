@@ -17,9 +17,9 @@ export function SiteFooter() {
           <div>
             <h3 className="text-lg font-semibold mb-3">ZapTasks</h3>
             <p className="text-sm text-slate-400 leading-relaxed">
-              Canadian-built marketplace connecting Kawarthas & GTA homeowners
-              with trusted local pros. Secure 50/50 payment protection on every
-              booking.
+              Canadian-built marketplace connecting homeowners with trusted
+              local pros from coast to coast. Secure 50/50 payment protection on
+              every booking.
             </p>
             <div className="mt-4 flex items-center gap-2 text-xs text-slate-400 uppercase tracking-wide">
               <ShieldCheck className="h-4 w-4 text-emerald-400" />
@@ -48,10 +48,10 @@ export function SiteFooter() {
               Service areas
             </h4>
             <ul className="space-y-2 text-sm text-slate-400">
-              <li>Kawartha Lakes & Peterborough</li>
-              <li>Durham Region</li>
-              <li>York Region</li>
-              <li>Downtown & Greater Toronto Area</li>
+              <li>Ontario communities</li>
+              <li>Prairie cities</li>
+              <li>Quebec & Atlantic provinces</li>
+              <li>British Columbia & the North</li>
             </ul>
           </div>
           <div>
@@ -61,7 +61,7 @@ export function SiteFooter() {
             <ul className="space-y-2 text-sm text-slate-400">
               <li className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-blue-400" />
-                Toronto & Kawarthas, Ontario
+                Canada-wide support (Toronto HQ)
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-blue-400" />

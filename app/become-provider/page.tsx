@@ -167,7 +167,7 @@ export default function OfferServicesPage() {
           </span>
           <h1 className="text-3xl font-bold mt-4">Offer Your Home Services</h1>
           <p className="text-gray-600 mt-2">
-            Join our Canadian-owned marketplace and help Kawarthas and GTA neighbours keep their homes running smoothly. Complete the essentials below—verification and payouts are handled automatically.
+            Join our Canadian-owned marketplace and help neighbours across the country keep their homes running smoothly. Complete the essentials below—verification and payouts are handled automatically.
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 text-sm text-slate-600">

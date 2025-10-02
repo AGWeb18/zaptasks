@@ -41,7 +41,7 @@ export default function FAQPage() {
           </span>
           <h1 className="text-3xl md:text-4xl font-bold mt-4">Frequently asked questions</h1>
           <p className="mt-3 text-slate-600">
-            Everything you need to know about ZapTasks security, the 50/50 payment structure, and how we support the Kawarthas & GTA community.
+            Everything you need to know about ZapTasks security, the 50/50 payment structure, and how we support Canadian communities.
           </p>
         </div>
 

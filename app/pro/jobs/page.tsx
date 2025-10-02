@@ -254,7 +254,7 @@ const ProJobsPage = () => {
             <div>
               <h1 className="text-4xl font-bold text-blue-600 mb-2">Browse open jobs near you</h1>
               <p className="text-base-content/70 max-w-2xl">
-                Scroll the community job board for tasks posted by neighbours in the Kawarthas and GTA. You don’t have to be a pro—apply with a quick note, chat through the details, and get paid through ZapTasks when you’re selected.
+                Scroll the community job board for tasks posted by neighbours across Canada. You don’t have to be a pro—apply with a quick note, chat through the details, and get paid through ZapTasks when you’re selected.
               </p>
             </div>
             <div className="bg-white rounded-xl shadow border border-slate-200 p-4 flex flex-col gap-3 min-w-[220px]">
