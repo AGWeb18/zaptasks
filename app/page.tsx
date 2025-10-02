@@ -84,7 +84,6 @@ const bookingSteps = [
   },
 ];
 
-
 const testimonials: Testimonial[] = [
   {
     id: "1",
@@ -93,6 +92,7 @@ const testimonials: Testimonial[] = [
     rating: 5,
     quote:
       "ZapTasks lined up a snow removal crew within an hour. The 50/50 payment flow kept everything super transparent.",
+    location: "Muskoka, ON",
   },
   {
     id: "2",
@@ -189,8 +189,8 @@ const LandingPage: React.FC = () => {
               Popular tasks neighbours are helping with
             </h2>
             <p className="mt-3 text-sm text-slate-600">
-              From coastal cottages to downtown condos across Canada, ZapTasks connects you with
-              friendly neighbours for everyday help.
+              From coastal cottages to downtown condos across Canada, ZapTasks
+              connects you with friendly neighbours for everyday help.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
