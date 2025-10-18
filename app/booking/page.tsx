@@ -37,14 +37,21 @@ ZapTasks Terms & Conditions
 
 • ZapTasks connects homeowners with independent Canadian service providers. We do not guarantee service outcomes.
 • Payments are held in Stripe-powered escrow based on job size: under $100 = 100% upfront, $100–$500 = 50% upfront/50% on completion, over $500 = 30% upfront/30% progress/40% on completion.
-• ZapTasks collects a 10% platform fee (8% on large trades) to fund support, insurance, and payment processing.
+• ZapTasks collects a 10% platform fee (8% on large trades) to cover Stripe fees, support, and dispute mediation.
 • Cancellations inside 24 hours of the scheduled start may forfeit the in-progress payment. Report disputes within 24 hours of completion so our team can help mediate.
-• Providers may request photos or ID verification before arriving. Ensure the work area is safe and accessible.
+• Keep communication in-app and share photo updates through chat when requested. Ensure the work area is safe and accessible.
 • Using ZapTasks means you accept these terms and agree to our Privacy Policy and Terms of Service.`;
 
 const formatCurrency = (value: number | null | undefined) => {
   if (!Number.isFinite(value)) return "Not set";
   return value!.toLocaleString("en-CA", { style: "currency", currency: "CAD" });
+};
+
+const maskCoordinate = (value: number | null | undefined) => {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return null;
+  }
+  return Number(value.toFixed(3));
 };
 
 const BookingPage: React.FC = () => {
@@ -145,8 +152,8 @@ const BookingPage: React.FC = () => {
     setSelectedAddress(details.formatted_address ?? "");
     const lat = details.geometry?.location?.lat?.();
     const lng = details.geometry?.location?.lng?.();
-    setSelectedLat(typeof lat === "number" ? lat : null);
-    setSelectedLng(typeof lng === "number" ? lng : null);
+    setSelectedLat(typeof lat === "number" ? maskCoordinate(lat) : null);
+    setSelectedLng(typeof lng === "number" ? maskCoordinate(lng) : null);
   };
 
   const parsedBudget = useMemo(() => {
@@ -181,7 +188,9 @@ const BookingPage: React.FC = () => {
     }
 
     if (budgetAmount.trim() && parsedBudget === null) {
-      setError("Enter a valid Canadian dollar amount or leave the budget blank.");
+      setError(
+        "Enter a valid Canadian dollar amount or leave the budget blank."
+      );
       return;
     }
 
@@ -253,7 +262,9 @@ const BookingPage: React.FC = () => {
   };
 
   const budgetSummary = parsedBudget
-    ? `${formatCurrency(parsedBudget)}${budgetType === "hourly" ? "/hr" : " flat"}`
+    ? `${formatCurrency(parsedBudget)}${
+        budgetType === "hourly" ? "/hr" : " flat"
+      }`
     : "Not set";
 
   return (
@@ -274,34 +285,47 @@ const BookingPage: React.FC = () => {
                 <p className="mt-4 text-lg text-slate-700">
                   Describe what you need, add a few tags, and share your ideal
                   timing. Providers across Canada can apply, message you, and
-                  get paid through our 50/50 Stripe escrow.
+                  get paid through our tiered Stripe escrow (100%, 50/50, or
+                  milestone-based).
                 </p>
                 <div className="mt-6 grid gap-3 text-sm text-slate-700 sm:grid-cols-3">
                   <div className="flex items-start gap-2 rounded-xl bg-white px-4 py-3 shadow-sm border border-blue-100">
                     <CheckCircle className="mt-1 h-4 w-4 text-emerald-500" />
-                    <span>Verified providers with ratings & ID badges</span>
+                    <span>Local helpers reviewed for social authenticity</span>
                   </div>
                   <div className="flex items-start gap-2 rounded-xl bg-white px-4 py-3 shadow-sm border border-blue-100">
                     <PiggyBank className="mt-1 h-4 w-4 text-blue-500" />
-                    <span>50% deposit held in escrow until the job is complete</span>
+                    <span>
+                      Industry standard payment processing and escrow to handle
+                      disputes
+                    </span>
                   </div>
                   <div className="flex items-start gap-2 rounded-xl bg-white px-4 py-3 shadow-sm border border-blue-100">
                     <MessageCircle className="mt-1 h-4 w-4 text-purple-500" />
-                    <span>In-app chat keeps every detail in one secure thread</span>
+                    <span>
+                      In-app chat keeps every detail in one secure thread
+                    </span>
                   </div>
                 </div>
               </div>
               <div className="hidden lg:flex flex-col gap-4 text-sm text-blue-900">
                 <div className="rounded-2xl border border-blue-200 bg-white/80 backdrop-blur px-5 py-4 shadow-sm">
-                  <p className="font-semibold uppercase tracking-wide text-xs text-blue-500">How it works</p>
+                  <p className="font-semibold uppercase tracking-wide text-xs text-blue-500">
+                    How it works
+                  </p>
                   <ul className="mt-3 space-y-2">
                     <li>1. Share what you need and when</li>
                     <li>2. Compare applicants and chat safely</li>
-                    <li>3. Approve the right pro and release payment after completion</li>
+                    <li>
+                      3. Approve the right pro and release payment after
+                      completion
+                    </li>
                   </ul>
                 </div>
                 <div className="rounded-2xl border border-blue-200 bg-white/80 backdrop-blur px-5 py-4 shadow-sm">
-                  <p className="font-semibold uppercase tracking-wide text-xs text-blue-500">Need inspiration?</p>
+                  <p className="font-semibold uppercase tracking-wide text-xs text-blue-500">
+                    Need inspiration?
+                  </p>
                   <ul className="mt-3 space-y-2 text-sm">
                     <li>• Assemble an IKEA wardrobe and remove packaging</li>
                     <li>• Weekly snow removal while we are away</li>
@@ -325,7 +349,8 @@ const BookingPage: React.FC = () => {
                     Tell neighbours what you need
                   </h2>
                   <p className="text-sm text-slate-600">
-                    Keep it short but clear. Mention the location type, access details, and anything they should prepare for.
+                    Keep it short but clear. Mention the location type, access
+                    details, and anything they should prepare for.
                   </p>
                 </header>
 
@@ -355,7 +380,8 @@ const BookingPage: React.FC = () => {
                     required
                   />
                   <span className="label-text-alt text-xs text-slate-500 mt-1">
-                    Tip: mention parking, entry instructions, materials on-site, and your ideal timing.
+                    Tip: mention parking, entry instructions, materials on-site,
+                    and your ideal timing.
                   </span>
                 </label>
               </section>
@@ -369,7 +395,8 @@ const BookingPage: React.FC = () => {
                     Add tags and location context
                   </h2>
                   <p className="text-sm text-slate-600">
-                    Tags help the right neighbours find your post. Add your own if no suggestion fits.
+                    Tags help the right neighbours find your post. Add your own
+                    if no suggestion fits.
                   </p>
                 </header>
 
@@ -408,12 +435,17 @@ const BookingPage: React.FC = () => {
                       </button>
                     ))}
                   </div>
-                  <form onSubmit={handleCustomTagSubmit} className="mt-4 flex gap-2">
+                  <form
+                    onSubmit={handleCustomTagSubmit}
+                    className="mt-4 flex gap-2"
+                  >
                     <input
                       type="text"
                       value={customTagInput}
                       onChange={(e) => setCustomTagInput(e.target.value)}
-                      placeholder={"Add your own tag (e.g. \"Snow removal\" or \"Kids party\")"}
+                      placeholder={
+                        'Add your own tag (e.g. "Snow removal" or "Kids party")'
+                      }
                       className="input input-bordered flex-1"
                     />
                     <button
@@ -436,12 +468,15 @@ const BookingPage: React.FC = () => {
                     <div className="pl-0">
                       <AddressAutocomplete
                         onPlaceSelected={handlePlaceSelected}
-                        apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""}
+                        apiKey={
+                          process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
+                        }
                       />
                     </div>
                   </div>
                   <span className="label-text-alt text-xs text-slate-500 mt-1">
-                    Street address stays private until you book. Postal code or neighbourhood helps locals scope travel.
+                    Street address stays private until you book. Postal code or
+                    neighbourhood helps locals scope travel.
                   </span>
                 </label>
               </section>
@@ -455,7 +490,8 @@ const BookingPage: React.FC = () => {
                     Timing and budget (optional)
                   </h2>
                   <p className="text-sm text-slate-600">
-                    Share your target schedule and budget if you have one. Providers can still send quotes if you are unsure.
+                    Share your target schedule and budget if you have one.
+                    Providers can still send quotes if you are unsure.
                   </p>
                 </header>
 
@@ -480,7 +516,10 @@ const BookingPage: React.FC = () => {
                       Preferred start time
                     </span>
                     <div className="pl-0">
-                      <TimeSelector value={time} onChange={(newTime: string) => setTime(newTime)} />
+                      <TimeSelector
+                        value={time}
+                        onChange={(newTime: string) => setTime(newTime)}
+                      />
                     </div>
                   </label>
                 </div>
@@ -515,7 +554,9 @@ const BookingPage: React.FC = () => {
                       />
                       <select
                         value={budgetType}
-                        onChange={(e) => setBudgetType(e.target.value as "flat" | "hourly")}
+                        onChange={(e) =>
+                          setBudgetType(e.target.value as "flat" | "hourly")
+                        }
                         className="select select-bordered"
                         disabled={!budgetAmount.trim()}
                       >
@@ -545,7 +586,8 @@ const BookingPage: React.FC = () => {
                     Review and share
                   </h2>
                   <p className="text-sm text-slate-600">
-                    Confirm how you prefer to be contacted and post your job to the community.
+                    Confirm how you prefer to be contacted and post your job to
+                    the community.
                   </p>
                 </header>
 
@@ -571,7 +613,9 @@ const BookingPage: React.FC = () => {
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 space-y-2">
                   <div className="flex justify-between">
                     <span className="font-medium">Headline</span>
-                    <span className="text-right max-w-xs truncate">{jobTitle || "—"}</span>
+                    <span className="text-right max-w-xs truncate">
+                      {jobTitle || "—"}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="font-medium">Tags</span>
@@ -582,13 +626,19 @@ const BookingPage: React.FC = () => {
                   <div className="flex justify-between">
                     <span className="font-medium">Preferred schedule</span>
                     <span className="text-right max-w-xs">
-                      {date ? format(new Date(date), "MMM d, yyyy") : "Flexible"}
+                      {date
+                        ? format(new Date(date), "MMM d, yyyy")
+                        : "Flexible"}
                       {time ? ` @ ${time}` : ""}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="font-medium">Estimated hours</span>
-                    <span>{parsedHours ? `${parsedHours} hour${parsedHours > 1 ? "s" : ""}` : "Flexible"}</span>
+                    <span>
+                      {parsedHours
+                        ? `${parsedHours} hour${parsedHours > 1 ? "s" : ""}`
+                        : "Flexible"}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="font-medium">Budget</span>
@@ -609,7 +659,8 @@ const BookingPage: React.FC = () => {
                       required
                     />
                     <span className="label-text text-sm text-slate-700">
-                      I understand ZapTasks holds funds in escrow until I approve the work.
+                      I understand ZapTasks holds funds in escrow until I
+                      approve the work.
                     </span>
                   </label>
                 </div>
@@ -625,7 +676,8 @@ const BookingPage: React.FC = () => {
                     <div>
                       <h3 className="font-semibold">Job posted!</h3>
                       <p className="text-sm">
-                        We&apos;ll notify nearby providers so they can apply. Review profiles, chat, and hire with confidence.
+                        We&apos;ll notify nearby providers so they can apply.
+                        Review profiles, chat, and hire with confidence.
                       </p>
                     </div>
                   </div>
@@ -640,7 +692,8 @@ const BookingPage: React.FC = () => {
                 </button>
                 {!isReadyToSubmit && (
                   <p className="text-xs text-error">
-                    Add a headline, description, and at least one tag to continue.
+                    Add a headline, description, and at least one tag to
+                    continue.
                   </p>
                 )}
               </section>
@@ -653,18 +706,18 @@ const BookingPage: React.FC = () => {
                   Why Canadians trust ZapTasks
                 </h3>
                 <ul className="space-y-3 text-sm text-blue-900/80">
+                  <li>• Tiered escrow keeps deposits clear for both sides.</li>
                   <li>
-                    • Stripe Identity verification for every payout-enabled provider.
+                    • Ratings and reviews from real homeowners stay front and
+                    centre on provider profiles.
                   </li>
                   <li>
-                    • Tiered escrow (100%, 50/50, or milestone-based) so everyone knows when money moves.
-                  </li>
-                  <li>
-                    • Ratings and reviews from real homeowners, kept front and centre on provider profiles.
+                    • Support team monitors payouts, refunds, and disputes.
                   </li>
                 </ul>
                 <p className="text-xs text-blue-900/70">
-                  ZapTasks Inc. is proudly Canadian. Funds are processed in CAD and settle to providers once you mark the job complete.
+                  ZapTasks Inc. is proudly Canadian. Funds are processed in CAD
+                  and settle to providers once you mark the job complete.
                 </p>
               </div>
 
@@ -674,7 +727,9 @@ const BookingPage: React.FC = () => {
                   Tiered escrow payments
                 </h4>
                 <p>
-                  Jobs under $100 are paid in full upfront, $100–$500 split 50/50, and larger projects use 30%/30%/40% milestones. Funds sit safely in Stripe escrow until you sign off.
+                  Jobs under $100 are paid in full upfront, $100–$500 split
+                  50/50, and larger projects use 30%/30%/40% milestones. Funds
+                  sit safely in Stripe escrow until you sign off.
                 </p>
               </div>
             </aside>

@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { getAuth } from '@clerk/nextjs/server';
-import { createClient } from "@/app/utils/supabase/server";
+import { createClientWithUser } from "@/app/utils/supabase/server";
 import { createJobInvoices } from "@/app/lib/payments/stripeConnect";
 
 export async function POST(req: NextRequest) {
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Look up provider's Stripe account ID from Supabase
-    const supabase = await createClient();
+    const supabase = await createClientWithUser(userId);
     const { data: provider, error: providerError } = await supabase
       .from("providers")
       .select("stripe_account_id")

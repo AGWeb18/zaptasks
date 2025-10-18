@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 
-import { createClient } from "@/app/utils/supabase/server";
+import { createClientWithUser } from "@/app/utils/supabase/server";
 import {
   captureJobPaymentIntent,
   refundJobPaymentIntent,
@@ -45,7 +45,7 @@ export async function PATCH(req: NextRequest, context: ResolveParams) {
       return NextResponse.json({ error: "Resolution type is required" }, { status: 400 });
     }
 
-    const supabase = await createClient();
+    const supabase = await createClientWithUser(userId);
 
     const { data: dispute, error: disputeError } = await supabase
       .from("disputes")

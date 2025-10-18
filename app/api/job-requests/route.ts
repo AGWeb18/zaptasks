@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
-import { createClient } from "@/app/utils/supabase/server";
+import { createClient, createClientWithUser } from "@/app/utils/supabase/server";
 
 export async function GET(req: NextRequest) {
   const { userId } = getAuth(req);
@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const supabase = await createClient();
+  const supabase = await createClientWithUser(userId);
   const { searchParams } = new URL(req.url);
   const scope = searchParams.get("scope") ?? "mine";
 
@@ -47,17 +47,43 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const { userId } = getAuth(req);
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
 
     if (!body.jobTitle || !Array.isArray(body.services) || body.services.length === 0) {
       return NextResponse.json({ error: "Missing required job details." }, { status: 400 });
     }
 
-    const supabase = await createClient();
+    if (body.homeownerId && body.homeownerId !== userId) {
+      return NextResponse.json({ error: "Homeowner mismatch." }, { status: 403 });
+    }
+
+    const supabase = await createClientWithUser(userId);
+
+    const normalizeCoordinate = (value: unknown) => {
+      const numeric =
+        typeof value === "number"
+          ? value
+          : typeof value === "string"
+            ? Number(value)
+            : null;
+
+      if (numeric === null || !Number.isFinite(numeric)) {
+        return null;
+      }
+
+      return Number(numeric.toFixed(3));
+    };
+
     const { data, error } = await supabase
       .from("job_requests")
       .insert({
-        homeowner_id: body.homeownerId,
+        homeowner_id: userId,
         homeowner_name: body.homeownerName,
         homeowner_email: body.homeownerEmail,
         job_title: body.jobTitle,
@@ -69,8 +95,8 @@ export async function POST(req: NextRequest) {
         people: body.people,
         bring_equipment: body.bringEquipment,
         address: body.address,
-        latitude: body.latitude,
-        longitude: body.longitude,
+        latitude: normalizeCoordinate(body.latitude),
+        longitude: normalizeCoordinate(body.longitude),
         budget_type: body.budget?.type,
         budget_amount: body.budget?.amount,
         budget_notes: body.budget?.notes,
@@ -97,7 +123,7 @@ export async function POST(req: NextRequest) {
 
       await supabase.from("notifications").insert([
         {
-          user_id: body.homeownerId,
+          user_id: userId,
           type: "job_posted_confirmation",
           payload: notificationPayload,
         },
@@ -125,7 +151,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Missing job ID." }, { status: 400 });
     }
 
-    const supabase = await createClient();
+    const supabase = await createClientWithUser(userId);
 
     const { data: jobRequest, error: jobError } = await supabase
       .from("job_requests")

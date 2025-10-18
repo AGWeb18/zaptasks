@@ -34,7 +34,6 @@ export default function OfferServicesPage() {
   const [experienceYears, setExperienceYears] = useState("3");
   const [selectedAvailability, setSelectedAvailability] = useState<string[]>(["Weekdays"]);
   const [hasInsurance, setHasInsurance] = useState(true);
-  const [acceptsVerification, setAcceptsVerification] = useState(true);
   const [geoLoading, setGeoLoading] = useState(false);
 
   const supabase = createClient();
@@ -68,12 +67,6 @@ export default function OfferServicesPage() {
     if (pricingType === "flat" && (!numericFlatFee || numericFlatFee <= 0)) {
       setLoading(false);
       setError("Please provide a flat project fee greater than zero.");
-      return;
-    }
-
-    if (!acceptsVerification) {
-      setLoading(false);
-      setError("Providers must agree to Stripe Identity verification.");
       return;
     }
 
@@ -167,7 +160,7 @@ export default function OfferServicesPage() {
           </span>
           <h1 className="text-3xl font-bold mt-4">Offer Your Home Services</h1>
           <p className="text-gray-600 mt-2">
-            Join our Canadian-owned marketplace and help neighbours across the country keep their homes running smoothly. Complete the essentials below—verification and payouts are handled automatically.
+            Join our Canadian-owned marketplace and help neighbours across the country keep their homes running smoothly. Complete the essentials below—Stripe payouts and tiered escrow are handled automatically.
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 text-sm text-slate-600">
@@ -181,7 +174,7 @@ export default function OfferServicesPage() {
           </div>
           <div className="bg-white rounded-xl border border-slate-200 p-4">
             <p className="font-semibold text-slate-900">Step 3</p>
-            <p>Connect Stripe payouts and verify ID.</p>
+            <p>Connect Stripe payouts when you&apos;re ready.</p>
           </div>
         </div>
         {submitted ? (
@@ -199,7 +192,7 @@ export default function OfferServicesPage() {
               {onboardingLoading ? "Redirecting to Stripe..." : "Set up payouts with Stripe"}
             </button>
             <p className="text-xs text-slate-500 mt-3">
-              Stripe Identity verification is required for ZapTasks badges and to receive funds.
+              Stripe may request business or tax details during onboarding to stay compliant.
             </p>
           </div>
         ) : (
@@ -347,16 +340,6 @@ export default function OfferServicesPage() {
                 />
                 I carry liability insurance or will provide proof before first booking.
               </label>
-              <label className="inline-flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={acceptsVerification}
-                  onChange={e => setAcceptsVerification(e.target.checked)}
-                  className="checkbox checkbox-sm"
-                  required
-                />
-                I agree to complete Stripe Identity verification for a ZapTasks “Verified” badge.
-              </label>
             </div>
             {error && <p className="text-red-500 text-sm">{error}</p>}
             <button
@@ -369,7 +352,7 @@ export default function OfferServicesPage() {
             <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-blue-900 flex items-start gap-3">
               <ShieldCheck className="h-5 w-5" />
               <span>
-                Once you&apos;re approved, deposits flow instantly via Stripe Connect. ZapTasks takes a small platform fee so you keep more of every booking.
+                Once you&apos;re approved, tiered escrow deposits flow via Stripe Connect. ZapTasks deducts a 10% platform fee (8% on large projects) only when funds are released.
               </span>
             </div>
           </form>

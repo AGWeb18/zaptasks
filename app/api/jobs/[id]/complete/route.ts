@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 
-import { createClient } from "@/app/utils/supabase/server";
+import { createClientWithUser } from "@/app/utils/supabase/server";
 import {
   buildEscrowSchedule,
   captureJobPaymentIntent,
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest, context: CompleteJobParams) {
 
     const body = (await req.json().catch(() => ({}))) as CompleteJobPayload;
 
-    const supabase = await createClient();
+    const supabase = await createClientWithUser(userId);
 
     const { data: job, error: jobError } = await supabase
       .from("jobs")

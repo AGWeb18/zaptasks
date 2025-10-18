@@ -18,12 +18,12 @@ export function SiteFooter() {
             <h3 className="text-lg font-semibold mb-3">ZapTasks</h3>
             <p className="text-sm text-slate-400 leading-relaxed">
               Canadian-built marketplace connecting homeowners with trusted
-              local pros from coast to coast. Secure 50/50 payment protection on
-              every booking.
+              local pros from coast to coast. Tiered Stripe escrow keeps every
+              booking transparent from deposit to completion.
             </p>
             <div className="mt-4 flex items-center gap-2 text-xs text-slate-400 uppercase tracking-wide">
               <ShieldCheck className="h-4 w-4 text-emerald-400" />
-              Stripe Identity verified providers
+              Stripe Connect payouts & dispute support
             </div>
           </div>
           <div>

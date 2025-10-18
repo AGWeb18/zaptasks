@@ -80,7 +80,7 @@ const bookingSteps = [
   {
     icon: <CreditCard className="w-6 h-6 text-blue-600" />,
     title: "Secure & finish",
-    copy: "Lock in the booking with a protected 50% deposit via Stripe Connect, then release the rest once the job is signed off.",
+    copy: "Lock in the booking with the right escrow milestone via Stripe Connect, then release the rest once the job is signed off.",
   },
 ];
 
@@ -91,7 +91,7 @@ const testimonials: Testimonial[] = [
     role: "Cottage owner",
     rating: 5,
     quote:
-      "ZapTasks lined up a snow removal crew within an hour. The 50/50 payment flow kept everything super transparent.",
+      "ZapTasks lined up a snow removal crew within an hour. The tiered escrow made paying and tipping straightforward.",
     location: "Muskoka, ON",
   },
   {
@@ -100,7 +100,7 @@ const testimonials: Testimonial[] = [
     role: "Licensed electrician",
     rating: 5,
     quote:
-      "Provider onboarding took minutes. ID verification plus Stripe payouts means I can focus on the work, not chasing invoices.",
+      "Provider onboarding took minutes. Stripe payouts hit fast so I can focus on the work, not chasing invoices.",
     location: "Winnipeg, MB",
   },
   {
@@ -142,7 +142,7 @@ const LandingPage: React.FC = () => {
             <div className="mt-6 flex flex-col sm:flex-row gap-3 text-sm text-slate-600">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-emerald-500" />
-                ID-verified neighbours
+                Tiered escrow with every booking
               </div>
               <div className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4 text-blue-500" />
@@ -256,49 +256,27 @@ const LandingPage: React.FC = () => {
               </a>
             </h4>
             <p>
-              ZapTasks keeps peer-to-peer work transparent with milestone
-              payments that protect neighbours on both sides of the job:
+              ZapTasks keeps peer-to-peer work transparent with tiered escrow
+              that adapts to the size of every job:
             </p>
             <ul className="list-disc list-inside mt-2">
+              <li>Jobs under $100: 100% held in escrow until completion.</li>
               <li>
-                Pay a refundable 50% deposit when you accept a neighbour&apos;s
-                offer.
+                Jobs from $100–$500: 50% deposit before work, 50% on approval.
               </li>
               <li>
-                Release the remaining 50% after the work is finished and
-                you&apos;re satisfied.
+                Jobs over $500: milestone plan (30%/30%/40%) with progress
+                payments.
               </li>
               <li>
-                Our dispute desk steps in fast if anything feels off, so
-                neighbours stay confident to book locally.
+                ZapTasks deducts a 10% platform fee (8% on larger trades) once
+                funds are released.
               </li>
             </ul>
           </div>
         </section>
 
-        <section className="mb-16 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-          <div className="bg-white rounded-2xl shadow-md border border-slate-100 p-6">
-            <h3 className="text-2xl font-bold text-slate-900 mb-3">
-              1-minute walkthrough
-            </h3>
-            <p className="text-sm text-slate-600 mb-4">
-              Watch how easy it is to post a job, chat with providers, and
-              confirm payment milestones in ZapTasks.
-            </p>
-            <div className="aspect-video rounded-xl overflow-hidden bg-slate-900/80 flex items-center justify-center text-slate-200 text-sm">
-              <span>
-                Upload your explainer video to{" "}
-                <code className="bg-black/20 px-1">
-                  public/videos/explainer.mp4
-                </code>{" "}
-                and it will play here.
-              </span>
-            </div>
-            <div className="mt-4 text-xs text-slate-500">
-              Shot locally in Ontario • Edited with cost-effective tools like
-              CapCut
-            </div>
-          </div>
+        <section className="mb-16">
           <TestimonialsCarousel
             testimonials={testimonials}
             className="bg-gradient-to-br from-white via-blue-50/50 to-white"
@@ -313,12 +291,12 @@ const LandingPage: React.FC = () => {
               </h3>
               <ul className="mt-4 space-y-3 text-sm text-blue-900/80">
                 <li>
-                  • Stripe Identity verification with visible “Verified” badges
-                  on neighbour profiles.
+                  • Tiered Stripe escrow handles deposits, progress payments,
+                  and completion releases.
                 </li>
                 <li>
-                  • Escrow-style 50/50 payment flow handled by Stripe Connect
-                  for compliance and quick payouts to local helpers.
+                  • Transparent 10% platform fee (8% on large trades) keeps
+                  payouts, insurance guidance, and support running.
                 </li>
                 <li>
                   • Dispute desk with 24-hour triage and community-friendly
@@ -332,8 +310,9 @@ const LandingPage: React.FC = () => {
                   Flat 10% marketplace fee
                 </p>
                 <p className="text-xs text-blue-900/70 mt-2">
-                  Every job supports verification, escrow-style payments, and
-                  dispute resolution with one transparent 10% ZapTasks fee.
+                  Every job supports escrow-style payments, dispute resolution,
+                  and local customer success with one transparent 10% ZapTasks
+                  fee (8% for eligible large projects).
                 </p>
               </div>
               <Link

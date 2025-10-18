@@ -12,19 +12,11 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
 }) => {
   const [location, setLocation] = useState<string>("");
 
-  const defaultBounds = {
-    north: 44.42933489719813,
-    south: 44.22933489719813,
-    east: -78.6230982496161,
-    west: -78.8230982496161,
-  };
-
   const options = {
-    bounds: defaultBounds,
     componentRestrictions: { country: "ca" },
     fields: ["address_components", "geometry", "formatted_address"],
     strictBounds: false,
-    types: ["address"],
+    types: ["geocode"],
   };
 
   const handlePlaceSelected = (place: google.maps.places.PlaceResult) => {
@@ -45,13 +37,6 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
         .join(" ");
     }
 
-    const latitude = place.geometry.location.lat();
-    const longitude = place.geometry.location.lng();
-
-    console.log(
-      `Full Address: ${fullAddress}, Lat: ${latitude}, Lng: ${longitude}`
-    );
-
     setLocation(fullAddress);
     onPlaceSelected(place);
   };
@@ -61,9 +46,11 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
       apiKey={apiKey}
       options={options}
       onPlaceSelected={handlePlaceSelected}
-      defaultValue={location}
-      required={true}
-      placeholder="Enter an address"
+      value={location}
+      onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+        setLocation(event.target.value)
+      }
+      placeholder="Enter neighbourhood, city, or address"
       className="input input-bordered w-full text-center bg-slate-white text-gray-900"
     />
   );

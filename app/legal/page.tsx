@@ -28,15 +28,15 @@ export default function LegalPage() {
           </p>
           <h3 className="text-lg font-semibold text-slate-900">2. Marketplace role</h3>
           <p className="text-sm text-slate-600">
-            We facilitate bookings, escrow-style payments, verification, and dispute support. Providers are independent contractors responsible for their work, insurance, and compliance with Ontario regulations.
+            We facilitate bookings, tiered escrow payments, and dispute support. Providers are independent contractors responsible for their work, insurance, and compliance with Ontario regulations.
           </p>
           <h3 className="text-lg font-semibold text-slate-900">3. Fees</h3>
           <p className="text-sm text-slate-600">
-            Homeowners pay no booking fee. Providers pay a 15% platform fee on completed jobs, or 10% + $9/month for the Priority plan. Fees are deducted automatically from Stripe Connect payouts.
+            Homeowners pay no booking fee. ZapTasks collects a 10% platform fee on completed jobs, with an 8% rate available for larger licensed trades. Fees are deducted automatically from Stripe Connect payouts when funds are released.
           </p>
           <h3 className="text-lg font-semibold text-slate-900">4. Deposits & releases</h3>
           <p className="text-sm text-slate-600">
-            A 50% deposit is collected at booking and held via Stripe Connect. The remaining 50% is released upon homeowner approval. ZapTasks may pause payouts during disputes until resolution.
+            Escrow milestones depend on job size: under $100 pays 100% upfront, $100–$500 uses a 50% deposit with the balance on completion, and projects over $500 rely on 30%/30%/40% milestones. ZapTasks may pause payouts during disputes until resolution.
           </p>
           <h3 className="text-lg font-semibold text-slate-900">5. Liability</h3>
           <p className="text-sm text-slate-600">
@@ -47,11 +47,11 @@ export default function LegalPage() {
         <section className="bg-white border border-slate-200 rounded-3xl shadow-sm p-8 space-y-4">
           <h2 className="text-2xl font-semibold text-slate-900">Privacy policy</h2>
           <p className="text-sm text-slate-600">
-            We collect personal information needed to operate the marketplace, verify providers, process payments, and deliver support.
+            We collect personal information needed to operate the marketplace, process payments, and deliver support.
           </p>
           <h3 className="text-lg font-semibold text-slate-900">1. Data collection</h3>
           <p className="text-sm text-slate-600">
-            We collect account information, booking details, communications, and payment identifiers. Provider identity documents are processed and stored by Stripe.
+            We collect account information, booking details, communications, and payment identifiers. Payment and payout details are processed and stored by Stripe.
           </p>
           <h3 className="text-lg font-semibold text-slate-900">2. Usage</h3>
           <p className="text-sm text-slate-600">
@@ -70,7 +70,7 @@ export default function LegalPage() {
         <section className="bg-blue-50 border border-blue-100 rounded-3xl p-8 text-sm text-blue-900/90">
           <h2 className="text-xl font-semibold text-blue-900">Dispute resolution</h2>
           <ol className="list-decimal list-inside space-y-2 mt-3">
-            <li>Contact support within 24 hours of the issue. We pause the remaining 50% payout.</li>
+            <li>Contact support within 24 hours of the issue. We pause any remaining escrow release.</li>
             <li>Submit photos, chat transcripts, and receipts. Providers may propose a fix or refund.</li>
             <li>ZapTasks mediates within 48 hours. Possible outcomes include partial refund, rework, or payout release.</li>
           </ol>

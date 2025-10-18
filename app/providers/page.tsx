@@ -340,7 +340,7 @@ export default function ProvidersPage() {
                     <span className="font-semibold text-slate-900">
                       {pro.rating.toFixed(1)}
                     </span>
-                    <span className="text-slate-500">• Verified</span>
+                    <span className="text-slate-500">• Escrow ready</span>
                   </div>
                   <p className="mt-3 text-sm text-gray-600">
                     {pro.description}
@@ -354,7 +354,7 @@ export default function ProvidersPage() {
                     ) : null}
                     <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full">
                       <ShieldCheck className="h-3.5 w-3.5" />
-                      ID Verified
+                      Tiered escrow
                     </span>
                     <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 px-2 py-1 rounded-full">
                       <Clock className="h-3.5 w-3.5" />
@@ -370,7 +370,7 @@ export default function ProvidersPage() {
                     {formatPricing(pro.price)}
                   </span>
                   <span className="text-xs text-gray-500">
-                    50% deposit via ZapTasks • Remaining 50% after homeowner
+                    Tiered escrow via ZapTasks • Funds release after homeowner
                     sign-off
                   </span>
                 </div>

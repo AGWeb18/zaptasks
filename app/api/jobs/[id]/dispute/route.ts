@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 
-import { createClient } from "@/app/utils/supabase/server";
+import { createClientWithUser } from "@/app/utils/supabase/server";
 
 type DisputeParams = {
   params: Promise<{ id: string }>;
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest, context: DisputeParams) {
       return NextResponse.json({ error: "Dispute reason is required" }, { status: 400 });
     }
 
-    const supabase = await createClient();
+    const supabase = await createClientWithUser(userId);
 
     const { data: job, error: jobError } = await supabase
       .from("jobs")

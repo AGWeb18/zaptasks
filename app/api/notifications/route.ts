@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
-import { createClient } from "@/app/utils/supabase/server";
+import { createClientWithUser } from "@/app/utils/supabase/server";
 
 export async function GET(req: NextRequest) {
   const { userId } = getAuth(req);
@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const supabase = await createClient();
+  const supabase = await createClientWithUser(userId);
   const { data, error } = await supabase
     .from("notifications")
     .select("id, type, payload, created_at, read_at")
@@ -37,7 +37,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Missing notification ID." }, { status: 400 });
     }
 
-    const supabase = await createClient();
+    const supabase = await createClientWithUser(userId);
     const { error } = await supabase
       .from("notifications")
       .update({ read_at: new Date().toISOString() })

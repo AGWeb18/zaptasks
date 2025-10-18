@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 
-import { createClient } from "@/app/utils/supabase/server";
+import { createClient, createClientWithUser } from "@/app/utils/supabase/server";
 import {
   buildEscrowSchedule,
   createJobPaymentIntent,
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const supabase = await createClient();
+    const supabase = await createClientWithUser(userId);
     const { searchParams } = new URL(req.url);
     const jobRequestId = searchParams.get("jobRequestId");
     const scope = searchParams.get("scope") ?? "homeowner";
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing job request or application id" }, { status: 400 });
     }
 
-    const supabase = await createClient();
+    const supabase = await createClientWithUser(userId);
 
     const { data: jobRequest, error: jobRequestError } = await supabase
       .from("job_requests")
