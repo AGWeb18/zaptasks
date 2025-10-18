@@ -5,6 +5,205 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 const PLATFORM_FEE_RATE = 0.1;
+const LARGE_JOB_FEE_RATE = 0.08;
+const SMALL_JOB_THRESHOLD_CENTS = 10000; // $100
+const MEDIUM_JOB_THRESHOLD_CENTS = 50000; // $500
+const DEFAULT_CURRENCY = "cad";
+
+export type EscrowTier = "small" | "medium" | "large";
+
+export interface EscrowSchedule {
+  tier: EscrowTier;
+  escrowPercentage: number;
+  progressPercentage: number | null;
+  completionPercentage: number;
+  platformFeeRate: number;
+  amounts: {
+    escrowCents: number;
+    progressCents: number;
+    completionCents: number;
+    platformFeeTotalCents: number;
+    platformFeeEscrowCents: number;
+    platformFeeProgressCents: number;
+    platformFeeCompletionCents: number;
+  };
+}
+
+export function determineEscrowTier(totalAmountCents: number): EscrowTier {
+  if (totalAmountCents <= SMALL_JOB_THRESHOLD_CENTS) {
+    return "small";
+  }
+
+  if (totalAmountCents <= MEDIUM_JOB_THRESHOLD_CENTS) {
+    return "medium";
+  }
+
+  return "large";
+}
+
+function pickPlatformFeeRate(tier: EscrowTier): number {
+  if (tier === "large") {
+    return LARGE_JOB_FEE_RATE;
+  }
+
+  return PLATFORM_FEE_RATE;
+}
+
+function allocateAmounts(total: number, weights: number[]): number[] {
+  const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+  let remainder = total;
+
+  return weights.map((weight, index) => {
+    if (weight === 0) {
+      return 0;
+    }
+
+    const rawValue = (total * weight) / totalWeight;
+    let amount = Math.round(rawValue);
+
+    if (index === weights.length - 1) {
+      amount = remainder;
+    }
+
+    remainder -= amount;
+    return amount;
+  });
+}
+
+export function buildEscrowSchedule(totalAmountCents: number): EscrowSchedule {
+  if (!Number.isFinite(totalAmountCents) || totalAmountCents <= 0) {
+    throw new Error("Job total must be a positive integer representing cents");
+  }
+
+  const tier = determineEscrowTier(totalAmountCents);
+  const platformFeeRate = pickPlatformFeeRate(tier);
+
+  let escrowPercentage = 100;
+  let progressPercentage: number | null = null;
+  let completionPercentage = 0;
+
+  if (tier === "medium") {
+    escrowPercentage = 50;
+    completionPercentage = 50;
+  } else if (tier === "large") {
+    escrowPercentage = 30;
+    progressPercentage = 30;
+    completionPercentage = 40;
+  }
+
+  const paymentPercentages = [
+    escrowPercentage,
+    progressPercentage ?? 0,
+    completionPercentage,
+  ];
+
+  const [escrowCents, progressCents, completionCents] = allocateAmounts(
+    totalAmountCents,
+    paymentPercentages,
+  );
+
+  const platformFeeTotalCents = Math.round(totalAmountCents * platformFeeRate);
+  const [platformFeeEscrowCents, platformFeeProgressCents, platformFeeCompletionCents] = allocateAmounts(
+    platformFeeTotalCents,
+    [escrowCents, progressCents, completionCents],
+  );
+
+  return {
+    tier,
+    escrowPercentage,
+    progressPercentage,
+    completionPercentage,
+    platformFeeRate,
+    amounts: {
+      escrowCents,
+      progressCents,
+      completionCents,
+      platformFeeTotalCents,
+      platformFeeEscrowCents,
+      platformFeeProgressCents,
+      platformFeeCompletionCents,
+    },
+  };
+}
+
+type CreatePaymentIntentInput = {
+  jobId: string;
+  amountCents: number;
+  platformFeeCents: number;
+  customerId: string;
+  providerStripeAccountId: string;
+  paymentType: "escrow" | "progress" | "completion";
+  captureMethod: "automatic" | "manual";
+  metadata?: Record<string, string | number | null | undefined>;
+};
+
+export async function createJobPaymentIntent({
+  jobId,
+  amountCents,
+  platformFeeCents,
+  customerId,
+  providerStripeAccountId,
+  paymentType,
+  captureMethod,
+  metadata = {},
+}: CreatePaymentIntentInput) {
+  if (!amountCents || amountCents <= 0) {
+    throw new Error("Payment intent amount must be greater than zero");
+  }
+
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount: amountCents,
+    currency: DEFAULT_CURRENCY,
+    customer: customerId,
+    capture_method: captureMethod,
+    automatic_payment_methods: { enabled: true },
+    transfer_data: {
+      destination: providerStripeAccountId,
+    },
+    on_behalf_of: providerStripeAccountId,
+    application_fee_amount: platformFeeCents,
+    metadata: {
+      ...metadata,
+      jobId,
+      paymentType,
+    },
+  });
+
+  return paymentIntent;
+}
+
+export async function captureJobPaymentIntent(paymentIntentId: string) {
+  if (!paymentIntentId) {
+    throw new Error("Payment intent id is required to capture");
+  }
+
+  return stripe.paymentIntents.capture(paymentIntentId);
+}
+
+export async function cancelJobPaymentIntent(paymentIntentId: string) {
+  if (!paymentIntentId) {
+    throw new Error("Payment intent id is required to cancel");
+  }
+
+  return stripe.paymentIntents.cancel(paymentIntentId);
+}
+
+export async function refundJobPaymentIntent({
+  paymentIntentId,
+  amountCents,
+}: {
+  paymentIntentId: string;
+  amountCents?: number;
+}) {
+  if (!paymentIntentId) {
+    throw new Error("Payment intent id is required to refund");
+  }
+
+  return stripe.refunds.create({
+    payment_intent: paymentIntentId,
+    amount: amountCents,
+  });
+}
 
 export async function getOrCreateCustomer({
   email,

@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 import { createClient } from "@/app/utils/supabase/server";
-import {
-  createJobInvoices,
-  getOrCreateCustomer,
-} from "@/app/lib/payments/stripeConnect";
 
 export async function GET(req: NextRequest) {
   const { userId } = getAuth(req);
@@ -123,7 +119,7 @@ export async function PATCH(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { jobId, status, selectedApplicationId } = body;
+    const { jobId, status } = body ?? {};
 
     if (!jobId) {
       return NextResponse.json({ error: "Missing job ID." }, { status: 400 });
@@ -133,9 +129,7 @@ export async function PATCH(req: NextRequest) {
 
     const { data: jobRequest, error: jobError } = await supabase
       .from("job_requests")
-      .select(
-        "*, job_applications(id, provider_id, provider_name, provider_email, proposed_rate, proposed_rate_type, status)"
-      )
+      .select("id, homeowner_id")
       .eq("id", jobId)
       .single();
 
@@ -143,139 +137,19 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized to update this job." }, { status: 403 });
     }
 
-    const allowedStatuses = ["open", "awarded", "completed", "cancelled"];
-    if (status && !allowedStatuses.includes(status)) {
-      return NextResponse.json({ error: "Invalid status value." }, { status: 400 });
+    if (body?.selectedApplicationId) {
+      return NextResponse.json({
+        error: "Use POST /api/jobs to award applications and set up escrow.",
+      }, { status: 400 });
     }
 
-    let updatePayload: Record<string, unknown> = {};
-    const notificationsToInsert: Array<Record<string, unknown>> = [];
-
-    if (status) {
-      updatePayload.status = status;
-    }
-
-    if (status === "awarded" && selectedApplicationId) {
-      const selectedApplication = jobRequest.job_applications?.find(
-        (app: { id: string }) => app.id === selectedApplicationId
-      );
-
-      if (!selectedApplication) {
-        return NextResponse.json({ error: "Selected application not found." }, { status: 404 });
-      }
-
-      const { data: providerRecord, error: providerLookupError } = await supabase
-        .from("providers")
-        .select("id, stripe_account_id, user_id")
-        .eq("user_id", selectedApplication.provider_id)
-        .maybeSingle();
-
-      if (providerLookupError || !providerRecord?.stripe_account_id) {
-        return NextResponse.json({ error: "Selected pro has not completed Stripe Connect onboarding." }, { status: 400 });
-      }
-
-      const amountCandidate = (() => {
-        if (selectedApplication.proposed_rate && selectedApplication.proposed_rate > 0) {
-          if (selectedApplication.proposed_rate_type === "hourly" && jobRequest.hours) {
-            return selectedApplication.proposed_rate * jobRequest.hours;
-          }
-          return selectedApplication.proposed_rate;
-        }
-        if (jobRequest.budget_amount && jobRequest.budget_amount > 0) {
-          if (jobRequest.budget_type === "hourly" && jobRequest.hours) {
-            return jobRequest.budget_amount * jobRequest.hours;
-          }
-          return jobRequest.budget_amount;
-        }
-        return null;
-      })();
-
-      if (!amountCandidate || Number.isNaN(amountCandidate) || amountCandidate <= 0) {
-        return NextResponse.json({ error: "Unable to determine a total amount for this job." }, { status: 400 });
-      }
-
-      const customerId = await getOrCreateCustomer({
-        email: jobRequest.homeowner_email,
-        name: jobRequest.homeowner_name,
-      });
-
-      const invoiceMetadata = {
-        services: jobRequest.services.join(", "),
-        date: jobRequest.service_date ?? "",
-        time: jobRequest.service_time ?? "",
-        description: jobRequest.description ?? "",
-      };
-
-      const serviceDate = jobRequest.service_date ? new Date(jobRequest.service_date) : null;
-      const remainderDaysUntilDue = serviceDate
-        ? Math.max(
-            1,
-            Math.ceil(
-              (serviceDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-            ) + 30,
-          )
-        : 30;
-
-      const invoices = await createJobInvoices({
-        amount: amountCandidate,
-        customerId,
-        providerStripeAccountId: providerRecord.stripe_account_id,
-        metadata: invoiceMetadata,
-        remainderDaysUntilDue,
-      });
-
-      updatePayload = {
-        ...updatePayload,
-        selected_application_id: selectedApplication.id,
-        selected_provider_id: selectedApplication.provider_id,
-        selected_provider_name: selectedApplication.provider_name,
-        agreed_total_amount: amountCandidate,
-        deposit_amount: Number((invoices.totals.depositInvoiceCents / 100).toFixed(2)),
-        remainder_amount: Number((invoices.totals.remainderInvoiceCents / 100).toFixed(2)),
-        deposit_invoice_id: invoices.depositInvoiceId,
-        deposit_invoice_url: invoices.depositInvoiceUrl,
-        remainder_invoice_id: invoices.remainderInvoiceId,
-        remainder_invoice_url: invoices.remainderInvoiceUrl,
-      };
-
-      await supabase
-        .from("job_applications")
-        .update({ status: "awarded" })
-        .eq("id", selectedApplicationId);
-
-      await supabase
-        .from("job_applications")
-        .update({ status: "not_selected" })
-        .eq("job_request_id", jobId)
-        .neq("id", selectedApplicationId);
-
-      notificationsToInsert.push(
-        {
-          user_id: selectedApplication.provider_id,
-          type: "job_application_awarded",
-          payload: {
-            jobId,
-            applicationId: selectedApplication.id,
-            depositInvoiceUrl: invoices.depositInvoiceUrl,
-          },
-        },
-        {
-          user_id: jobRequest.homeowner_id,
-          type: "job_awarded_invoices_sent",
-          payload: {
-            jobId,
-            depositInvoiceId: invoices.depositInvoiceId,
-            depositInvoiceUrl: invoices.depositInvoiceUrl,
-            remainderInvoiceId: invoices.remainderInvoiceId,
-            remainderInvoiceUrl: invoices.remainderInvoiceUrl,
-          },
-        }
-      );
+    if (!status) {
+      return NextResponse.json({ error: "Status is required" }, { status: 400 });
     }
 
     const { error: updateError } = await supabase
       .from("job_requests")
-      .update(updatePayload)
+      .update({ status })
       .eq("id", jobId);
 
     if (updateError) {
@@ -283,19 +157,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Failed to update job" }, { status: 500 });
     }
 
-    if (notificationsToInsert.length > 0) {
-      await supabase.from("notifications").insert(notificationsToInsert);
-    }
-
-    return NextResponse.json({
-      success: true,
-      status,
-      depositInvoiceUrl: (updatePayload as Record<string, unknown>).deposit_invoice_url ?? null,
-      remainderInvoiceUrl: (updatePayload as Record<string, unknown>).remainder_invoice_url ?? null,
-      agreedTotalAmount: (updatePayload as Record<string, unknown>).agreed_total_amount ?? null,
-      depositAmount: (updatePayload as Record<string, unknown>).deposit_amount ?? null,
-      remainderAmount: (updatePayload as Record<string, unknown>).remainder_amount ?? null,
-    });
+    return NextResponse.json({ success: true, status });
   } catch (error) {
     console.error("Error handling job request PATCH:", error);
     return NextResponse.json({ error: "Invalid request payload." }, { status: 400 });

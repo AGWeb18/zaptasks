@@ -20,6 +20,47 @@ import { format } from "date-fns";
 import { createClient } from "@/app/utils/supabase/client";
 import { getServiceLabels } from "@/app/lib/services/catalog";
 
+type EscrowTier = "small" | "medium" | "large";
+
+interface EscrowScheduleAmounts {
+  escrowCents: number;
+  progressCents: number;
+  completionCents: number;
+  platformFeeTotalCents: number;
+  platformFeeEscrowCents: number;
+  platformFeeProgressCents: number;
+  platformFeeCompletionCents: number;
+}
+
+interface EscrowSchedule {
+  tier: EscrowTier;
+  escrowPercentage: number;
+  progressPercentage: number | null;
+  completionPercentage: number;
+  platformFeeRate: number;
+  amounts: EscrowScheduleAmounts;
+}
+
+interface EscrowPaymentRecord {
+  id: string;
+  payment_type: string;
+  status: string;
+  amount_cents: number;
+  captured_at: string | null;
+}
+
+interface EscrowJob {
+  id: string;
+  job_request_id: string | null;
+  job_requests?: OpenJobRequest;
+  total_amount_cents: number;
+  platform_fee_cents: number;
+  platform_fee_rate: number;
+  job_status: string;
+  milestone_plan: EscrowSchedule | null;
+  payments?: EscrowPaymentRecord[];
+}
+
 interface JobApplicationMeta {
   provider_id: string | null;
 }
@@ -53,12 +94,69 @@ interface NotificationItem {
   read_at: string | null;
 }
 
+const parseEscrowSchedule = (raw: unknown): EscrowSchedule | null => {
+  if (!raw) return null;
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw) as EscrowSchedule;
+    } catch {
+      return null;
+    }
+  }
+  return raw as EscrowSchedule;
+};
+
+const formatCurrency = (amountCents: number | null | undefined): string => {
+  if (!amountCents || Number.isNaN(amountCents)) {
+    return "$0.00";
+  }
+  return `$${(amountCents / 100).toFixed(2)}`;
+};
+
+const jobStatusCopy: Record<string, string> = {
+  awaiting_escrow: "Waiting on homeowner to fund escrow",
+  awaiting_capture: "Escrow funded, waiting for job",
+  in_progress: "Progress payment secured",
+  awaiting_completion_confirmation: "Ready for homeowner sign-off",
+  completed: "Paid out",
+  canceled: "Canceled",
+  cancelled: "Canceled",
+  disputed: "Disputed",
+  refunded: "Refunded",
+};
+
+const formatPaymentStatus = (status: string | null | undefined): string => {
+  switch (status) {
+    case "requires_payment_method":
+    case "requires_confirmation":
+      return "Awaiting payment";
+    case "requires_action":
+      return "Action needed";
+    case "processing":
+      return "Processing";
+    case "requires_capture":
+      return "Ready to release";
+    case "succeeded":
+      return "Released";
+    case "canceled":
+      return "Canceled";
+    case "refunded":
+      return "Refunded";
+    case "partially_refunded":
+      return "Partial refund";
+    default:
+      return status ?? "Unknown";
+  }
+};
+
 const ProJobsPage = () => {
   const { isLoaded, isSignedIn, user } = useUser();
   const [jobs, setJobs] = useState<OpenJobRequest[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [escrowJobs, setEscrowJobs] = useState<EscrowJob[]>([]);
   const [loadingJobs, setLoadingJobs] = useState(true);
   const [loadingNotifications, setLoadingNotifications] = useState(true);
+  const [loadingEscrow, setLoadingEscrow] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [applicationMessage, setApplicationMessage] = useState("Hello! I’d love to help with this job.");
@@ -101,10 +199,37 @@ const ProJobsPage = () => {
     }
   };
 
+  const fetchMyEscrowJobs = async () => {
+    try {
+      setLoadingEscrow(true);
+      const response = await fetch("/api/jobs?scope=provider");
+      if (!response.ok) {
+        throw new Error("Failed to load your escrow jobs");
+      }
+      const data = await response.json();
+      if (Array.isArray(data.jobs)) {
+        setEscrowJobs(
+          data.jobs.map((raw: EscrowJob) => ({
+            ...raw,
+            milestone_plan: parseEscrowSchedule(raw.milestone_plan),
+            payments: raw.payments ?? [],
+          })),
+        );
+      } else {
+        setEscrowJobs([]);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingEscrow(false);
+    }
+  };
+
   useEffect(() => {
     if (isLoaded && isSignedIn) {
       fetchJobs();
       fetchNotifications();
+      fetchMyEscrowJobs();
     }
   }, [isLoaded, isSignedIn]);
 
@@ -166,9 +291,50 @@ const ProJobsPage = () => {
       )
       .subscribe();
 
+    const escrowChannel = supabase
+      .channel(`escrow-updates-provider-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "jobs",
+          filter: `provider_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const updatedJob = payload.new as EscrowJob;
+          setEscrowJobs((prev) =>
+            prev.map((job) =>
+              job.id === updatedJob.id
+                ? {
+                    ...job,
+                    ...updatedJob,
+                    milestone_plan: parseEscrowSchedule(updatedJob.milestone_plan),
+                    payments: (updatedJob as EscrowJob).payments ?? job.payments,
+                  }
+                : job
+            )
+          );
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "jobs",
+          filter: `provider_id=eq.${user.id}`,
+        },
+        () => {
+          fetchMyEscrowJobs();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(notificationsChannel);
       supabase.removeChannel(jobsChannel);
+      supabase.removeChannel(escrowChannel);
     };
   }, [isLoaded, isSignedIn, user?.id]);
 
@@ -274,6 +440,80 @@ const ProJobsPage = () => {
               </div>
             </div>
           </header>
+
+          <section className="mb-12">
+            <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-blue-500" /> Your escrowed jobs
+            </h2>
+            {loadingEscrow ? (
+              <div className="flex items-center gap-2 text-base-content/60 text-sm">
+                <span className="loading loading-spinner loading-xs"></span> Checking your payouts…
+              </div>
+            ) : escrowJobs.length === 0 ? (
+              <p className="text-base-content/60 text-sm">
+                When a homeowner chooses you, we’ll hold their payment safely in Stripe-powered escrow and show it here.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {escrowJobs.map((job) => {
+                  const schedule = job.milestone_plan;
+                  const jobTitle = job.job_requests?.job_title ?? "ZapTasks job";
+                  const jobAddress = job.job_requests?.address ?? "Address shared after confirmation";
+                  const total = job.total_amount_cents;
+                  const platformFee = job.platform_fee_cents;
+                  const providerTakeHome = Math.max(total - platformFee, 0);
+                  const escrowPayment = job.payments?.find((payment) => payment.payment_type === "escrow");
+                  const progressPayment = job.payments?.find((payment) => payment.payment_type === "progress");
+                  const completionPayment = job.payments?.find((payment) => payment.payment_type === "completion");
+
+                  return (
+                    <article key={job.id} className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
+                      <header className="space-y-1">
+                        <p className="text-xs uppercase tracking-wide text-blue-500">{jobStatusCopy[job.job_status] ?? job.job_status}</p>
+                        <h3 className="text-xl font-semibold text-slate-900">{jobTitle}</h3>
+                        <p className="text-sm text-slate-600">{jobAddress}</p>
+                      </header>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                        <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
+                          <p className="text-xs uppercase text-blue-600">Homeowner paid</p>
+                          <p className="text-2xl font-semibold text-blue-800">{formatCurrency(total)}</p>
+                        </div>
+                        <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4">
+                          <p className="text-xs uppercase text-emerald-600">Your payout</p>
+                          <p className="text-2xl font-semibold text-emerald-800">{formatCurrency(providerTakeHome)}</p>
+                          <p className="text-xs text-emerald-700 mt-1">ZapTasks fee: {formatCurrency(platformFee)}</p>
+                        </div>
+                      </div>
+                      {schedule && (
+                        <div className="space-y-3">
+                          <p className="text-xs uppercase text-slate-400 tracking-wide">Escrow timeline</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-slate-700">
+                            <div className="border border-slate-200 rounded-lg p-3">
+                              <p className="font-semibold">Escrow</p>
+                              <p>{formatCurrency(schedule.amounts.escrowCents)}</p>
+                              <p className="text-xs text-slate-500 mt-1">{formatPaymentStatus(escrowPayment?.status)}</p>
+                            </div>
+                            {schedule.amounts.progressCents > 0 && (
+                              <div className="border border-slate-200 rounded-lg p-3">
+                                <p className="font-semibold">Progress</p>
+                                <p>{formatCurrency(schedule.amounts.progressCents)}</p>
+                                <p className="text-xs text-slate-500 mt-1">{formatPaymentStatus(progressPayment?.status)}</p>
+                              </div>
+                            )}
+                            <div className="border border-slate-200 rounded-lg p-3">
+                              <p className="font-semibold">Completion</p>
+                              <p>{formatCurrency(schedule.amounts.completionCents)}</p>
+                              <p className="text-xs text-slate-500 mt-1">{formatPaymentStatus(completionPayment?.status)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
 
           {error && (
             <div className="alert alert-error shadow mb-6">

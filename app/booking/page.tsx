@@ -36,8 +36,9 @@ const termsAndConditions = `
 ZapTasks Terms & Conditions
 
 • ZapTasks connects homeowners with independent Canadian service providers. We do not guarantee service outcomes.
-• When you approve a provider, 50% of the agreed price is collected up front via secure Stripe escrow. The remaining 50% is released once you mark the job complete.
-• Cancellations inside 24 hours of the scheduled start may forfeit the deposit. Report any disputes to ZapTasks within 48 hours so we can help mediate.
+• Payments are held in Stripe-powered escrow based on job size: under $100 = 100% upfront, $100–$500 = 50% upfront/50% on completion, over $500 = 30% upfront/30% progress/40% on completion.
+• ZapTasks collects a 10% platform fee (8% on large trades) to fund support, insurance, and payment processing.
+• Cancellations inside 24 hours of the scheduled start may forfeit the in-progress payment. Report disputes within 24 hours of completion so our team can help mediate.
 • Providers may request photos or ID verification before arriving. Ensure the work area is safe and accessible.
 • Using ZapTasks means you accept these terms and agree to our Privacy Policy and Terms of Service.`;
 
@@ -608,7 +609,7 @@ const BookingPage: React.FC = () => {
                       required
                     />
                     <span className="label-text text-sm text-slate-700">
-                      I agree to the ZapTasks terms and understand the 50/50 payment schedule.
+                      I understand ZapTasks holds funds in escrow until I approve the work.
                     </span>
                   </label>
                 </div>
@@ -656,7 +657,7 @@ const BookingPage: React.FC = () => {
                     • Stripe Identity verification for every payout-enabled provider.
                   </li>
                   <li>
-                    • 50% deposit held in escrow with simple dispute support if anything feels off.
+                    • Tiered escrow (100%, 50/50, or milestone-based) so everyone knows when money moves.
                   </li>
                   <li>
                     • Ratings and reviews from real homeowners, kept front and centre on provider profiles.
@@ -670,10 +671,10 @@ const BookingPage: React.FC = () => {
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 space-y-3 text-sm text-emerald-900">
                 <h4 className="text-lg font-semibold flex items-center gap-2">
                   <PiggyBank className="h-5 w-5" />
-                  50/50 payment flow
+                  Tiered escrow payments
                 </h4>
                 <p>
-                  Pay a refundable 50% deposit through Stripe when you approve a provider. The remaining 50% is released once you mark the work complete. Our team mediates quickly if anything pops up.
+                  Jobs under $100 are paid in full upfront, $100–$500 split 50/50, and larger projects use 30%/30%/40% milestones. Funds sit safely in Stripe escrow until you sign off.
                 </p>
               </div>
             </aside>

@@ -20,6 +20,187 @@ import {
 import { format } from "date-fns";
 import { createClient } from "@/app/utils/supabase/client";
 import { getServiceLabels } from "@/app/lib/services/catalog";
+import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
+
+const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+  : null;
+
+type EscrowTier = "small" | "medium" | "large";
+
+interface EscrowScheduleAmounts {
+  escrowCents: number;
+  progressCents: number;
+  completionCents: number;
+  platformFeeTotalCents: number;
+  platformFeeEscrowCents: number;
+  platformFeeProgressCents: number;
+  platformFeeCompletionCents: number;
+}
+
+interface EscrowSchedule {
+  tier: EscrowTier;
+  escrowPercentage: number;
+  progressPercentage: number | null;
+  completionPercentage: number;
+  platformFeeRate: number;
+  amounts: EscrowScheduleAmounts;
+}
+
+interface EscrowPaymentRecord {
+  id: string;
+  stripe_payment_intent_id: string | null;
+  amount_cents: number;
+  platform_fee_cents: number;
+  status: string;
+  payment_type: "escrow" | "progress" | "completion";
+  created_at: string;
+  captured_at: string | null;
+}
+
+interface EscrowMilestone {
+  id: string;
+  label: string;
+  percentage: number | null;
+  amount_cents: number | null;
+  status: string;
+}
+
+interface EscrowJob {
+  id: string;
+  job_request_id: string | null;
+  homeowner_id: string;
+  provider_id: string;
+  total_amount_cents: number;
+  escrow_amount_cents: number;
+  platform_fee_cents: number;
+  platform_fee_rate: number;
+  job_status: string;
+  milestone_plan: EscrowSchedule | null;
+  payments?: EscrowPaymentRecord[];
+  job_milestones?: EscrowMilestone[];
+}
+
+interface PaymentModalState {
+  jobId: string;
+  paymentType: "escrow" | "progress" | "completion";
+  clientSecret: string;
+  paymentIntentId: string;
+  amountCents: number;
+  label: string;
+}
+
+const parseEscrowSchedule = (raw: unknown): EscrowSchedule | null => {
+  if (!raw) return null;
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw) as EscrowSchedule;
+    } catch {
+      return null;
+    }
+  }
+  return raw as EscrowSchedule;
+};
+
+const formatPaymentStatus = (status: string | null | undefined) => {
+  switch (status) {
+    case "requires_payment_method":
+    case "requires_confirmation":
+      return "Waiting for card";
+    case "requires_action":
+      return "Needs your action";
+    case "processing":
+      return "Processing";
+    case "requires_capture":
+      return "Ready to release";
+    case "succeeded":
+      return "Paid";
+    case "canceled":
+      return "Canceled";
+    case "refunded":
+      return "Refunded";
+    case "partially_refunded":
+      return "Partially refunded";
+    default:
+      return status ?? "Unknown";
+  }
+};
+
+interface PaymentFormProps {
+  modal: PaymentModalState;
+  onSuccess: (paymentIntentId: string) => Promise<void>;
+  onClose: () => void;
+}
+
+const EscrowPaymentForm = ({ modal, onSuccess, onClose }: PaymentFormProps) => {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!stripe || !elements) {
+      setError("Stripe is still loading. Please try again.");
+      return;
+    }
+
+    setProcessing(true);
+    setError(null);
+
+    const result = await stripe.confirmPayment({
+      elements,
+      redirect: "if_required",
+    });
+
+    if (result.error) {
+      setError(result.error.message ?? "Payment failed. Try again.");
+      setProcessing(false);
+      return;
+    }
+
+    const status = result.paymentIntent?.status;
+
+    if (status === "succeeded" || status === "requires_capture") {
+      await onSuccess(result.paymentIntent!.id);
+      onClose();
+    } else {
+      setError(`Payment is ${status}. We’ll keep watching it.`);
+    }
+
+    setProcessing(false);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <PaymentElement />
+      {error && (
+        <p className="text-sm text-error" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="flex gap-3">
+        <button
+          type="submit"
+          className="btn btn-primary flex-1"
+          disabled={processing || !stripe || !elements}
+        >
+          {processing ? "Processing..." : modal.label}
+        </button>
+        <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={onClose}
+          disabled={processing}
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+};
 
 interface JobApplication {
   id: string;
@@ -74,6 +255,7 @@ const statusBadgeClasses: Record<string, string> = {
   awarded: "badge-success",
   completed: "badge-primary",
   cancelled: "badge-ghost",
+  disputed: "badge-error",
 };
 
 const prettyStatus: Record<string, string> = {
@@ -81,6 +263,7 @@ const prettyStatus: Record<string, string> = {
   awarded: "Awarded",
   completed: "Completed",
   cancelled: "Cancelled",
+  disputed: "Disputed",
 };
 
 const ManageJobsPage = () => {
@@ -91,18 +274,57 @@ const ManageJobsPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [updatingJobId, setUpdatingJobId] = useState<string | null>(null);
   const [latestNotification, setLatestNotification] = useState<NotificationItem | null>(null);
+  const [jobsByRequestId, setJobsByRequestId] = useState<Record<string, EscrowJob>>({});
+  const [jobsById, setJobsById] = useState<Record<string, EscrowJob>>({});
+  const [paymentModal, setPaymentModal] = useState<PaymentModalState | null>(null);
+  const [disputeJobId, setDisputeJobId] = useState<string | null>(null);
+  const [disputeReason, setDisputeReason] = useState<string>("");
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
   const fetchJobs = useCallback(async ({ silent } = { silent: false }) => {
     try {
       if (!silent) {
         setLoading(true);
       }
-      const response = await fetch("/api/job-requests?scope=mine");
-      if (!response.ok) {
+      const [requestsResponse, jobsResponse] = await Promise.all([
+        fetch("/api/job-requests?scope=mine"),
+        fetch("/api/jobs"),
+      ]);
+
+      if (!requestsResponse.ok) {
         throw new Error("Failed to load job requests");
       }
-      const data = await response.json();
-      setJobRequests(data.jobRequests ?? []);
+
+      if (!jobsResponse.ok) {
+        throw new Error("Failed to load job payment data");
+      }
+
+      const requestData = await requestsResponse.json();
+      const jobsData = await jobsResponse.json();
+
+      setJobRequests(requestData.jobRequests ?? []);
+
+      const requestMap: Record<string, EscrowJob> = {};
+      const jobIdMap: Record<string, EscrowJob> = {};
+
+      if (Array.isArray(jobsData.jobs)) {
+        for (const rawJob of jobsData.jobs) {
+          const mappedJob: EscrowJob = {
+            ...rawJob,
+            milestone_plan: parseEscrowSchedule(rawJob.milestone_plan),
+            payments: rawJob.payments ?? [],
+            job_milestones: rawJob.job_milestones ?? [],
+          };
+
+          if (mappedJob.job_request_id) {
+            requestMap[mappedJob.job_request_id] = mappedJob;
+          }
+          jobIdMap[mappedJob.id] = mappedJob;
+        }
+      }
+
+      setJobsByRequestId(requestMap);
+      setJobsById(jobIdMap);
     } catch (err) {
       console.error(err);
       setError("We couldn’t load your job requests. Please try again.");
@@ -159,38 +381,57 @@ const ManageJobsPage = () => {
     try {
       setUpdatingJobId(jobId);
       setError(null);
-      const response = await fetch("/api/job-requests", {
-        method: "PATCH",
+      const response = await fetch("/api/jobs", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          jobId,
-          status: "awarded",
-          selectedApplicationId: application.id,
+          jobRequestId: jobId,
+          applicationId: application.id,
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to award application");
+        const errorPayload = await response.json().catch(() => null);
+        throw new Error(
+          errorPayload?.error ?? "Failed to create job escrow"
+        );
       }
 
-      setJobRequests((prev) =>
-        prev.map((job) =>
-          job.id === jobId
-            ? {
-                ...job,
-                status: "awarded",
-                selected_application_id: application.id,
-                selected_provider_id: application.provider_id,
-                selected_provider_name: application.provider_name,
-                job_applications: job.job_applications?.map((app) =>
-                  app.id === application.id
-                    ? { ...app, status: "awarded" }
-                    : { ...app, status: "not_selected" }
-                ),
-              }
-            : job
-        )
-      );
+      const payload = await response.json();
+
+      if (payload?.job) {
+        const mappedJob: EscrowJob = {
+          ...payload.job,
+          milestone_plan: parseEscrowSchedule(payload.schedule ?? payload.job?.milestone_plan),
+          payments: payload.job.payments ?? [],
+          job_milestones: payload.job.job_milestones ?? [],
+        };
+
+        setJobsByRequestId((prev) =>
+          mappedJob.job_request_id
+            ? { ...prev, [mappedJob.job_request_id]: mappedJob }
+            : prev
+        );
+
+        setJobsById((prev) => ({ ...prev, [mappedJob.id]: mappedJob }));
+      }
+
+      if (payload?.schedule?.amounts) {
+        setInfoMessage(
+          `Escrow created: hold $${(payload.schedule.amounts.escrowCents / 100).toFixed(2)} now, pay the rest when the job is complete.`
+        );
+      }
+
+      if (payload?.escrowPaymentIntent?.clientSecret) {
+        setPaymentModal({
+          jobId: payload.job?.id ?? "",
+          paymentType: "escrow",
+          clientSecret: payload.escrowPaymentIntent.clientSecret,
+          paymentIntentId: payload.escrowPaymentIntent.id,
+          amountCents: payload.schedule?.amounts?.escrowCents ?? 0,
+          label: "Pay Escrow",
+        });
+      }
 
       await fetchJobs({ silent: true });
     } catch (err) {
@@ -201,26 +442,182 @@ const ManageJobsPage = () => {
     }
   };
 
-  const updateJobStatus = async (jobId: string, status: string) => {
+  const openPaymentIntent = async (
+    job: EscrowJob,
+    paymentType: "escrow" | "progress" | "completion",
+    options?: { milestoneId?: string; label?: string }
+  ) => {
     try {
-      setUpdatingJobId(jobId);
+      setUpdatingJobId(job.job_request_id ?? job.id);
       setError(null);
-      const response = await fetch("/api/job-requests", {
-        method: "PATCH",
+
+      const response = await fetch("/api/payments/escrow", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobId, status }),
+        body: JSON.stringify({
+          jobId: job.id,
+          paymentType,
+          milestoneId: options?.milestoneId,
+        }),
       });
+
       if (!response.ok) {
-        throw new Error("Failed to update job status");
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.error ?? "Unable to start payment");
       }
-      setJobRequests((prev) =>
-        prev.map((job) => (job.id === jobId ? { ...job, status } : job))
-      );
+
+      const payload = await response.json();
+
+      if (!payload?.paymentIntent?.clientSecret) {
+        throw new Error("Payment intent was not returned");
+      }
+
+      setPaymentModal({
+        jobId: job.id,
+        paymentType,
+        clientSecret: payload.paymentIntent.clientSecret,
+        paymentIntentId: payload.paymentIntent.id,
+        amountCents: payload.paymentRecord?.amount_cents ?? 0,
+        label: options?.label ??
+          (paymentType === "escrow"
+            ? "Pay Escrow"
+            : paymentType === "progress"
+            ? "Pay Progress"
+            : "Pay Remaining"),
+      });
 
       await fetchJobs({ silent: true });
     } catch (err) {
       console.error(err);
-      setError("We couldn’t update the job status. Please try again.");
+      setError(
+        err instanceof Error ? err.message : "We couldn’t start that payment."
+      );
+    } finally {
+      setUpdatingJobId(null);
+    }
+  };
+
+  const handleMarkComplete = async (job: EscrowJob) => {
+    try {
+      setUpdatingJobId(job.job_request_id ?? job.id);
+      setError(null);
+
+      const response = await fetch(`/api/jobs/${job.id}/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.error ?? "Could not complete job");
+      }
+
+      const payload = await response.json();
+
+      if (payload?.requiresFinalPayment && payload?.paymentIntent?.clientSecret) {
+        setPaymentModal({
+          jobId: job.id,
+          paymentType: "completion",
+          clientSecret: payload.paymentIntent.clientSecret,
+          paymentIntentId: payload.paymentIntent.id,
+          amountCents:
+            jobsById[job.id]?.milestone_plan?.amounts?.completionCents ?? 0,
+          label: "Pay Remaining",
+        });
+      } else {
+        setInfoMessage("All payments released to your pro. Thanks for using ZapTasks!");
+        await fetchJobs({ silent: true });
+      }
+    } catch (err) {
+      console.error(err);
+      setError(
+        err instanceof Error ? err.message : "We couldn’t wrap up this job."
+      );
+    } finally {
+      setUpdatingJobId(null);
+    }
+  };
+
+  const finalizeCompletion = async (jobId: string, paymentIntentId: string) => {
+    try {
+      const response = await fetch(`/api/jobs/${jobId}/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ finalPaymentIntentId: paymentIntentId }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.error ?? "Failed to capture escrow");
+      }
+
+      await fetchJobs({ silent: true });
+      setInfoMessage("Payment confirmed and escrow released. Thank you!");
+    } catch (err) {
+      console.error(err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "We couldn’t finalize the payment."
+      );
+    }
+  };
+
+  const handleCancelJob = async (job: EscrowJob) => {
+    try {
+      setUpdatingJobId(job.job_request_id ?? job.id);
+      setError(null);
+
+      const response = await fetch(`/api/jobs/${job.id}/cancel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.error ?? "Failed to cancel job");
+      }
+
+      setInfoMessage("Job cancelled and any escrow will be released within 5-10 days.");
+      await fetchJobs({ silent: true });
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : "We couldn’t cancel this job.");
+    } finally {
+      setUpdatingJobId(null);
+    }
+  };
+
+  const submitDispute = async () => {
+    if (!disputeJobId || !disputeReason.trim()) {
+      setError("Please let us know what happened so we can help.");
+      return;
+    }
+
+    try {
+      setUpdatingJobId(disputeJobId);
+      const response = await fetch(`/api/jobs/${disputeJobId}/dispute`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: disputeReason }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.error ?? "Failed to open dispute");
+      }
+
+      setInfoMessage("We’ve logged your dispute. A ZapTasks specialist will reach out within 24 hours.");
+      setDisputeJobId(null);
+      setDisputeReason("");
+      await fetchJobs({ silent: true });
+    } catch (err) {
+      console.error(err);
+      setError(
+        err instanceof Error ? err.message : "We couldn’t open a dispute."
+      );
     } finally {
       setUpdatingJobId(null);
     }
@@ -290,6 +687,16 @@ const ManageJobsPage = () => {
             </div>
           )}
 
+          {infoMessage && (
+            <div className="alert alert-success shadow mb-6">
+              <CheckCircle className="h-5 w-5" />
+              <span>{infoMessage}</span>
+              <button className="btn btn-xs btn-ghost" onClick={() => setInfoMessage(null)}>
+                Close
+              </button>
+            </div>
+          )}
+
           {loading ? (
             <div className="flex justify-center py-20">
               <span className="loading loading-spinner loading-lg text-primary"></span>
@@ -328,6 +735,45 @@ const ManageJobsPage = () => {
                         const awardedApplication = applications.find(
                           (app) => app.id === job.selected_application_id
                         );
+                        const escrowJob = jobsByRequestId[job.id];
+                        const escrowSchedule = escrowJob?.milestone_plan ?? null;
+                        const escrowPayment = escrowJob?.payments?.find(
+                          (payment) => payment.payment_type === "escrow"
+                        );
+                        const progressPayment = escrowJob?.payments?.find(
+                          (payment) => payment.payment_type === "progress"
+                        );
+                        const completionPayment = escrowJob?.payments?.find(
+                          (payment) => payment.payment_type === "completion"
+                        );
+                        const activeMilestone = escrowJob?.job_milestones?.find(
+                          (milestone) => milestone.status === "pending" || milestone.status === "funding_in_progress"
+                        );
+                        const escrowStatusLabel = formatPaymentStatus(escrowPayment?.status);
+                        const progressStatusLabel = formatPaymentStatus(progressPayment?.status);
+                        const completionStatusLabel = formatPaymentStatus(completionPayment?.status);
+                        const escrowNeedsPayment =
+                          !escrowPayment ||
+                          [
+                            "requires_payment_method",
+                            "requires_confirmation",
+                            "requires_action",
+                            "canceled",
+                          ].includes(escrowPayment.status ?? "");
+                        const progressNeedsPayment =
+                          !!progressPayment &&
+                          [
+                            "requires_payment_method",
+                            "requires_confirmation",
+                            "requires_action",
+                          ].includes(progressPayment.status ?? "");
+                        const completionNeedsPayment =
+                          !!completionPayment &&
+                          [
+                            "requires_payment_method",
+                            "requires_confirmation",
+                            "requires_action",
+                          ].includes(completionPayment.status ?? "");
 
                         return (
                           <article key={job.id} className="card bg-white shadow-md border border-slate-200">
@@ -352,11 +798,11 @@ const ManageJobsPage = () => {
                                   <p className="text-base-content/70 leading-relaxed mb-4">
                                     {job.description}
                                   </p>
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-base-content/80">
-                                    <div className="flex items-center gap-2">
-                                      <Calendar className="w-4 h-4" />
-                                      <span>
-                                        {job.service_date
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-base-content/80">
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="w-4 h-4" />
+                                  <span>
+                                    {job.service_date
                                           ? format(new Date(job.service_date), "MMM d, yyyy")
                                           : "Date flexible"}
                                         {job.service_time ? ` • ${job.service_time}` : ""}
@@ -384,31 +830,147 @@ const ManageJobsPage = () => {
                                         {job.budget_amount
                                           ? `${job.budget_type === "hourly" ? "Hourly" : "Flat"} • $${job.budget_amount.toFixed(0)}`
                                           : "Budget hidden"}
-                                      </span>
+                                  </span>
+                                </div>
+                              </div>
+
+                              {escrowJob && escrowSchedule && (
+                                <section className="mt-6 border-t border-slate-200 pt-6">
+                                  <h4 className="text-lg font-semibold text-slate-800 mb-3">
+                                    Payment plan
+                                  </h4>
+                                  <p className="text-sm text-slate-600 mb-4">
+                                    We hold funds in Stripe-powered escrow so both sides feel safe.
+                                  </p>
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="p-4 border border-blue-100 rounded-lg bg-blue-50 flex flex-col gap-2">
+                                      <span className="text-xs uppercase tracking-wide text-blue-600">Escrow</span>
+                                      <p className="text-2xl font-semibold text-blue-800">
+                                        {"$" + (escrowSchedule.amounts.escrowCents / 100).toFixed(2)}
+                                      </p>
+                                      <p className="text-sm text-blue-700">
+                                        Status: {escrowStatusLabel}
+                                      </p>
+                                      {escrowNeedsPayment && (
+                                        <button
+                                          className="btn btn-sm btn-primary mt-1"
+                                          disabled={!stripePromise}
+                                          onClick={() => openPaymentIntent(escrowJob, "escrow")}
+                                        >
+                                          Pay Escrow Now
+                                        </button>
+                                      )}
+                                      {!escrowNeedsPayment && escrowPayment?.status === "requires_capture" && (
+                                        <p className="text-xs text-blue-700">
+                                          Funds secured. Release happens after completion.
+                                        </p>
+                                      )}
+                                    </div>
+
+                                    {escrowSchedule.amounts.progressCents > 0 && (
+                                      <div className="p-4 border border-amber-100 rounded-lg bg-amber-50 flex flex-col gap-2">
+                                        <span className="text-xs uppercase tracking-wide text-amber-600">Progress</span>
+                                        <p className="text-2xl font-semibold text-amber-800">
+                                          {"$" + (escrowSchedule.amounts.progressCents / 100).toFixed(2)}
+                                        </p>
+                                        <p className="text-sm text-amber-700">
+                                          Status: {progressStatusLabel}
+                                        </p>
+                                        {(!progressPayment || progressNeedsPayment) && activeMilestone && (
+                                          <button
+                                            className="btn btn-sm btn-warning mt-1"
+                                            disabled={!stripePromise}
+                                            onClick={() =>
+                                              openPaymentIntent(escrowJob, "progress", {
+                                                milestoneId: activeMilestone?.id,
+                                                label: "Pay Progress",
+                                              })
+                                            }
+                                          >
+                                            Pay Progress
+                                          </button>
+                                        )}
+                                        {progressPayment?.status === "requires_capture" && (
+                                          <p className="text-xs text-amber-700">
+                                            Progress funds ready to release when you finish.
+                                          </p>
+                                        )}
+                                      </div>
+                                    )}
+
+                                    <div className="p-4 border border-emerald-100 rounded-lg bg-emerald-50 flex flex-col gap-2">
+                                      <span className="text-xs uppercase tracking-wide text-emerald-600">Completion</span>
+                                      <p className="text-2xl font-semibold text-emerald-800">
+                                        {"$" + (escrowSchedule.amounts.completionCents / 100).toFixed(2)}
+                                      </p>
+                                      <p className="text-sm text-emerald-700">
+                                        Status: {completionStatusLabel}
+                                      </p>
+                                      {completionNeedsPayment && (
+                                        <button
+                                          className="btn btn-sm btn-success mt-1"
+                                          disabled={!stripePromise}
+                                          onClick={() => openPaymentIntent(escrowJob, "completion")}
+                                        >
+                                          Pay Remainder
+                                        </button>
+                                      )}
+                                      {!completionNeedsPayment && completionPayment?.status === "succeeded" && (
+                                        <p className="text-xs text-emerald-700">
+                                          Final payment received. Thank you!
+                                        </p>
+                                      )}
                                     </div>
                                   </div>
+                                  <p className="mt-4 text-xs text-slate-500">
+                                    ZapTasks fee ({(escrowSchedule.platformFeeRate * 100).toFixed(1)}%) is included automatically. You’ll see it on the payout summary.
+                                  </p>
+                                </section>
+                              )}
                                 </div>
                                 <div className="flex flex-col items-start gap-2">
-                                  {job.status === "awarded" && awardedApplication && (
-                                    <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-sm text-blue-700">
+                                  {job.status === "awarded" && awardedApplication && escrowJob && (
+                                    <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-3 text-sm text-blue-700 space-y-2">
                                       <p className="font-semibold flex items-center gap-2">
                                         <Award className="w-4 h-4" /> Awarded to {awardedApplication.provider_name ?? "Selected pro"}
                                       </p>
                                       {renderCurrency(job.agreed_total_amount) && (
-                                        <p className="mt-1 text-xs text-blue-600">
-                                          Agreed total: ${renderCurrency(job.agreed_total_amount)} CAD
+                                        <p className="text-xs text-blue-600">
+                                          Total budget: ${renderCurrency(job.agreed_total_amount)} CAD • Escrow holds ${
+                                            (escrowJob.escrow_amount_cents / 100).toFixed(2)
+                                          } now.
                                         </p>
                                       )}
-                                      {job.deposit_invoice_url && (
-                                        <a
-                                          href={job.deposit_invoice_url}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="btn btn-link btn-xs text-blue-600"
+                                      <p className="text-xs text-blue-600">
+                                        Escrow status: {escrowStatusLabel}.
+                                      </p>
+                                      <div className="flex flex-wrap gap-2">
+                                        <button
+                                          className="btn btn-xs btn-primary"
+                                          disabled={!escrowJob || updatingJobId === (escrowJob.job_request_id ?? escrowJob.id)}
+                                          onClick={() => handleMarkComplete(escrowJob)}
                                         >
-                                          View deposit invoice
-                                        </a>
-                                      )}
+                                          Mark job complete
+                                        </button>
+                                        <button
+                                          className="btn btn-xs btn-ghost"
+                                          disabled={!escrowJob || updatingJobId === (escrowJob.job_request_id ?? escrowJob.id)}
+                                          onClick={() => handleCancelJob(escrowJob)}
+                                        >
+                                          Cancel job
+                                        </button>
+                                        <button
+                                          className="btn btn-xs btn-outline"
+                                          onClick={() => {
+                                            if (escrowJob) {
+                                              setDisputeJobId(escrowJob.id);
+                                              setDisputeReason("");
+                                            }
+                                          }}
+                                        >
+                                          Report issue
+                                        </button>
+                                      </div>
                                     </div>
                                   )}
                                   <button
@@ -427,29 +989,6 @@ const ManageJobsPage = () => {
                                       </>
                                     )}
                                   </button>
-                                  {job.status === "awarded" && (
-                                    <div className="dropdown dropdown-end">
-                                      <label tabIndex={0} className="btn btn-sm btn-ghost">Update status</label>
-                                      <ul tabIndex={0} className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-40 text-sm">
-                                        <li>
-                                          <button
-                                            onClick={() => updateJobStatus(job.id, "completed")}
-                                            disabled={updatingJobId === job.id}
-                                          >
-                                            Mark as completed
-                                          </button>
-                                        </li>
-                                        <li>
-                                          <button
-                                            onClick={() => updateJobStatus(job.id, "cancelled")}
-                                            disabled={updatingJobId === job.id}
-                                          >
-                                            Cancel request
-                                          </button>
-                                        </li>
-                                      </ul>
-                                    </div>
-                                  )}
                                 </div>
                               </header>
 
@@ -460,31 +999,22 @@ const ManageJobsPage = () => {
                                     <p className="mb-2">
                                       <span className="font-medium">Contact preference:</span> {job.contact_preference ?? "ZapTasks messages"}
                                     </p>
-                                    {renderCurrency(job.deposit_amount) && (
-                                      <p className="mb-2">
-                                        <span className="font-medium">Deposit invoice:</span> ${renderCurrency(job.deposit_amount)} CAD
-                                      </p>
-                                    )}
-                                    {renderCurrency(job.remainder_amount) && (
-                                      <p className="mb-2">
-                                        <span className="font-medium">Remaining balance:</span> ${renderCurrency(job.remainder_amount)} CAD
-                                      </p>
-                                    )}
-                                    {job.remainder_invoice_url && (
-                                      <p className="text-xs">
-                                        <a
-                                          className="link text-blue-600"
-                                          href={job.remainder_invoice_url}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                        >
-                                          View completion invoice
-                                        </a>
-                                      </p>
+                                    {escrowSchedule && (
+                                      <div className="text-xs text-slate-600 space-y-2">
+                                        <p>
+                                          Escrow plan: {escrowSchedule.escrowPercentage}% upfront, {escrowSchedule.progressPercentage ?? 0}% mid-job, {escrowSchedule.completionPercentage}% on completion.
+                                        </p>
+                                        <p>
+                                          Secured today: ${ (escrowSchedule.amounts.escrowCents / 100).toFixed(2) } • Remaining scheduled: ${ ((escrowSchedule.amounts.progressCents + escrowSchedule.amounts.completionCents) / 100).toFixed(2) }.
+                                        </p>
+                                        <p>
+                                          ZapTasks fee ({(escrowSchedule.platformFeeRate * 100).toFixed(1)}%) automatically covers processing and trust & safety support.
+                                        </p>
+                                      </div>
                                     )}
                                     {job.budget_notes && (
-                                      <p>
-                                        <span className="font-medium">Budget notes:</span> {job.budget_notes}
+                                      <p className="mt-3 text-xs text-slate-600">
+                                        <span className="font-medium text-slate-700">Budget notes:</span> {job.budget_notes}
                                       </p>
                                     )}
                                   </div>
@@ -542,15 +1072,6 @@ const ManageJobsPage = () => {
                                                   {updatingJobId === job.id ? "Awarding..." : "Award job"}
                                                 </button>
                                               )}
-                                              {job.status === "awarded" && application.id === job.selected_application_id && (
-                                                <button
-                                                  className="btn btn-outline btn-sm"
-                                                  onClick={() => updateJobStatus(job.id, "completed")}
-                                                  disabled={updatingJobId === job.id}
-                                                >
-                                                  {updatingJobId === job.id ? "Updating..." : "Mark completed"}
-                                                </button>
-                                              )}
                                             </div>
                                           </div>
                                         ))}
@@ -571,6 +1092,78 @@ const ManageJobsPage = () => {
           )}
         </section>
       </main>
+      {paymentModal && stripePromise && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
+            <header className="space-y-1">
+              <p className="text-sm uppercase tracking-wide text-blue-500">
+                Secure Stripe Checkout
+              </p>
+              <h3 className="text-2xl font-semibold text-slate-900">
+                {paymentModal.label}
+              </h3>
+              <p className="text-sm text-slate-600">
+                We’ll hold ${ (paymentModal.amountCents / 100).toFixed(2) } until the job step is done.
+              </p>
+            </header>
+            <Elements
+              stripe={stripePromise}
+              options={{ clientSecret: paymentModal.clientSecret, appearance: { theme: "stripe" } }}
+            >
+              <EscrowPaymentForm
+                modal={paymentModal}
+                onSuccess={async (paymentIntentId) => {
+                  if (paymentModal.paymentType === "completion") {
+                    await finalizeCompletion(paymentModal.jobId, paymentIntentId);
+                  } else {
+                    await fetchJobs({ silent: true });
+                    setInfoMessage("Payment secured. Funds release once the job step is approved.");
+                  }
+                }}
+                onClose={() => setPaymentModal(null)}
+              />
+            </Elements>
+          </div>
+        </div>
+      )}
+
+      {disputeJobId && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 space-y-4">
+            <header className="space-y-1">
+              <p className="text-sm uppercase tracking-wide text-rose-500">Need help?</p>
+              <h3 className="text-2xl font-semibold text-slate-900">Tell us what went wrong</h3>
+              <p className="text-sm text-slate-600">
+                ZapTasks pauses payout while our trust & safety team reviews your note.
+              </p>
+            </header>
+            <textarea
+              className="textarea textarea-bordered w-full h-32"
+              placeholder="Share what happened, when, and any detail that helps."
+              value={disputeReason}
+              onChange={(event) => setDisputeReason(event.target.value)}
+            />
+            <div className="flex items-center justify-end gap-3">
+              <button
+                className="btn btn-ghost"
+                onClick={() => {
+                  setDisputeJobId(null);
+                  setDisputeReason("");
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-error"
+                onClick={submitDispute}
+                disabled={updatingJobId === disputeJobId}
+              >
+                {updatingJobId === disputeJobId ? "Submitting..." : "Submit dispute"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
