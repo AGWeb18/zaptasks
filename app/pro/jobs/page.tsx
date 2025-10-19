@@ -780,58 +780,73 @@ const ProJobsPage = () => {
         </section>
       </main>
 
-      <input type="checkbox" className="modal-toggle" checked={!!selectedJobId} readOnly />
-      <div className="modal">
-        <div className="modal-box max-w-2xl">
-          <h3 className="font-bold text-xl mb-4 flex items-center gap-2">
-            <MessageCircle className="w-5 h-5 text-blue-500" />
-            Apply to {selectedJob?.job_title ?? "this job"}
-          </h3>
-          <div className="space-y-4">
-            <div>
-              <label className="label text-sm font-semibold">Introduce yourself</label>
-              <textarea
-                className="textarea textarea-bordered w-full"
-                rows={4}
-                value={applicationMessage}
-                onChange={(e) => setApplicationMessage(e.target.value)}
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {selectedJobId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 space-y-5">
+            <header className="flex items-center justify-between">
+              <h3 className="font-bold text-xl flex items-center gap-2 text-slate-900">
+                <MessageCircle className="w-5 h-5 text-blue-500" />
+                Apply to {selectedJob?.job_title ?? "this job"}
+              </h3>
+              <button
+                className="btn btn-sm btn-ghost"
+                onClick={() => setSelectedJobId(null)}
+                disabled={submitting}
+                aria-label="Close application form"
+              >
+                Close
+              </button>
+            </header>
+
+            <div className="space-y-4 text-slate-800">
               <div>
-                <label className="label text-sm font-semibold">Rate type</label>
-                <select
-                  className="select select-bordered w-full"
-                  value={rateType}
-                  onChange={(e) => setRateType(e.target.value as "flat" | "hourly")}
-                >
-                  <option value="flat">Flat project estimate</option>
-                  <option value="hourly">Hourly estimate</option>
-                </select>
-              </div>
-              <div>
-                <label className="label text-sm font-semibold">Rate amount (optional)</label>
-                <input
-                  type="number"
-                  min="0"
-                  className="input input-bordered w-full"
-                  placeholder="Leave blank if flexible"
-                  value={rateAmount}
-                  onChange={(e) => setRateAmount(e.target.value)}
+                <label className="block text-sm font-semibold text-slate-700 mb-1">
+                  Introduce yourself
+                </label>
+                <textarea
+                  className="textarea textarea-bordered w-full"
+                  rows={4}
+                  value={applicationMessage}
+                  onChange={(e) => setApplicationMessage(e.target.value)}
                 />
               </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label className="text-sm font-semibold text-slate-700">
+                  <span className="block mb-1">Rate type</span>
+                  <select
+                    className="select select-bordered w-full"
+                    value={rateType}
+                    onChange={(e) => setRateType(e.target.value as "flat" | "hourly")}
+                  >
+                    <option value="flat">Flat project estimate</option>
+                    <option value="hourly">Hourly estimate</option>
+                  </select>
+                </label>
+                <label className="text-sm font-semibold text-slate-700">
+                  <span className="block mb-1">Rate amount (optional)</span>
+                  <input
+                    type="number"
+                    min="0"
+                    className="input input-bordered w-full"
+                    placeholder="Leave blank if flexible"
+                    value={rateAmount}
+                    onChange={(e) => setRateAmount(e.target.value)}
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button className="btn" onClick={() => setSelectedJobId(null)} disabled={submitting}>
+                Cancel
+              </button>
+              <button className="btn btn-primary" onClick={submitApplication} disabled={submitting}>
+                {submitting ? "Submitting..." : "Send application"}
+              </button>
             </div>
           </div>
-          <div className="modal-action">
-            <button className="btn" onClick={() => setSelectedJobId(null)} disabled={submitting}>
-              Cancel
-            </button>
-            <button className="btn btn-primary" onClick={submitApplication} disabled={submitting}>
-              {submitting ? "Submitting..." : "Send application"}
-            </button>
-          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

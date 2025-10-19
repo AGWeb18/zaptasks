@@ -31,10 +31,27 @@ export async function POST(req: NextRequest) {
 
     if (!accountId) {
       const account = await stripe.accounts.create({
-        type: "express",
+        country: "CA",
         email,
+        business_type: "individual",
+        business_profile: {
+          mcc: "7299", // Miscellaneous personal services – closest MCC for home services.
+          url: process.env.NEXT_PUBLIC_BASE_URL ?? "https://zaptasks.com",
+        },
         capabilities: {
           transfers: { requested: true },
+          card_payments: { requested: true },
+        },
+        controller: {
+          fees: {
+            payer: "account",
+          },
+          losses: {
+            payments: "stripe",
+          },
+          stripe_dashboard: {
+            type: "full",
+          },
         },
       });
 
@@ -86,7 +103,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ accountId, url: accountLink.url });
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to create Stripe Connect account";
     console.error("Failed to create Stripe Connect account", error);
-    return NextResponse.json({ error: "Failed to create Stripe Connect account" }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
