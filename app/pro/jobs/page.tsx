@@ -59,6 +59,7 @@ interface EscrowJob {
   job_status: string;
   milestone_plan: EscrowSchedule | null;
   payments?: EscrowPaymentRecord[];
+  provider_stripe_account_id?: string | null;
 }
 
 interface JobApplicationMeta {
@@ -350,6 +351,41 @@ const ProJobsPage = () => {
 
   const openJobCount = jobs.length;
   const unreadNotifications = notifications.filter((notification) => !notification.read_at);
+  const requiresOnboarding = escrowJobs.some((job) => !job.provider_stripe_account_id);
+
+  const [onboardingLoading, setOnboardingLoading] = useState(false);
+
+  const startStripeOnboarding = async () => {
+    if (!user?.primaryEmailAddress?.emailAddress) {
+      setError("Add an email address in your profile before setting up payouts.");
+      return;
+    }
+
+    try {
+      setOnboardingLoading(true);
+      setError(null);
+      const response = await fetch("/api/stripe-connect-onboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.primaryEmailAddress.emailAddress }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.error ?? "Unable to start Stripe onboarding.");
+      }
+
+      const payload = await response.json();
+      if (payload?.url) {
+        window.location.href = payload.url as string;
+      }
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : "Unable to start Stripe onboarding.");
+    } finally {
+      setOnboardingLoading(false);
+    }
+  };
 
   const resetApplicationForm = () => {
     setApplicationMessage("Hello! I’d love to help with this job.");
@@ -443,9 +479,21 @@ const ProJobsPage = () => {
           </header>
 
           <section className="mb-12">
-            <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-blue-500" /> Your escrowed jobs
-            </h2>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
+              <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-blue-500" /> Your escrowed jobs
+              </h2>
+              {requiresOnboarding && (
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary text-white md:self-end"
+                  onClick={startStripeOnboarding}
+                  disabled={onboardingLoading}
+                >
+                  {onboardingLoading ? "Opening Stripe…" : "Enable instant payouts"}
+                </button>
+              )}
+            </div>
             {loadingEscrow ? (
               <div className="flex items-center gap-2 text-base-content/60 text-sm">
                 <span className="loading loading-spinner loading-xs"></span> Checking your payouts…
@@ -466,6 +514,36 @@ const ProJobsPage = () => {
                   const escrowPayment = job.payments?.find((payment) => payment.payment_type === "escrow");
                   const progressPayment = job.payments?.find((payment) => payment.payment_type === "progress");
                   const completionPayment = job.payments?.find((payment) => payment.payment_type === "completion");
+                  const escrowFundedCents = escrowPayment && ["succeeded", "requires_capture", "processing"].includes(escrowPayment.status)
+                    ? escrowPayment.amount_cents
+                    : 0;
+                  const escrowFundedLabel = escrowFundedCents > 0 ? formatCurrency(escrowFundedCents) : "—";
+                  const escrowStatusLabel = escrowPayment
+                    ? formatPaymentStatus(escrowPayment.status)
+                    : "Not funded yet";
+                  const renderPaymentBlock = (
+                    label: string,
+                    payment: EscrowPaymentRecord | undefined,
+                    plannedCents: number,
+                  ) => {
+                    const funded = payment && payment.status !== "canceled";
+                    const amountLabel = funded ? formatCurrency(payment?.amount_cents) : "—";
+                    const statusLabel = funded
+                      ? formatPaymentStatus(payment?.status)
+                      : "Not funded yet";
+                    const plannedLabel = plannedCents > 0 ? formatCurrency(plannedCents) : null;
+
+                    return (
+                      <div className="border border-slate-200 rounded-lg p-3">
+                        <p className="font-semibold">{label}</p>
+                        <p className="text-lg font-semibold text-slate-900">{amountLabel}</p>
+                        <p className="text-xs text-slate-500 mt-1">{statusLabel}</p>
+                        {!funded && plannedLabel && (
+                          <p className="text-xs text-slate-400 mt-1">Projected: {plannedLabel}</p>
+                        )}
+                      </div>
+                    );
+                  };
 
                   return (
                     <article key={job.id} className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
@@ -475,37 +553,41 @@ const ProJobsPage = () => {
                         <p className="text-sm text-slate-600">{jobAddress}</p>
                       </header>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                        <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
-                          <p className="text-xs uppercase text-blue-600">Homeowner paid</p>
-                          <p className="text-2xl font-semibold text-blue-800">{formatCurrency(total)}</p>
-                        </div>
                         <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4">
-                          <p className="text-xs uppercase text-emerald-600">Your payout</p>
+                          <p className="text-xs uppercase text-emerald-600">Projected payout</p>
                           <p className="text-2xl font-semibold text-emerald-800">{formatCurrency(providerTakeHome)}</p>
-                          <p className="text-xs text-emerald-700 mt-1">ZapTasks fee: {formatCurrency(platformFee)}</p>
+                          <p className="text-xs text-emerald-700 mt-1">After ZapTasks fee ({Math.round(job.platform_fee_rate * 100)}%)</p>
+                        </div>
+                        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                          <p className="text-xs uppercase text-slate-600">Escrow funded so far</p>
+                          <p className="text-2xl font-semibold text-slate-900">{escrowFundedLabel}</p>
+                          <p className="text-xs text-slate-500 mt-1">{escrowStatusLabel}</p>
                         </div>
                       </div>
+                      {!job.provider_stripe_account_id && (
+                        <div className="alert alert-warning text-sm">
+                          <div>
+                            <p className="font-semibold">Connect payouts to receive funds</p>
+                            <p className="text-xs">Stripe unlocks once you finish onboarding. It takes about two minutes.</p>
+                          </div>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-primary text-white"
+                            onClick={startStripeOnboarding}
+                            disabled={onboardingLoading}
+                          >
+                            {onboardingLoading ? "Opening Stripe…" : "Finish setup"}
+                          </button>
+                        </div>
+                      )}
                       {schedule && (
                         <div className="space-y-3">
                           <p className="text-xs uppercase text-slate-400 tracking-wide">Escrow timeline</p>
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-slate-700">
-                            <div className="border border-slate-200 rounded-lg p-3">
-                              <p className="font-semibold">Escrow</p>
-                              <p>{formatCurrency(schedule.amounts.escrowCents)}</p>
-                              <p className="text-xs text-slate-500 mt-1">{formatPaymentStatus(escrowPayment?.status)}</p>
-                            </div>
-                            {schedule.amounts.progressCents > 0 && (
-                              <div className="border border-slate-200 rounded-lg p-3">
-                                <p className="font-semibold">Progress</p>
-                                <p>{formatCurrency(schedule.amounts.progressCents)}</p>
-                                <p className="text-xs text-slate-500 mt-1">{formatPaymentStatus(progressPayment?.status)}</p>
-                              </div>
-                            )}
-                            <div className="border border-slate-200 rounded-lg p-3">
-                              <p className="font-semibold">Completion</p>
-                              <p>{formatCurrency(schedule.amounts.completionCents)}</p>
-                              <p className="text-xs text-slate-500 mt-1">{formatPaymentStatus(completionPayment?.status)}</p>
-                            </div>
+                            {renderPaymentBlock("Escrow", escrowPayment, schedule.amounts.escrowCents)}
+                            {schedule.amounts.progressCents > 0 &&
+                              renderPaymentBlock("Progress", progressPayment, schedule.amounts.progressCents)}
+                            {renderPaymentBlock("Completion", completionPayment, schedule.amounts.completionCents)}
                           </div>
                         </div>
                       )}
