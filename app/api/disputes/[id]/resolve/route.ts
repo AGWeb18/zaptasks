@@ -18,7 +18,9 @@ type ResolvePayload = {
   partialRefundCents?: number;
 };
 
-function isAuthorizedAdmin(userId: string | null | undefined): boolean {
+function isAuthorizedAdmin(
+  userId: string | null | undefined
+): userId is string {
   if (!userId) return false;
   const adminList = process.env.ZAPTASKS_ADMIN_IDS?.split(",").map((id) => id.trim());
   return !adminList || adminList.length === 0 || adminList.includes(userId);
