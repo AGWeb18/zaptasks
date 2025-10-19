@@ -127,6 +127,9 @@ const jobStatusCopy: Record<string, string> = {
   refunded: "Refunded",
 };
 
+const isCanceledStatus = (status?: string | null): boolean =>
+  typeof status === "string" && ["canceled", "cancelled"].includes(status.toLowerCase());
+
 const formatPaymentStatus = (status: string | null | undefined): string => {
   switch (status) {
     case "requires_payment_method":
@@ -210,8 +213,10 @@ const ProJobsPage = () => {
       }
       const data = await response.json();
       if (Array.isArray(data.jobs)) {
+        const jobList = data.jobs as EscrowJob[];
+        const sanitizedJobs = jobList.filter((raw) => !isCanceledStatus(raw.job_status));
         setEscrowJobs(
-          data.jobs.map((raw: EscrowJob) => ({
+          sanitizedJobs.map((raw) => ({
             ...raw,
             milestone_plan: parseEscrowSchedule(raw.milestone_plan),
             payments: raw.payments ?? [],
@@ -305,18 +310,36 @@ const ProJobsPage = () => {
         },
         (payload) => {
           const updatedJob = payload.new as EscrowJob;
-          setEscrowJobs((prev) =>
-            prev.map((job) =>
+          setEscrowJobs((prev) => {
+            if (isCanceledStatus(updatedJob.job_status)) {
+              return prev.filter((job) => job.id !== updatedJob.id);
+            }
+
+            const next = prev.map((job) =>
               job.id === updatedJob.id
                 ? {
                     ...job,
                     ...updatedJob,
                     milestone_plan: parseEscrowSchedule(updatedJob.milestone_plan),
-                    payments: (updatedJob as EscrowJob).payments ?? job.payments,
+                    payments: updatedJob.payments ?? job.payments,
                   }
                 : job
-            )
-          );
+            );
+
+            const exists = next.some((job) => job.id === updatedJob.id);
+            if (!exists) {
+              return [
+                ...next,
+                {
+                  ...updatedJob,
+                  milestone_plan: parseEscrowSchedule(updatedJob.milestone_plan),
+                  payments: updatedJob.payments ?? [],
+                },
+              ];
+            }
+
+            return next;
+          });
         }
       )
       .on(

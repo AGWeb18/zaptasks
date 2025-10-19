@@ -258,6 +258,9 @@ const statusBadgeClasses: Record<string, string> = {
   disputed: "badge-error",
 };
 
+const isCanceledStatus = (status?: string | null): boolean =>
+  typeof status === "string" && ["canceled", "cancelled"].includes(status.toLowerCase());
+
 const prettyStatus: Record<string, string> = {
   open: "Open",
   awarded: "Awarded",
@@ -302,13 +305,25 @@ const ManageJobsPage = () => {
       const requestData = await requestsResponse.json();
       const jobsData = await jobsResponse.json();
 
-      setJobRequests(requestData.jobRequests ?? []);
+      const requestList = Array.isArray(requestData.jobRequests)
+        ? (requestData.jobRequests as JobRequest[])
+        : [];
+      const filteredRequests = requestList.filter((request) => !isCanceledStatus(request.status));
+
+      setJobRequests(filteredRequests);
 
       const requestMap: Record<string, EscrowJob> = {};
       const jobIdMap: Record<string, EscrowJob> = {};
 
-      if (Array.isArray(jobsData.jobs)) {
-        for (const rawJob of jobsData.jobs) {
+      const jobsList = Array.isArray(jobsData.jobs)
+        ? (jobsData.jobs as EscrowJob[])
+        : [];
+
+      if (jobsList.length > 0) {
+        for (const rawJob of jobsList) {
+          if (isCanceledStatus(rawJob?.job_status)) {
+            continue;
+          }
           const mappedJob: EscrowJob = {
             ...rawJob,
             milestone_plan: parseEscrowSchedule(rawJob.milestone_plan),
