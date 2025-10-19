@@ -4,6 +4,29 @@ import { getAuth } from "@clerk/nextjs/server";
 import { stripe } from "@/app/lib/payments/stripeConnect";
 import { createClientWithUser } from "@/app/utils/supabase/server";
 
+const FALLBACK_BASE_URL = "https://zaptasks.com";
+
+function resolveBaseUrlForStripe(): string {
+  const configured = process.env.NEXT_PUBLIC_BASE_URL;
+
+  try {
+    const candidate =
+      configured && configured.includes("://")
+        ? configured
+        : `https://${configured ?? ""}`;
+    const parsed = new URL(candidate);
+
+    const isLiveMode = (process.env.STRIPE_SECRET_KEY ?? "").startsWith("sk_live");
+    if (isLiveMode && parsed.protocol !== "https:") {
+      parsed.protocol = "https:";
+    }
+
+    return parsed.origin;
+  } catch {
+    return FALLBACK_BASE_URL;
+  }
+}
+
 export async function POST(req: NextRequest) {
   const { userId } = getAuth(req);
 
@@ -13,17 +36,21 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json().catch(() => null);
-    const email = body?.email;
+    const email = typeof body?.email === "string" ? body.email.trim() : "";
+    const rawName = typeof body?.name === "string" ? body.name.trim() : "";
 
-    if (!email || typeof email !== "string") {
+    if (!email) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
+
+    const providerName = rawName || email.split("@")[0] || "ZapTasks Provider";
+    const baseUrl = resolveBaseUrlForStripe();
 
     const supabase = await createClientWithUser(userId);
 
     const { data: providerRecord } = await supabase
       .from("providers")
-      .select("id, stripe_account_id")
+      .select("id, stripe_account_id, name")
       .eq("user_id", userId)
       .maybeSingle();
 
@@ -36,7 +63,7 @@ export async function POST(req: NextRequest) {
         business_type: "individual",
         business_profile: {
           mcc: "7299", // Miscellaneous personal services – closest MCC for home services.
-          url: process.env.NEXT_PUBLIC_BASE_URL ?? "https://zaptasks.com",
+          url: baseUrl,
         },
         capabilities: {
           transfers: { requested: true },
@@ -60,7 +87,10 @@ export async function POST(req: NextRequest) {
       if (providerRecord?.id) {
         const { error: updateError } = await supabase
           .from("providers")
-          .update({ stripe_account_id: accountId })
+          .update({
+            stripe_account_id: accountId,
+            name: providerRecord.name ?? providerName,
+          })
           .eq("id", providerRecord.id);
 
         if (updateError) {
@@ -69,7 +99,7 @@ export async function POST(req: NextRequest) {
       } else {
         const { error: insertError } = await supabase
           .from("providers")
-          .insert({ user_id: userId, stripe_account_id: accountId })
+          .insert({ user_id: userId, name: providerName, stripe_account_id: accountId })
           .select("id")
           .single();
 
@@ -77,9 +107,17 @@ export async function POST(req: NextRequest) {
           console.warn("Failed to insert provider record for onboarding", insertError);
         }
       }
+    } else if (providerRecord && !providerRecord.name) {
+      const { error: backfillNameError } = await supabase
+        .from("providers")
+        .update({ name: providerName })
+        .eq("id", providerRecord.id);
+
+      if (backfillNameError) {
+        console.warn("Failed to backfill provider name", backfillNameError);
+      }
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "https://zaptasks.com";
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
       refresh_url: `${baseUrl}/pro/jobs?onboarding=retry`,

@@ -364,10 +364,18 @@ const ProJobsPage = () => {
     try {
       setOnboardingLoading(true);
       setError(null);
+      const displayName =
+        user.fullName?.trim() ||
+        user.username?.trim() ||
+        [user.firstName, user.lastName].filter(Boolean).join(" ").trim() ||
+        undefined;
       const response = await fetch("/api/stripe-connect-onboard", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: user.primaryEmailAddress.emailAddress }),
+        body: JSON.stringify({
+          email: user.primaryEmailAddress.emailAddress,
+          name: displayName,
+        }),
       });
 
       if (!response.ok) {
