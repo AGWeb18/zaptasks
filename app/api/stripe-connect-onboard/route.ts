@@ -21,10 +21,11 @@ export async function POST(req: Request) {
         // Example: await db.providers.update({ email }, { stripeAccountId: account.id })
 
         // Create an onboarding link
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "https://zaptasks.com";
         const accountLink = await stripe.accountLinks.create({
             account: account.id,
-            refresh_url: process.env.NEXT_PUBLIC_BASE_URL + "/become-provider?refresh=true",
-            return_url: process.env.NEXT_PUBLIC_BASE_URL + "/become-provider?success=true",
+            refresh_url: `${baseUrl}/pro/jobs?onboarding=retry`,
+            return_url: `${baseUrl}/pro/jobs?onboarding=success`,
             type: "account_onboarding",
         });
 

@@ -416,7 +416,11 @@ const ManageJobsPage = () => {
         setJobsById((prev) => ({ ...prev, [mappedJob.id]: mappedJob }));
       }
 
-      if (payload?.schedule?.amounts) {
+      if (payload?.requiresProviderOnboarding) {
+        setInfoMessage(
+          "Your provider has been awarded, but they need to finish Stripe payouts before escrow can be funded. We'll alert you as soon as it's ready."
+        );
+      } else if (payload?.schedule?.amounts && payload?.escrowPaymentIntent?.clientSecret) {
         setInfoMessage(
           `Escrow created: hold $${(payload.schedule.amounts.escrowCents / 100).toFixed(2)} now, pay the rest when the job is complete.`
         );

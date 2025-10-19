@@ -132,9 +132,13 @@ export async function POST(req: NextRequest) {
       .eq("user_id", selectedApplication.provider_id)
       .maybeSingle();
 
-    if (providerLookupError || !providerRecord?.stripe_account_id) {
-      return NextResponse.json({ error: "Selected provider is not ready for payouts" }, { status: 400 });
+    if (providerLookupError) {
+      console.error("Failed to look up provider record", providerLookupError);
+      return NextResponse.json({ error: "Unable to look up provider" }, { status: 500 });
     }
+
+    const providerStripeAccountId = providerRecord?.stripe_account_id ?? null;
+    const providerNeedsOnboarding = !providerStripeAccountId;
 
     const amountFromPayload =
       typeof body.overrideTotalAmount === "number"
@@ -189,14 +193,14 @@ export async function POST(req: NextRequest) {
         homeowner_id: jobRequest.homeowner_id,
         provider_id: selectedApplication.provider_id,
         stripe_customer_id: customerId,
-        provider_stripe_account_id: providerRecord.stripe_account_id,
+        provider_stripe_account_id: providerStripeAccountId,
         total_amount_cents: totalAmountCents,
         escrow_amount_cents: schedule.amounts.escrowCents,
         escrow_percentage: schedule.escrowPercentage,
         platform_fee_cents: schedule.amounts.platformFeeTotalCents,
         platform_fee_rate: schedule.platformFeeRate,
         milestone_plan: schedule,
-        job_status: "awaiting_escrow",
+        job_status: providerNeedsOnboarding ? "awaiting_provider_onboarding" : "awaiting_escrow",
       })
       .select()
       .single();
@@ -218,13 +222,13 @@ export async function POST(req: NextRequest) {
     const escrowAmount = schedule.amounts.escrowCents;
     let escrowPaymentIntentResult: Awaited<ReturnType<typeof createJobPaymentIntent>> | null = null;
 
-    if (escrowAmount > 0) {
+    if (escrowAmount > 0 && providerStripeAccountId) {
       escrowPaymentIntentResult = await createJobPaymentIntent({
         jobId: insertedJob.id,
         amountCents: escrowAmount,
         platformFeeCents: schedule.amounts.platformFeeEscrowCents,
         customerId,
-        providerStripeAccountId: providerRecord.stripe_account_id,
+        providerStripeAccountId,
         paymentType: "escrow",
         captureMethod: "manual",
         metadata: {
@@ -279,17 +283,29 @@ export async function POST(req: NextRequest) {
       .neq("id", selectedApplication.id);
 
     await supabase.from("notifications").insert([
-      {
-        user_id: selectedApplication.provider_id,
-        type: "job_application_awarded",
-        payload: {
-          jobId: jobRequest.id,
-          jobTitle: jobRequest.job_title,
-        },
-      },
+      providerNeedsOnboarding
+        ? {
+            user_id: selectedApplication.provider_id,
+            type: "job_application_awarded_onboarding",
+            payload: {
+              jobId: jobRequest.id,
+              jobTitle: jobRequest.job_title,
+              message: "Finish Stripe payouts to unlock escrow deposits.",
+            },
+          }
+        : {
+            user_id: selectedApplication.provider_id,
+            type: "job_application_awarded",
+            payload: {
+              jobId: jobRequest.id,
+              jobTitle: jobRequest.job_title,
+            },
+          },
       {
         user_id: jobRequest.homeowner_id,
-        type: "job_awarded_escrow_required",
+        type: providerNeedsOnboarding
+          ? "job_awarded_onboarding_pending"
+          : "job_awarded_escrow_required",
         payload: {
           jobId: jobRequest.id,
           jobTitle: jobRequest.job_title,
@@ -311,6 +327,7 @@ export async function POST(req: NextRequest) {
             status: escrowPaymentIntentResult.status,
           }
         : null,
+      requiresProviderOnboarding: providerNeedsOnboarding,
     });
   } catch (error) {
     console.error("Failed to create job:", error);

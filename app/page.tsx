@@ -157,21 +157,15 @@ const LandingPage: React.FC = () => {
                 Post a Job & Get Offers
               </Link>
               <Link
-                href="/become-provider"
+                href="/pro/jobs"
                 className="btn btn-outline btn-lg border-2 border-blue-200 hover:border-blue-500"
               >
                 Find Local Jobs
               </Link>
             </div>
             <p className="mt-3 text-xs text-slate-500">
-              Prefer to hand-pick your help?{" "}
-              <Link
-                href="/providers"
-                className="text-blue-600 font-semibold hover:underline"
-              >
-                Browse available neighbours
-              </Link>{" "}
-              and invite them to help.
+              Every hire earns a public review, so you can build a shortlist of
+              neighbours you trust for future projects.
             </p>
           </div>
           <div className="w-full lg:w-1/2 flex justify-center">

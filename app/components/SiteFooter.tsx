@@ -2,11 +2,10 @@ import Link from "next/link";
 import { Mail, MapPin, ShieldCheck } from "lucide-react";
 
 const footerLinks = [
-  { href: "/providers", label: "Browse Services" },
-  { href: "/blog", label: "Blog" },
-  { href: "/faq", label: "Marketplace fee (10%)" },
+  { href: "/booking", label: "Post a Job" },
+  { href: "/pro/jobs", label: "Find Local Jobs" },
+  { href: "/faq", label: "Help & Safety" },
   { href: "/legal", label: "Privacy & Terms" },
-  { href: "/faq", label: "Trust & Support" },
 ];
 
 export function SiteFooter() {
@@ -19,7 +18,8 @@ export function SiteFooter() {
             <p className="text-sm text-slate-400 leading-relaxed">
               Canadian-built marketplace connecting homeowners with trusted
               local pros from coast to coast. Tiered Stripe escrow keeps every
-              booking transparent from deposit to completion.
+              booking transparent, and shared ratings help you spot neighbours
+              who consistently deliver.
             </p>
             <div className="mt-4 flex items-center gap-2 text-xs text-slate-400 uppercase tracking-wide">
               <ShieldCheck className="h-4 w-4 text-emerald-400" />
