@@ -1,0 +1,14 @@
+# Allow all search and AI crawlers to index ZapTasks
+User-agent: *
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+Sitemap: https://zaptasks.com/sitemap.xml
