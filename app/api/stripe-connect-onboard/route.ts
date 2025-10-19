@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
             payments: "stripe",
           },
           stripe_dashboard: {
-            type: "full",
+            type: "express",
           },
         },
       });
