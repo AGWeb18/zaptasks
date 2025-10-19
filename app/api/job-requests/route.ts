@@ -189,3 +189,54 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request payload." }, { status: 400 });
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  const { userId } = getAuth(req);
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const body = await req.json().catch(() => null);
+    const jobId = body?.jobId ?? null;
+
+    if (!jobId || typeof jobId !== "string") {
+      return NextResponse.json({ error: "Missing job ID." }, { status: 400 });
+    }
+
+    const supabase = await createClientWithUser(userId);
+
+    const { data: jobRequest, error: fetchError } = await supabase
+      .from("job_requests")
+      .select("id, homeowner_id, status")
+      .eq("id", jobId)
+      .single();
+
+    if (fetchError || !jobRequest) {
+      return NextResponse.json({ error: "Job not found." }, { status: 404 });
+    }
+
+    if (jobRequest.homeowner_id !== userId) {
+      return NextResponse.json({ error: "You cannot delete this job." }, { status: 403 });
+    }
+
+    if (jobRequest.status !== "open") {
+      return NextResponse.json({ error: "Only open jobs can be deleted." }, { status: 409 });
+    }
+
+    const { error: deleteError } = await supabase
+      .from("job_requests")
+      .delete()
+      .eq("id", jobId);
+
+    if (deleteError) {
+      console.error("Error deleting job request:", deleteError);
+      return NextResponse.json({ error: "Failed to delete job." }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error handling job request DELETE:", error);
+    return NextResponse.json({ error: "Invalid request payload." }, { status: 400 });
+  }
+}

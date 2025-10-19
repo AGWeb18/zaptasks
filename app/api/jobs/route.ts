@@ -137,7 +137,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unable to look up provider" }, { status: 500 });
     }
 
-    const providerStripeAccountId = providerRecord?.stripe_account_id ?? null;
+    let providerStripeAccountId = providerRecord?.stripe_account_id ?? null;
+
+    if (!providerStripeAccountId) {
+      const { data: historicalJob } = await supabase
+        .from("jobs")
+        .select("provider_stripe_account_id")
+        .eq("provider_id", selectedApplication.provider_id)
+        .eq("homeowner_id", userId)
+        .not("provider_stripe_account_id", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (historicalJob?.provider_stripe_account_id) {
+        providerStripeAccountId = historicalJob.provider_stripe_account_id;
+      }
+    }
+
     const providerNeedsOnboarding = !providerStripeAccountId;
 
     const amountFromPayload =
