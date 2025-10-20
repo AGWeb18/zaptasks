@@ -71,10 +71,10 @@ export async function POST(req: NextRequest) {
         },
         controller: {
           fees: {
-            payer: "application",
+            payer: "account",
           },
           losses: {
-            payments: "application",
+            payments: "stripe",
           },
           stripe_dashboard: {
             type: "express",

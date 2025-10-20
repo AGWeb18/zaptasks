@@ -595,6 +595,10 @@ const ProJobsPage = () => {
                           <p className="text-xs uppercase text-emerald-600">Projected payout</p>
                           <p className="text-2xl font-semibold text-emerald-800">{formatCurrency(providerTakeHome)}</p>
                           <p className="text-xs text-emerald-700 mt-1">After ZapTasks fee ({Math.round(job.platform_fee_rate * 100)}%)</p>
+                          <p className="text-xs text-emerald-600 mt-2">
+                            Stripe deducts card processing fees separately, and Stripe handles dispute losses so there are no
+                            extra ZapTasks loss fees.
+                          </p>
                         </div>
                         <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
                           <p className="text-xs uppercase text-slate-600">Escrow funded so far</p>

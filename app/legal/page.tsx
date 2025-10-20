@@ -32,7 +32,7 @@ export default function LegalPage() {
           </p>
           <h3 className="text-lg font-semibold text-slate-900">3. Fees</h3>
           <p className="text-sm text-slate-600">
-            Homeowners pay no booking fee. ZapTasks collects a 10% platform fee on completed jobs, with an 8% rate available for larger licensed trades. Fees are deducted automatically from Stripe Connect payouts when funds are released.
+            Homeowners pay no booking fee. ZapTasks collects a 10% platform fee on completed jobs, with an 8% rate available for larger licensed trades. Providers cover Stripe’s payment processing fees directly—Stripe deducts those costs from each payout in addition to our platform fee. Stripe also absorbs card-network dispute losses under our controller configuration, so ZapTasks does not pass along extra loss fees to providers.
           </p>
           <h3 className="text-lg font-semibold text-slate-900">4. Deposits & releases</h3>
           <p className="text-sm text-slate-600">
