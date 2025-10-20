@@ -50,14 +50,17 @@ export async function POST(req: NextRequest) {
 
     const { data: providerRecord } = await supabase
       .from("providers")
-      .select("id, stripe_account_id, name")
+      .select(
+        "id, stripe_account_id, name, stripe_charges_enabled, stripe_details_submitted"
+      )
       .eq("user_id", userId)
       .maybeSingle();
 
     let accountId = providerRecord?.stripe_account_id ?? null;
+    let createdAccount: Awaited<ReturnType<typeof stripe.accounts.create>> | null = null;
 
     if (!accountId) {
-      const account = await stripe.accounts.create({
+      createdAccount = await stripe.accounts.create({
         country: "CA",
         email,
         business_type: "individual",
@@ -82,41 +85,51 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      accountId = account.id;
+      accountId = createdAccount.id;
+    }
 
-      if (providerRecord?.id) {
-        const { error: updateError } = await supabase
-          .from("providers")
-          .update({
-            stripe_account_id: accountId,
-            name: providerRecord.name ?? providerName,
-          })
-          .eq("id", providerRecord.id);
+    const accountDetails = await stripe.accounts.retrieve(accountId);
+    const chargesEnabled = Boolean(accountDetails.charges_enabled);
+    const detailsSubmitted = Boolean(accountDetails.details_submitted);
 
-        if (updateError) {
-          console.warn("Failed to update provider with Stripe account id", updateError);
-        }
-      } else {
-        const { error: insertError } = await supabase
-          .from("providers")
-          .insert({ user_id: userId, name: providerName, stripe_account_id: accountId })
-          .select("id")
-          .single();
+    if (providerRecord?.id) {
+      const updatePayload: Record<string, unknown> = {
+        stripe_account_id: accountId,
+        stripe_charges_enabled: chargesEnabled,
+        stripe_details_submitted: detailsSubmitted,
+      };
 
-        if (insertError) {
-          console.warn("Failed to insert provider record for onboarding", insertError);
-        }
+      if (!providerRecord.name) {
+        updatePayload.name = providerName;
       }
-    } else if (providerRecord && !providerRecord.name) {
-      const { error: backfillNameError } = await supabase
+
+      const { error: updateError } = await supabase
         .from("providers")
-        .update({ name: providerName })
+        .update(updatePayload)
         .eq("id", providerRecord.id);
 
-      if (backfillNameError) {
-        console.warn("Failed to backfill provider name", backfillNameError);
+      if (updateError) {
+        console.warn("Failed to update provider onboarding readiness", updateError);
+      }
+    } else {
+      const { error: insertError } = await supabase
+        .from("providers")
+        .insert({
+          user_id: userId,
+          name: providerName,
+          stripe_account_id: accountId,
+          stripe_charges_enabled: chargesEnabled,
+          stripe_details_submitted: detailsSubmitted,
+        })
+        .select("id")
+        .single();
+
+      if (insertError) {
+        console.warn("Failed to insert provider record for onboarding", insertError);
       }
     }
+
+    const readinessSatisfied = chargesEnabled && detailsSubmitted;
 
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
@@ -129,8 +142,8 @@ export async function POST(req: NextRequest) {
       .from("jobs")
       .update({
         provider_stripe_account_id: accountId,
-        job_status: "awaiting_escrow",
         updated_at: new Date().toISOString(),
+        ...(readinessSatisfied ? { job_status: "awaiting_escrow" } : {}),
       })
       .eq("provider_id", userId)
       .eq("job_status", "awaiting_provider_onboarding");
@@ -139,7 +152,12 @@ export async function POST(req: NextRequest) {
       console.warn("Failed to refresh job payout readiness", jobUpdateError);
     }
 
-    return NextResponse.json({ accountId, url: accountLink.url });
+    return NextResponse.json({
+      accountId,
+      url: accountLink.url,
+      chargesEnabled,
+      detailsSubmitted,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to create Stripe Connect account";
     console.error("Failed to create Stripe Connect account", error);

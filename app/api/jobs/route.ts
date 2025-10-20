@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 
-import { createClient, createClientWithUser } from "@/app/utils/supabase/server";
+import { createClientWithUser } from "@/app/utils/supabase/server";
 import {
   buildEscrowSchedule,
   createJobPaymentIntent,
@@ -53,6 +53,34 @@ export async function GET(req: NextRequest) {
 
     const jobs = Array.isArray(data) ? data : [];
 
+    let providerReadiness: {
+      stripe_account_id: string | null;
+      stripe_charges_enabled: boolean;
+      stripe_details_submitted: boolean;
+    } | null = null;
+
+    if (scope === "provider") {
+      const { data: providerRow, error: providerError } = await supabase
+        .from("providers")
+        .select(
+          "stripe_account_id, stripe_charges_enabled, stripe_details_submitted"
+        )
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (providerError) {
+        console.warn("Failed to load provider onboarding status", providerError);
+      }
+
+      if (providerRow) {
+        providerReadiness = {
+          stripe_account_id: providerRow.stripe_account_id ?? null,
+          stripe_charges_enabled: Boolean(providerRow.stripe_charges_enabled),
+          stripe_details_submitted: Boolean(providerRow.stripe_details_submitted),
+        };
+      }
+    }
+
     for (const job of jobs) {
       if (!Array.isArray(job.payments)) continue;
 
@@ -79,7 +107,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ jobs });
+    return NextResponse.json({ jobs, providerReadiness });
   } catch (error) {
     console.error("Failed to list jobs:", error);
     return NextResponse.json({ error: "Failed to list jobs" }, { status: 500 });
@@ -128,7 +156,9 @@ export async function POST(req: NextRequest) {
 
     const { data: providerRecord, error: providerLookupError } = await supabase
       .from("providers")
-      .select("id, stripe_account_id, user_id")
+      .select(
+        "id, stripe_account_id, user_id, stripe_charges_enabled, stripe_details_submitted"
+      )
       .eq("user_id", selectedApplication.provider_id)
       .maybeSingle();
 
@@ -138,6 +168,10 @@ export async function POST(req: NextRequest) {
     }
 
     let providerStripeAccountId = providerRecord?.stripe_account_id ?? null;
+    const providerChargesEnabled = Boolean(providerRecord?.stripe_charges_enabled);
+    const providerDetailsSubmitted = Boolean(
+      providerRecord?.stripe_details_submitted
+    );
 
     if (!providerStripeAccountId) {
       const { data: historicalJob } = await supabase
@@ -155,7 +189,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const providerNeedsOnboarding = !providerStripeAccountId;
+    const providerReady = Boolean(
+      providerStripeAccountId && providerChargesEnabled && providerDetailsSubmitted
+    );
+    const providerNeedsOnboarding = !providerReady;
 
     const amountFromPayload =
       typeof body.overrideTotalAmount === "number"
@@ -239,7 +276,7 @@ export async function POST(req: NextRequest) {
     const escrowAmount = schedule.amounts.escrowCents;
     let escrowPaymentIntentResult: Awaited<ReturnType<typeof createJobPaymentIntent>> | null = null;
 
-    if (escrowAmount > 0 && providerStripeAccountId) {
+    if (escrowAmount > 0 && providerReady && providerStripeAccountId) {
       escrowPaymentIntentResult = await createJobPaymentIntent({
         jobId: insertedJob.id,
         amountCents: escrowAmount,

@@ -96,6 +96,12 @@ interface NotificationItem {
   read_at: string | null;
 }
 
+interface ProviderReadiness {
+  stripe_account_id: string | null;
+  stripe_charges_enabled: boolean;
+  stripe_details_submitted: boolean;
+}
+
 const parseEscrowSchedule = (raw: unknown): EscrowSchedule | null => {
   if (!raw) return null;
   if (typeof raw === "string") {
@@ -169,6 +175,7 @@ const ProJobsPage = () => {
   const [rateType, setRateType] = useState<"flat" | "hourly">("flat");
   const [rateAmount, setRateAmount] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
+  const [providerReadiness, setProviderReadiness] = useState<ProviderReadiness | null>(null);
 
   const currentUserId = user?.id;
 
@@ -213,6 +220,17 @@ const ProJobsPage = () => {
         throw new Error("Failed to load your escrow jobs");
       }
       const data = await response.json();
+      const readinessPayload = data?.providerReadiness;
+      setProviderReadiness(
+        readinessPayload
+          ? {
+              stripe_account_id: readinessPayload.stripe_account_id ?? null,
+              stripe_charges_enabled: Boolean(readinessPayload.stripe_charges_enabled),
+              stripe_details_submitted: Boolean(readinessPayload.stripe_details_submitted),
+            }
+          : null,
+      );
+
       if (Array.isArray(data.jobs)) {
         const jobList = data.jobs as EscrowJob[];
         const sanitizedJobs = jobList.filter((raw) => !isCanceledStatus(raw.job_status));
@@ -228,6 +246,7 @@ const ProJobsPage = () => {
       }
     } catch (err) {
       console.error(err);
+      setProviderReadiness(null);
     } finally {
       setLoadingEscrow(false);
     }
@@ -258,6 +277,31 @@ const ProJobsPage = () => {
         (payload) => {
           const notification = payload.new as NotificationItem;
           setNotifications((prev) => [notification, ...prev]);
+        }
+      )
+      .subscribe();
+
+    const onboardingChannel = supabase
+      .channel(`provider-onboarding-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "providers",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const record = payload.new as
+            | (ProviderReadiness & { stripe_account_id: string | null })
+            | null;
+          if (!record) return;
+
+          setProviderReadiness({
+            stripe_account_id: record.stripe_account_id ?? null,
+            stripe_charges_enabled: Boolean(record.stripe_charges_enabled),
+            stripe_details_submitted: Boolean(record.stripe_details_submitted),
+          });
         }
       )
       .subscribe();
@@ -361,6 +405,7 @@ const ProJobsPage = () => {
       supabase.removeChannel(notificationsChannel);
       supabase.removeChannel(jobsChannel);
       supabase.removeChannel(escrowChannel);
+      supabase.removeChannel(onboardingChannel);
     };
   }, [isLoaded, isSignedIn, user?.id]);
 
@@ -375,7 +420,12 @@ const ProJobsPage = () => {
 
   const openJobCount = jobs.length;
   const unreadNotifications = notifications.filter((notification) => !notification.read_at);
-  const requiresOnboarding = escrowJobs.some((job) => !job.provider_stripe_account_id);
+  const providerIsReady = Boolean(
+    providerReadiness?.stripe_account_id &&
+      providerReadiness?.stripe_charges_enabled &&
+      providerReadiness?.stripe_details_submitted
+  );
+  const requiresOnboarding = escrowJobs.length > 0 && !providerIsReady;
 
   const [onboardingLoading, setOnboardingLoading] = useState(false);
 
@@ -602,7 +652,7 @@ const ProJobsPage = () => {
                           <p className="text-xs text-slate-500 mt-1">{escrowStatusLabel}</p>
                         </div>
                       </div>
-                      {!job.provider_stripe_account_id && (
+                      {!providerIsReady && (
                         <div className="alert alert-warning text-sm">
                           <div>
                             <p className="font-semibold">Connect payouts to receive funds</p>
