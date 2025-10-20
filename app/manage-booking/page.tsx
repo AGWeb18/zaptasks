@@ -20,7 +20,12 @@ import {
 import { format } from "date-fns";
 import { createClient } from "@/app/utils/supabase/client";
 import { getServiceLabels } from "@/app/lib/services/catalog";
-import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
+import {
+  Elements,
+  PaymentElement,
+  useElements,
+  useStripe,
+} from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
@@ -259,7 +264,8 @@ const statusBadgeClasses: Record<string, string> = {
 };
 
 const isCanceledStatus = (status?: string | null): boolean =>
-  typeof status === "string" && ["canceled", "cancelled"].includes(status.toLowerCase());
+  typeof status === "string" &&
+  ["canceled", "cancelled"].includes(status.toLowerCase());
 
 const prettyStatus: Record<string, string> = {
   open: "Open",
@@ -276,10 +282,15 @@ const ManageJobsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingJobId, setUpdatingJobId] = useState<string | null>(null);
-  const [latestNotification, setLatestNotification] = useState<NotificationItem | null>(null);
-  const [jobsByRequestId, setJobsByRequestId] = useState<Record<string, EscrowJob>>({});
+  const [latestNotification, setLatestNotification] =
+    useState<NotificationItem | null>(null);
+  const [jobsByRequestId, setJobsByRequestId] = useState<
+    Record<string, EscrowJob>
+  >({});
   const [jobsById, setJobsById] = useState<Record<string, EscrowJob>>({});
-  const [paymentModal, setPaymentModal] = useState<PaymentModalState | null>(null);
+  const [paymentModal, setPaymentModal] = useState<PaymentModalState | null>(
+    null
+  );
   const [disputeJobId, setDisputeJobId] = useState<string | null>(null);
   const [disputeReason, setDisputeReason] = useState<string>("");
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
@@ -308,7 +319,9 @@ const ManageJobsPage = () => {
       const requestList = Array.isArray(requestData.jobRequests)
         ? (requestData.jobRequests as JobRequest[])
         : [];
-      const filteredRequests = requestList.filter((request) => !isCanceledStatus(request.status));
+      const filteredRequests = requestList.filter(
+        (request) => !isCanceledStatus(request.status)
+      );
 
       setJobRequests(filteredRequests);
 
@@ -441,7 +454,10 @@ const ManageJobsPage = () => {
     }
   };
 
-  const awardApplication = async (jobId: string, application: JobApplication) => {
+  const awardApplication = async (
+    jobId: string,
+    application: JobApplication
+  ) => {
     try {
       setUpdatingJobId(jobId);
       setError(null);
@@ -456,9 +472,7 @@ const ManageJobsPage = () => {
 
       if (!response.ok) {
         const errorPayload = await response.json().catch(() => null);
-        throw new Error(
-          errorPayload?.error ?? "Failed to create job escrow"
-        );
+        throw new Error(errorPayload?.error ?? "Failed to create job escrow");
       }
 
       const payload = await response.json();
@@ -466,7 +480,9 @@ const ManageJobsPage = () => {
       if (payload?.job) {
         const mappedJob: EscrowJob = {
           ...payload.job,
-          milestone_plan: parseEscrowSchedule(payload.schedule ?? payload.job?.milestone_plan),
+          milestone_plan: parseEscrowSchedule(
+            payload.schedule ?? payload.job?.milestone_plan
+          ),
           payments: payload.job.payments ?? [],
           job_milestones: payload.job.job_milestones ?? [],
         };
@@ -484,9 +500,14 @@ const ManageJobsPage = () => {
         setInfoMessage(
           "Your provider has been awarded, but they need to finish Stripe payouts before escrow can be funded. We'll alert you as soon as it's ready."
         );
-      } else if (payload?.schedule?.amounts && payload?.escrowPaymentIntent?.clientSecret) {
+      } else if (
+        payload?.schedule?.amounts &&
+        payload?.escrowPaymentIntent?.clientSecret
+      ) {
         setInfoMessage(
-          `Escrow created: hold $${(payload.schedule.amounts.escrowCents / 100).toFixed(2)} now, pay the rest when the job is complete.`
+          `Escrow created: hold $${(
+            payload.schedule.amounts.escrowCents / 100
+          ).toFixed(2)} now, pay the rest when the job is complete.`
         );
       }
 
@@ -546,7 +567,8 @@ const ManageJobsPage = () => {
         clientSecret: payload.paymentIntent.clientSecret,
         paymentIntentId: payload.paymentIntent.id,
         amountCents: payload.paymentRecord?.amount_cents ?? 0,
-        label: options?.label ??
+        label:
+          options?.label ??
           (paymentType === "escrow"
             ? "Pay Escrow"
             : paymentType === "progress"
@@ -583,7 +605,10 @@ const ManageJobsPage = () => {
 
       const payload = await response.json();
 
-      if (payload?.requiresFinalPayment && payload?.paymentIntent?.clientSecret) {
+      if (
+        payload?.requiresFinalPayment &&
+        payload?.paymentIntent?.clientSecret
+      ) {
         setPaymentModal({
           jobId: job.id,
           paymentType: "completion",
@@ -594,7 +619,9 @@ const ManageJobsPage = () => {
           label: "Pay Remaining",
         });
       } else {
-        setInfoMessage("All payments released to your pro. Thanks for using ZapTasks!");
+        setInfoMessage(
+          "All payments released to your pro. Thanks for using ZapTasks!"
+        );
         await fetchJobs({ silent: true });
       }
     } catch (err) {
@@ -625,9 +652,7 @@ const ManageJobsPage = () => {
     } catch (err) {
       console.error(err);
       setError(
-        err instanceof Error
-          ? err.message
-          : "We couldn’t finalize the payment."
+        err instanceof Error ? err.message : "We couldn’t finalize the payment."
       );
     }
   };
@@ -648,11 +673,15 @@ const ManageJobsPage = () => {
         throw new Error(payload?.error ?? "Failed to cancel job");
       }
 
-      setInfoMessage("Job cancelled and any escrow will be released within 5-10 days.");
+      setInfoMessage(
+        "Job cancelled and any escrow will be released within 5-10 days."
+      );
       await fetchJobs({ silent: true });
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "We couldn’t cancel this job.");
+      setError(
+        err instanceof Error ? err.message : "We couldn’t cancel this job."
+      );
     } finally {
       setUpdatingJobId(null);
     }
@@ -677,7 +706,9 @@ const ManageJobsPage = () => {
         throw new Error(payload?.error ?? "Failed to open dispute");
       }
 
-      setInfoMessage("We’ve logged your dispute. A ZapTasks specialist will reach out within 24 hours.");
+      setInfoMessage(
+        "We’ve logged your dispute. A ZapTasks specialist will reach out within 24 hours."
+      );
       setDisputeJobId(null);
       setDisputeReason("");
       await fetchJobs({ silent: true });
@@ -693,19 +724,28 @@ const ManageJobsPage = () => {
 
   const groupedJobs = useMemo(() => {
     return {
-      active: jobRequests.filter((job) => job.status === "open" || job.status === "awarded"),
-      archived: jobRequests.filter((job) => job.status === "completed" || job.status === "cancelled"),
+      active: jobRequests.filter(
+        (job) => job.status === "open" || job.status === "awarded"
+      ),
+      archived: jobRequests.filter(
+        (job) => job.status === "completed" || job.status === "cancelled"
+      ),
     };
   }, [jobRequests]);
 
   const latestNotificationMessage = useMemo(() => {
     if (!latestNotification) return null;
-    const payload = latestNotification.payload as Record<string, unknown> | undefined;
+    const payload = latestNotification.payload as
+      | Record<string, unknown>
+      | undefined;
     switch (latestNotification.type) {
       case "job_application_received": {
-        const providerName = (payload?.providerName as string | undefined) ??
+        const providerName =
+          (payload?.providerName as string | undefined) ??
           (payload?.provider_name as string | undefined);
-        return `${providerName ?? "A local pro"} just applied to one of your jobs.`;
+        return `${
+          providerName ?? "A local pro"
+        } just applied to one of your jobs.`;
       }
       case "job_application_awarded":
         return "Your selected pro has been notified.";
@@ -735,9 +775,12 @@ const ManageJobsPage = () => {
       <main className="container mx-auto px-4 py-10">
         <section className="max-w-5xl mx-auto">
           <header className="text-center mb-10">
-            <h1 className="text-4xl font-bold text-blue-600 mb-3">My Job Requests</h1>
+            <h1 className="text-4xl font-bold text-blue-600 mb-3">
+              My Job Requests
+            </h1>
             <p className="text-base-content/70">
-              Track winter service requests, review applicant messages, and award jobs to your preferred pro.
+              Track service requests, review applicant messages, and award jobs
+              to your preferred pro.
             </p>
           </header>
 
@@ -759,7 +802,10 @@ const ManageJobsPage = () => {
             <div className="alert alert-success shadow mb-6">
               <CheckCircle className="h-5 w-5" />
               <span>{infoMessage}</span>
-              <button className="btn btn-xs btn-ghost" onClick={() => setInfoMessage(null)}>
+              <button
+                className="btn btn-xs btn-ghost"
+                onClick={() => setInfoMessage(null)}
+              >
                 Close
               </button>
             </div>
@@ -772,9 +818,12 @@ const ManageJobsPage = () => {
           ) : jobRequests.length === 0 ? (
             <div className="bg-white rounded-lg shadow p-10 text-center">
               <Inbox className="w-14 h-14 mx-auto text-blue-400 mb-4" />
-              <h2 className="text-2xl font-semibold mb-2">No job requests yet</h2>
+              <h2 className="text-2xl font-semibold mb-2">
+                No job requests yet
+              </h2>
               <p className="text-base-content/70">
-                Post your first fall or winter job request to start receiving applications from trusted local pros.
+                Post your first job request to start receiving applications from
+                trusted local pros.
               </p>
             </div>
           ) : (
@@ -792,19 +841,23 @@ const ManageJobsPage = () => {
                         <CheckCircle className="text-slate-400" />
                       )}
                       <h2 className="text-xl font-semibold text-gray-800">
-                        {group === "active" ? "Active requests" : "Past requests"}
+                        {group === "active"
+                          ? "Active requests"
+                          : "Past requests"}
                       </h2>
                     </div>
                     <div className="grid gap-6">
                       {jobs.map((job) => {
                         const isExpanded = expandedJob === job.id;
-                        const badgeClass = statusBadgeClasses[job.status] ?? "badge-ghost";
+                        const badgeClass =
+                          statusBadgeClasses[job.status] ?? "badge-ghost";
                         const applications = job.job_applications ?? [];
                         const awardedApplication = applications.find(
                           (app) => app.id === job.selected_application_id
                         );
                         const escrowJob = jobsByRequestId[job.id];
-                        const escrowSchedule = escrowJob?.milestone_plan ?? null;
+                        const escrowSchedule =
+                          escrowJob?.milestone_plan ?? null;
                         const escrowPayment = escrowJob?.payments?.find(
                           (payment) => payment.payment_type === "escrow"
                         );
@@ -815,11 +868,19 @@ const ManageJobsPage = () => {
                           (payment) => payment.payment_type === "completion"
                         );
                         const activeMilestone = escrowJob?.job_milestones?.find(
-                          (milestone) => milestone.status === "pending" || milestone.status === "funding_in_progress"
+                          (milestone) =>
+                            milestone.status === "pending" ||
+                            milestone.status === "funding_in_progress"
                         );
-                        const escrowStatusLabel = formatPaymentStatus(escrowPayment?.status);
-                        const progressStatusLabel = formatPaymentStatus(progressPayment?.status);
-                        const completionStatusLabel = formatPaymentStatus(completionPayment?.status);
+                        const escrowStatusLabel = formatPaymentStatus(
+                          escrowPayment?.status
+                        );
+                        const progressStatusLabel = formatPaymentStatus(
+                          progressPayment?.status
+                        );
+                        const completionStatusLabel = formatPaymentStatus(
+                          completionPayment?.status
+                        );
                         const escrowNeedsPayment =
                           !escrowPayment ||
                           [
@@ -844,23 +905,29 @@ const ManageJobsPage = () => {
                           ].includes(completionPayment.status ?? "");
                         const escrowFundedCents =
                           escrowPayment &&
-                          ["succeeded", "requires_capture", "processing"].includes(
-                            escrowPayment.status ?? ""
-                          )
+                          [
+                            "succeeded",
+                            "requires_capture",
+                            "processing",
+                          ].includes(escrowPayment.status ?? "")
                             ? escrowPayment.amount_cents
                             : 0;
                         const progressFundedCents =
                           progressPayment &&
-                          ["succeeded", "requires_capture", "processing"].includes(
-                            progressPayment.status ?? ""
-                          )
+                          [
+                            "succeeded",
+                            "requires_capture",
+                            "processing",
+                          ].includes(progressPayment.status ?? "")
                             ? progressPayment.amount_cents
                             : 0;
                         const completionFundedCents =
                           completionPayment &&
-                          ["succeeded", "requires_capture", "processing"].includes(
-                            completionPayment.status ?? ""
-                          )
+                          [
+                            "succeeded",
+                            "requires_capture",
+                            "processing",
+                          ].includes(completionPayment.status ?? "")
                             ? completionPayment.amount_cents
                             : 0;
                         const escrowFundedLabel =
@@ -876,7 +943,8 @@ const ManageJobsPage = () => {
                             ? `$${(completionFundedCents / 100).toFixed(2)}`
                             : "—";
                         const plannedRemainingCents = escrowSchedule
-                          ? escrowSchedule.amounts.progressCents + escrowSchedule.amounts.completionCents
+                          ? escrowSchedule.amounts.progressCents +
+                            escrowSchedule.amounts.completionCents
                           : 0;
                         const plannedRemainingLabel =
                           plannedRemainingCents > 0
@@ -884,7 +952,10 @@ const ManageJobsPage = () => {
                             : "—";
 
                         return (
-                          <article key={job.id} className="card bg-white shadow-md border border-slate-200">
+                          <article
+                            key={job.id}
+                            className="card bg-white shadow-md border border-slate-200"
+                          >
                             <div className="card-body">
                               <header className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                                 <div>
@@ -892,146 +963,235 @@ const ManageJobsPage = () => {
                                     <h3 className="text-2xl font-semibold text-gray-900">
                                       {job.job_title}
                                     </h3>
-                                    <span className={`badge ${badgeClass} text-xs uppercase tracking-wide`}> 
+                                    <span
+                                      className={`badge ${badgeClass} text-xs uppercase tracking-wide`}
+                                    >
                                       {prettyStatus[job.status] ?? job.status}
                                     </span>
                                   </div>
                                   <div className="flex flex-wrap gap-2 text-sm text-blue-700 mb-3">
-                                    {getServiceLabels(job.services).map((label) => (
-                                      <span key={label} className="badge badge-outline">
-                                        {label}
-                                      </span>
-                                    ))}
+                                    {getServiceLabels(job.services).map(
+                                      (label) => (
+                                        <span
+                                          key={label}
+                                          className="badge badge-outline"
+                                        >
+                                          {label}
+                                        </span>
+                                      )
+                                    )}
                                   </div>
                                   <p className="text-base-content/70 leading-relaxed mb-4">
                                     {job.description}
                                   </p>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-base-content/80">
-                                <div className="flex items-center gap-2">
-                                  <Calendar className="w-4 h-4" />
-                                  <span>
-                                    {job.service_date
-                                          ? format(new Date(job.service_date), "MMM d, yyyy")
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-base-content/80">
+                                    <div className="flex items-center gap-2">
+                                      <Calendar className="w-4 h-4" />
+                                      <span>
+                                        {job.service_date
+                                          ? format(
+                                              new Date(job.service_date),
+                                              "MMM d, yyyy"
+                                            )
                                           : "Date flexible"}
-                                        {job.service_time ? ` • ${job.service_time}` : ""}
+                                        {job.service_time
+                                          ? ` • ${job.service_time}`
+                                          : ""}
                                       </span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                       <MapPin className="w-4 h-4" />
-                                      <span>{job.address ?? "Location provided to awarded pro"}</span>
+                                      <span>
+                                        {job.address ??
+                                          "Location provided to awarded pro"}
+                                      </span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                       <Clock className="w-4 h-4" />
                                       <span>
-                                        {job.hours ? `${job.hours} hour${job.hours > 1 ? "s" : ""}` : "Hours TBD"}
+                                        {job.hours
+                                          ? `${job.hours} hour${
+                                              job.hours > 1 ? "s" : ""
+                                            }`
+                                          : "Hours TBD"}
                                       </span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                       <Users className="w-4 h-4" />
                                       <span>
-                                        {job.people ? `${job.people} person crew` : "Crew size flexible"}
+                                        {job.people
+                                          ? `${job.people} person crew`
+                                          : "Crew size flexible"}
                                       </span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                       <DollarSign className="w-4 h-4" />
                                       <span>
                                         {job.budget_amount
-                                          ? `${job.budget_type === "hourly" ? "Hourly" : "Flat"} • $${job.budget_amount.toFixed(0)}`
+                                          ? `${
+                                              job.budget_type === "hourly"
+                                                ? "Hourly"
+                                                : "Flat"
+                                            } • $${job.budget_amount.toFixed(
+                                              0
+                                            )}`
                                           : "Budget hidden"}
-                                  </span>
-                                </div>
-                              </div>
-
-                              {escrowJob && escrowSchedule && (
-                                <section className="mt-6 border-t border-slate-200 pt-6">
-                                  <h4 className="text-lg font-semibold text-slate-800 mb-3">
-                                    Payment plan
-                                  </h4>
-                                  <p className="text-sm text-slate-600 mb-4">
-                                    We hold funds in Stripe-powered escrow so both sides feel safe.
-                                  </p>
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div className="p-4 border border-blue-100 rounded-lg bg-blue-50 flex flex-col gap-2">
-                                      <span className="text-xs uppercase tracking-wide text-blue-600">Deposit</span>
-                                      <p className="text-2xl font-semibold text-blue-800">
-                                        {"$" + (escrowSchedule.amounts.escrowCents / 100).toFixed(2)}
-                                      </p>
-                                      <p className="text-xs text-blue-700">Paid so far: {escrowFundedLabel}</p>
-                                      <p className="text-sm text-blue-700">Status: {escrowStatusLabel}</p>
-                                      {escrowNeedsPayment && (
-                                        <button
-                                          className="btn btn-sm btn-primary mt-1"
-                                          disabled={!stripePromise}
-                                          onClick={() => openPaymentIntent(escrowJob, "escrow")}
-                                        >
-                                          Pay deposit now
-                                        </button>
-                                      )}
-                                      {!escrowNeedsPayment && escrowPayment?.status === "requires_capture" && (
-                                        <p className="text-xs text-blue-700">
-                                          Funds secured. Release happens after completion.
-                                        </p>
-                                      )}
-                                    </div>
-
-                                    {escrowSchedule.amounts.progressCents > 0 && (
-                                      <div className="p-4 border border-amber-100 rounded-lg bg-amber-50 flex flex-col gap-2">
-                                        <span className="text-xs uppercase tracking-wide text-amber-600">Progress milestone</span>
-                                        <p className="text-2xl font-semibold text-amber-800">
-                                          {"$" + (escrowSchedule.amounts.progressCents / 100).toFixed(2)}
-                                        </p>
-                                        <p className="text-xs text-amber-700">Paid so far: {progressFundedLabel}</p>
-                                        <p className="text-sm text-amber-700">Status: {progressStatusLabel}</p>
-                                        {(!progressPayment || progressNeedsPayment) && activeMilestone && (
-                                          <button
-                                            className="btn btn-sm btn-warning mt-1"
-                                            disabled={!stripePromise}
-                                            onClick={() =>
-                                              openPaymentIntent(escrowJob, "progress", {
-                                                milestoneId: activeMilestone?.id,
-                                                label: "Pay progress",
-                                              })
-                                            }
-                                          >
-                                            Pay progress
-                                          </button>
-                                        )}
-                                        {progressPayment?.status === "requires_capture" && (
-                                          <p className="text-xs text-amber-700">
-                                            Progress funds ready to release when you finish.
-                                          </p>
-                                        )}
-                                      </div>
-                                    )}
-
-                                    <div className="p-4 border border-emerald-100 rounded-lg bg-emerald-50 flex flex-col gap-2">
-                                      <span className="text-xs uppercase tracking-wide text-emerald-600">Completion</span>
-                                      <p className="text-2xl font-semibold text-emerald-800">
-                                        {"$" + (escrowSchedule.amounts.completionCents / 100).toFixed(2)}
-                                      </p>
-                                      <p className="text-xs text-emerald-700">Paid so far: {completionFundedLabel}</p>
-                                      <p className="text-sm text-emerald-700">Status: {completionStatusLabel}</p>
-                                      {completionNeedsPayment && (
-                                        <button
-                                          className="btn btn-sm btn-success mt-1"
-                                          disabled={!stripePromise}
-                                          onClick={() => openPaymentIntent(escrowJob, "completion")}
-                                        >
-                                          Pay remainder
-                                        </button>
-                                      )}
-                                      {!completionNeedsPayment && completionPayment?.status === "succeeded" && (
-                                        <p className="text-xs text-emerald-700">
-                                          Final payment received. Thank you!
-                                        </p>
-                                      )}
+                                      </span>
                                     </div>
                                   </div>
-                                  <p className="mt-4 text-xs text-slate-500">
-                                    ZapTasks fee ({(escrowSchedule.platformFeeRate * 100).toFixed(1)}%) is included automatically. You’ll see it on the payout summary.
-                                  </p>
-                                </section>
-                              )}
+
+                                  {escrowJob && escrowSchedule && (
+                                    <section className="mt-6 border-t border-slate-200 pt-6">
+                                      <h4 className="text-lg font-semibold text-slate-800 mb-3">
+                                        Payment plan
+                                      </h4>
+                                      <p className="text-sm text-slate-600 mb-4">
+                                        We hold funds in Stripe-powered escrow
+                                        so both sides feel safe.
+                                      </p>
+                                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="p-4 border border-blue-100 rounded-lg bg-blue-50 flex flex-col gap-2">
+                                          <span className="text-xs uppercase tracking-wide text-blue-600">
+                                            Deposit
+                                          </span>
+                                          <p className="text-2xl font-semibold text-blue-800">
+                                            {"$" +
+                                              (
+                                                escrowSchedule.amounts
+                                                  .escrowCents / 100
+                                              ).toFixed(2)}
+                                          </p>
+                                          <p className="text-xs text-blue-700">
+                                            Paid so far: {escrowFundedLabel}
+                                          </p>
+                                          <p className="text-sm text-blue-700">
+                                            Status: {escrowStatusLabel}
+                                          </p>
+                                          {escrowNeedsPayment && (
+                                            <button
+                                              className="btn btn-sm btn-primary mt-1"
+                                              disabled={!stripePromise}
+                                              onClick={() =>
+                                                openPaymentIntent(
+                                                  escrowJob,
+                                                  "escrow"
+                                                )
+                                              }
+                                            >
+                                              Pay deposit now
+                                            </button>
+                                          )}
+                                          {!escrowNeedsPayment &&
+                                            escrowPayment?.status ===
+                                              "requires_capture" && (
+                                              <p className="text-xs text-blue-700">
+                                                Funds secured. Release happens
+                                                after completion.
+                                              </p>
+                                            )}
+                                        </div>
+
+                                        {escrowSchedule.amounts.progressCents >
+                                          0 && (
+                                          <div className="p-4 border border-amber-100 rounded-lg bg-amber-50 flex flex-col gap-2">
+                                            <span className="text-xs uppercase tracking-wide text-amber-600">
+                                              Progress milestone
+                                            </span>
+                                            <p className="text-2xl font-semibold text-amber-800">
+                                              {"$" +
+                                                (
+                                                  escrowSchedule.amounts
+                                                    .progressCents / 100
+                                                ).toFixed(2)}
+                                            </p>
+                                            <p className="text-xs text-amber-700">
+                                              Paid so far: {progressFundedLabel}
+                                            </p>
+                                            <p className="text-sm text-amber-700">
+                                              Status: {progressStatusLabel}
+                                            </p>
+                                            {(!progressPayment ||
+                                              progressNeedsPayment) &&
+                                              activeMilestone && (
+                                                <button
+                                                  className="btn btn-sm btn-warning mt-1"
+                                                  disabled={!stripePromise}
+                                                  onClick={() =>
+                                                    openPaymentIntent(
+                                                      escrowJob,
+                                                      "progress",
+                                                      {
+                                                        milestoneId:
+                                                          activeMilestone?.id,
+                                                        label: "Pay progress",
+                                                      }
+                                                    )
+                                                  }
+                                                >
+                                                  Pay progress
+                                                </button>
+                                              )}
+                                            {progressPayment?.status ===
+                                              "requires_capture" && (
+                                              <p className="text-xs text-amber-700">
+                                                Progress funds ready to release
+                                                when you finish.
+                                              </p>
+                                            )}
+                                          </div>
+                                        )}
+
+                                        <div className="p-4 border border-emerald-100 rounded-lg bg-emerald-50 flex flex-col gap-2">
+                                          <span className="text-xs uppercase tracking-wide text-emerald-600">
+                                            Completion
+                                          </span>
+                                          <p className="text-2xl font-semibold text-emerald-800">
+                                            {"$" +
+                                              (
+                                                escrowSchedule.amounts
+                                                  .completionCents / 100
+                                              ).toFixed(2)}
+                                          </p>
+                                          <p className="text-xs text-emerald-700">
+                                            Paid so far: {completionFundedLabel}
+                                          </p>
+                                          <p className="text-sm text-emerald-700">
+                                            Status: {completionStatusLabel}
+                                          </p>
+                                          {completionNeedsPayment && (
+                                            <button
+                                              className="btn btn-sm btn-success mt-1"
+                                              disabled={!stripePromise}
+                                              onClick={() =>
+                                                openPaymentIntent(
+                                                  escrowJob,
+                                                  "completion"
+                                                )
+                                              }
+                                            >
+                                              Pay remainder
+                                            </button>
+                                          )}
+                                          {!completionNeedsPayment &&
+                                            completionPayment?.status ===
+                                              "succeeded" && (
+                                              <p className="text-xs text-emerald-700">
+                                                Final payment received. Thank
+                                                you!
+                                              </p>
+                                            )}
+                                        </div>
+                                      </div>
+                                      <p className="mt-4 text-xs text-slate-500">
+                                        ZapTasks fee (
+                                        {(
+                                          escrowSchedule.platformFeeRate * 100
+                                        ).toFixed(1)}
+                                        %) is included automatically. You’ll see
+                                        it on the payout summary.
+                                      </p>
+                                    </section>
+                                  )}
                                 </div>
                                 <div className="flex flex-col items-start gap-2">
                                   {job.status === "open" && (
@@ -1040,51 +1200,79 @@ const ManageJobsPage = () => {
                                       onClick={() => handleDeleteJob(job.id)}
                                       disabled={updatingJobId === job.id}
                                     >
-                                      {updatingJobId === job.id ? "Deleting..." : "Delete job"}
+                                      {updatingJobId === job.id
+                                        ? "Deleting..."
+                                        : "Delete job"}
                                     </button>
                                   )}
-                                  {job.status === "awarded" && awardedApplication && escrowJob && (
-                                    <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-3 text-sm text-blue-700 space-y-2">
-                                      <p className="font-semibold flex items-center gap-2">
-                                        <Award className="w-4 h-4" /> Awarded to {awardedApplication.provider_name ?? "Selected pro"}
-                                      </p>
-                                      {renderCurrency(job.agreed_total_amount) && (
-                                        <p className="text-xs text-blue-600">
-                                          Total budget: ${renderCurrency(job.agreed_total_amount)} CAD
+                                  {job.status === "awarded" &&
+                                    awardedApplication &&
+                                    escrowJob && (
+                                      <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-3 text-sm text-blue-700 space-y-2">
+                                        <p className="font-semibold flex items-center gap-2">
+                                          <Award className="w-4 h-4" /> Awarded
+                                          to{" "}
+                                          {awardedApplication.provider_name ??
+                                            "Selected pro"}
                                         </p>
-                                      )}
-                                      <p className="text-xs text-blue-600">
-                                        Escrow status: {escrowStatusLabel} • Secured so far: {escrowFundedLabel}
-                                      </p>
-                                      <div className="flex flex-wrap gap-2">
-                                        <button
-                                          className="btn btn-xs btn-primary"
-                                          disabled={!escrowJob || updatingJobId === (escrowJob.job_request_id ?? escrowJob.id)}
-                                          onClick={() => handleMarkComplete(escrowJob)}
-                                        >
-                                          Mark job complete
-                                        </button>
-                                        <button
-                                          className="btn btn-xs btn-ghost"
-                                          disabled={!escrowJob || updatingJobId === (escrowJob.job_request_id ?? escrowJob.id)}
-                                          onClick={() => handleCancelJob(escrowJob)}
-                                        >
-                                          Cancel job
-                                        </button>
-                                        <button
-                                          className="btn btn-xs btn-outline"
-                                          onClick={() => {
-                                            if (escrowJob) {
-                                              setDisputeJobId(escrowJob.id);
-                                              setDisputeReason("");
+                                        {renderCurrency(
+                                          job.agreed_total_amount
+                                        ) && (
+                                          <p className="text-xs text-blue-600">
+                                            Total budget: $
+                                            {renderCurrency(
+                                              job.agreed_total_amount
+                                            )}{" "}
+                                            CAD
+                                          </p>
+                                        )}
+                                        <p className="text-xs text-blue-600">
+                                          Escrow status: {escrowStatusLabel} •
+                                          Secured so far: {escrowFundedLabel}
+                                        </p>
+                                        <div className="flex flex-wrap gap-2">
+                                          <button
+                                            className="btn btn-xs btn-primary"
+                                            disabled={
+                                              !escrowJob ||
+                                              updatingJobId ===
+                                                (escrowJob.job_request_id ??
+                                                  escrowJob.id)
                                             }
-                                          }}
-                                        >
-                                          Report issue
-                                        </button>
+                                            onClick={() =>
+                                              handleMarkComplete(escrowJob)
+                                            }
+                                          >
+                                            Mark job complete
+                                          </button>
+                                          <button
+                                            className="btn btn-xs btn-ghost"
+                                            disabled={
+                                              !escrowJob ||
+                                              updatingJobId ===
+                                                (escrowJob.job_request_id ??
+                                                  escrowJob.id)
+                                            }
+                                            onClick={() =>
+                                              handleCancelJob(escrowJob)
+                                            }
+                                          >
+                                            Cancel job
+                                          </button>
+                                          <button
+                                            className="btn btn-xs btn-outline"
+                                            onClick={() => {
+                                              if (escrowJob) {
+                                                setDisputeJobId(escrowJob.id);
+                                                setDisputeReason("");
+                                              }
+                                            }}
+                                          >
+                                            Report issue
+                                          </button>
+                                        </div>
                                       </div>
-                                    </div>
-                                  )}
+                                    )}
                                   <button
                                     onClick={() => handleToggleJob(job.id)}
                                     className="btn btn-sm btn-outline"
@@ -1107,24 +1295,49 @@ const ManageJobsPage = () => {
                               {isExpanded && (
                                 <section className="mt-6 space-y-6">
                                   <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 text-sm text-base-content/80">
-                                    <h4 className="font-semibold text-base text-gray-800 mb-2">Additional details</h4>
+                                    <h4 className="font-semibold text-base text-gray-800 mb-2">
+                                      Additional details
+                                    </h4>
                                     <p className="mb-2">
-                                      <span className="font-medium">Contact preference:</span> {job.contact_preference ?? "ZapTasks messages"}
+                                      <span className="font-medium">
+                                        Contact preference:
+                                      </span>{" "}
+                                      {job.contact_preference ??
+                                        "ZapTasks messages"}
                                     </p>
                                     {escrowSchedule && (
                                       <div className="text-xs text-slate-600 space-y-2">
                                         <p>
-                                          Planned escrow releases: {escrowSchedule.escrowPercentage}% upfront, {escrowSchedule.progressPercentage ?? 0}% mid-job, {escrowSchedule.completionPercentage}% on completion.
+                                          Planned escrow releases:{" "}
+                                          {escrowSchedule.escrowPercentage}%
+                                          upfront,{" "}
+                                          {escrowSchedule.progressPercentage ??
+                                            0}
+                                          % mid-job,{" "}
+                                          {escrowSchedule.completionPercentage}%
+                                          on completion.
                                         </p>
-                                        <p>Escrow funded so far: {escrowFundedLabel}. Planned remaining releases: {plannedRemainingLabel}.</p>
                                         <p>
-                                          ZapTasks fee ({(escrowSchedule.platformFeeRate * 100).toFixed(1)}%) automatically covers processing and trust & safety support.
+                                          Escrow funded so far:{" "}
+                                          {escrowFundedLabel}. Planned remaining
+                                          releases: {plannedRemainingLabel}.
+                                        </p>
+                                        <p>
+                                          ZapTasks fee (
+                                          {(
+                                            escrowSchedule.platformFeeRate * 100
+                                          ).toFixed(1)}
+                                          %) automatically covers processing and
+                                          trust & safety support.
                                         </p>
                                       </div>
                                     )}
                                     {job.budget_notes && (
                                       <p className="mt-3 text-xs text-slate-600">
-                                        <span className="font-medium text-slate-700">Budget notes:</span> {job.budget_notes}
+                                        <span className="font-medium text-slate-700">
+                                          Budget notes:
+                                        </span>{" "}
+                                        {job.budget_notes}
                                       </p>
                                     )}
                                   </div>
@@ -1135,7 +1348,8 @@ const ManageJobsPage = () => {
                                     </h4>
                                     {applications.length === 0 ? (
                                       <p className="text-base-content/60 text-sm">
-                                        No applications yet. We’ll alert you as soon as local pros respond.
+                                        No applications yet. We’ll alert you as
+                                        soon as local pros respond.
                                       </p>
                                     ) : (
                                       <div className="space-y-4">
@@ -1147,17 +1361,30 @@ const ManageJobsPage = () => {
                                             <div>
                                               <div className="flex items-center gap-2 mb-1">
                                                 <h5 className="text-lg font-semibold text-gray-900">
-                                                  {application.provider_name ?? "Prospective provider"}
+                                                  {application.provider_name ??
+                                                    "Prospective provider"}
                                                 </h5>
-                                                {application.status === "awarded" && (
-                                                  <span className="badge badge-success badge-sm">Awarded</span>
+                                                {application.status ===
+                                                  "awarded" && (
+                                                  <span className="badge badge-success badge-sm">
+                                                    Awarded
+                                                  </span>
                                                 )}
-                                                {application.status === "not_selected" && (
-                                                  <span className="badge badge-ghost badge-sm">Not selected</span>
+                                                {application.status ===
+                                                  "not_selected" && (
+                                                  <span className="badge badge-ghost badge-sm">
+                                                    Not selected
+                                                  </span>
                                                 )}
                                               </div>
                                               <p className="text-xs text-base-content/60 mb-2">
-                                                Applied on {format(new Date(application.created_at), "MMM d, yyyy" )}
+                                                Applied on{" "}
+                                                {format(
+                                                  new Date(
+                                                    application.created_at
+                                                  ),
+                                                  "MMM d, yyyy"
+                                                )}
                                               </p>
                                               {application.message && (
                                                 <p className="text-sm text-base-content/80 leading-relaxed">
@@ -1167,7 +1394,13 @@ const ManageJobsPage = () => {
                                               <div className="flex flex-wrap gap-3 text-xs text-base-content/70 mt-3">
                                                 {application.proposed_rate && (
                                                   <span className="badge badge-outline">
-                                                    Proposed {application.proposed_rate_type === "hourly" ? "hourly" : "flat"}: ${application.proposed_rate}
+                                                    Proposed{" "}
+                                                    {application.proposed_rate_type ===
+                                                    "hourly"
+                                                      ? "hourly"
+                                                      : "flat"}
+                                                    : $
+                                                    {application.proposed_rate}
                                                   </span>
                                                 )}
                                               </div>
@@ -1176,10 +1409,19 @@ const ManageJobsPage = () => {
                                               {job.status === "open" && (
                                                 <button
                                                   className="btn btn-primary btn-sm"
-                                                  onClick={() => awardApplication(job.id, application)}
-                                                  disabled={updatingJobId === job.id}
+                                                  onClick={() =>
+                                                    awardApplication(
+                                                      job.id,
+                                                      application
+                                                    )
+                                                  }
+                                                  disabled={
+                                                    updatingJobId === job.id
+                                                  }
                                                 >
-                                                  {updatingJobId === job.id ? "Awarding..." : "Award job"}
+                                                  {updatingJobId === job.id
+                                                    ? "Awarding..."
+                                                    : "Award job"}
                                                 </button>
                                               )}
                                             </div>
@@ -1213,21 +1455,30 @@ const ManageJobsPage = () => {
                 {paymentModal.label}
               </h3>
               <p className="text-sm text-slate-600">
-                We’ll hold ${ (paymentModal.amountCents / 100).toFixed(2) } until the job step is done.
+                We’ll hold ${(paymentModal.amountCents / 100).toFixed(2)} until
+                the job step is done.
               </p>
             </header>
             <Elements
               stripe={stripePromise}
-              options={{ clientSecret: paymentModal.clientSecret, appearance: { theme: "stripe" } }}
+              options={{
+                clientSecret: paymentModal.clientSecret,
+                appearance: { theme: "stripe" },
+              }}
             >
               <EscrowPaymentForm
                 modal={paymentModal}
                 onSuccess={async (paymentIntentId) => {
                   if (paymentModal.paymentType === "completion") {
-                    await finalizeCompletion(paymentModal.jobId, paymentIntentId);
+                    await finalizeCompletion(
+                      paymentModal.jobId,
+                      paymentIntentId
+                    );
                   } else {
                     await fetchJobs({ silent: true });
-                    setInfoMessage("Payment secured. Funds release once the job step is approved.");
+                    setInfoMessage(
+                      "Payment secured. Funds release once the job step is approved."
+                    );
                   }
                 }}
                 onClose={() => setPaymentModal(null)}
@@ -1241,10 +1492,15 @@ const ManageJobsPage = () => {
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 space-y-4">
             <header className="space-y-1">
-              <p className="text-sm uppercase tracking-wide text-rose-500">Need help?</p>
-              <h3 className="text-2xl font-semibold text-slate-900">Tell us what went wrong</h3>
+              <p className="text-sm uppercase tracking-wide text-rose-500">
+                Need help?
+              </p>
+              <h3 className="text-2xl font-semibold text-slate-900">
+                Tell us what went wrong
+              </h3>
               <p className="text-sm text-slate-600">
-                ZapTasks pauses payout while our trust & safety team reviews your note.
+                ZapTasks pauses payout while our trust & safety team reviews
+                your note.
               </p>
             </header>
             <textarea
@@ -1268,7 +1524,9 @@ const ManageJobsPage = () => {
                 onClick={submitDispute}
                 disabled={updatingJobId === disputeJobId}
               >
-                {updatingJobId === disputeJobId ? "Submitting..." : "Submit dispute"}
+                {updatingJobId === disputeJobId
+                  ? "Submitting..."
+                  : "Submit dispute"}
               </button>
             </div>
           </div>

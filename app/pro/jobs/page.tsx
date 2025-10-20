@@ -854,7 +854,7 @@ const ProJobsPage = () => {
                   Introduce yourself
                 </label>
                 <textarea
-                  className="textarea textarea-bordered w-full"
+                  className="textarea textarea-bordered w-full bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   rows={4}
                   value={applicationMessage}
                   onChange={(e) => setApplicationMessage(e.target.value)}
@@ -864,7 +864,7 @@ const ProJobsPage = () => {
                 <label className="text-sm font-semibold text-slate-700">
                   <span className="block mb-1">Rate type</span>
                   <select
-                    className="select select-bordered w-full"
+                    className="select select-bordered w-full bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     value={rateType}
                     onChange={(e) => setRateType(e.target.value as "flat" | "hourly")}
                   >
@@ -877,7 +877,7 @@ const ProJobsPage = () => {
                   <input
                     type="number"
                     min="0"
-                    className="input input-bordered w-full"
+                    className="input input-bordered w-full bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Leave blank if flexible"
                     value={rateAmount}
                     onChange={(e) => setRateAmount(e.target.value)}
