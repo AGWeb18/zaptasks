@@ -68,6 +68,7 @@ interface JobApplicationMeta {
 
 interface OpenJobRequest {
   id: string;
+  homeowner_id: string;
   job_title: string;
   services: string[];
   description: string;
@@ -429,6 +430,11 @@ const ProJobsPage = () => {
     setSubmitting(true);
     setError(null);
     try {
+      const job = jobs.find((item) => item.id === selectedJobId);
+      if (job?.homeowner_id && job.homeowner_id === currentUserId) {
+        throw new Error("You can't apply to a job you posted.");
+      }
+
       const payload = {
         jobId: selectedJobId,
         message: applicationMessage,
@@ -478,6 +484,7 @@ const ProJobsPage = () => {
   };
 
   const selectedJob = jobs.find((job) => job.id === selectedJobId);
+  const selectedJobIsOwn = selectedJob?.homeowner_id === currentUserId;
 
   return (
     <div className="bg-slate-100 min-h-screen">
@@ -707,6 +714,7 @@ const ProJobsPage = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 pb-2">
                 {jobs.map((job) => {
                   const applied = hasApplied(job.id);
+                  const isOwnJob = job.homeowner_id === currentUserId;
                   const primaryPhoto = job.photo_urls?.[0] ?? "/images/job-card-placeholder.svg";
                   const serviceLabels = getServiceLabels(job.services);
                   return (
@@ -794,12 +802,17 @@ const ProJobsPage = () => {
                         <button
                           className="btn btn-primary btn-block"
                           onClick={() => {
+                            if (isOwnJob) return;
                             setSelectedJobId(job.id);
                             resetApplicationForm();
                           }}
-                          disabled={applied || submitting}
+                          disabled={applied || submitting || isOwnJob}
                         >
-                          {applied ? "Application submitted" : "Apply to this job"}
+                          {applied
+                            ? "Application submitted"
+                            : isOwnJob
+                              ? "This is your job"
+                              : "Apply to this job"}
                         </button>
                       </div>
                     </article>
@@ -830,6 +843,12 @@ const ProJobsPage = () => {
             </header>
 
             <div className="space-y-4 text-slate-800">
+              {selectedJobIsOwn && (
+                <div className="alert alert-info shadow-sm text-sm">
+                  <CheckCircle className="h-4 w-4" />
+                  <span>You posted this job. Only other providers can apply.</span>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">
                   Introduce yourself
@@ -871,8 +890,12 @@ const ProJobsPage = () => {
               <button className="btn" onClick={() => setSelectedJobId(null)} disabled={submitting}>
                 Cancel
               </button>
-              <button className="btn btn-primary" onClick={submitApplication} disabled={submitting}>
-                {submitting ? "Submitting..." : "Send application"}
+              <button
+                className="btn btn-primary"
+                onClick={submitApplication}
+                disabled={submitting || selectedJobIsOwn}
+              >
+                {submitting ? "Submitting..." : selectedJobIsOwn ? "You posted this job" : "Send application"}
               </button>
             </div>
           </div>

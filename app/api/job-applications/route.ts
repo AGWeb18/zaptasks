@@ -28,6 +28,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Job request not found." }, { status: 404 });
     }
 
+    if (jobRequest.homeowner_id === userId) {
+      return NextResponse.json({ error: "You cannot apply to a job you posted." }, { status: 403 });
+    }
+
     const { data: existingApplication } = await supabase
       .from("job_applications")
       .select("id")
