@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import Navbar from "@/app/components/NavBar";
 import {
@@ -375,13 +375,22 @@ const ProJobsPage = () => {
 
   const openJobCount = jobs.length;
   const unreadNotifications = notifications.filter((notification) => !notification.read_at);
-  const requiresOnboarding = escrowJobs.some((job) => !job.provider_stripe_account_id);
+  const requiresOnboarding = escrowJobs.some(
+    (job) => job.job_status === "awaiting_provider_onboarding",
+  );
+  const userEmail = user?.primaryEmailAddress?.emailAddress ?? null;
 
   const [onboardingLoading, setOnboardingLoading] = useState(false);
+  const [onboardingAutoAttempted, setOnboardingAutoAttempted] = useState(false);
 
-  const startStripeOnboarding = async () => {
-    if (!user?.primaryEmailAddress?.emailAddress) {
+  const startStripeOnboarding = useCallback(async () => {
+    if (!userEmail) {
       setError("Add an email address in your profile before setting up payouts.");
+      return;
+    }
+
+    if (!user) {
+      setError("Sign in to ZapTasks before enabling payouts.");
       return;
     }
 
@@ -397,7 +406,7 @@ const ProJobsPage = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: user.primaryEmailAddress.emailAddress,
+          email: userEmail,
           name: displayName,
         }),
       });
@@ -417,7 +426,25 @@ const ProJobsPage = () => {
     } finally {
       setOnboardingLoading(false);
     }
-  };
+  }, [userEmail, user]);
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+    if (!requiresOnboarding) return;
+    if (onboardingAutoAttempted || onboardingLoading) return;
+    if (!userEmail) return;
+
+    setOnboardingAutoAttempted(true);
+    void startStripeOnboarding();
+  }, [
+    isLoaded,
+    isSignedIn,
+    requiresOnboarding,
+    onboardingAutoAttempted,
+    onboardingLoading,
+    userEmail,
+    startStripeOnboarding,
+  ]);
 
   const resetApplicationForm = () => {
     setApplicationMessage("Hello! I’d love to help with this job.");
@@ -717,6 +744,23 @@ const ProJobsPage = () => {
                   const isOwnJob = job.homeowner_id === currentUserId;
                   const primaryPhoto = job.photo_urls?.[0] ?? "/images/job-card-placeholder.svg";
                   const serviceLabels = getServiceLabels(job.services);
+                  const locationLabel = (() => {
+                    if (!job.address) {
+                      return "Exact address shared after award";
+                    }
+
+                    const parts = job.address
+                      .split(",")
+                      .map((part) => part.trim())
+                      .filter(Boolean);
+
+                    if (parts.length <= 1) {
+                      return "Exact address shared after award";
+                    }
+
+                    const regionalHint = parts.slice(1).join(", ");
+                    return `Near ${regionalHint}`;
+                  })();
                   return (
                     <article
                       key={job.id}
@@ -763,7 +807,7 @@ const ProJobsPage = () => {
                           </div>
                           <div className="flex items-center gap-2">
                             <MapPin className="w-4 h-4" />
-                            <span>{job.address ?? "Exact address shared after award"}</span>
+                            <span>{locationLabel}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Clock className="w-4 h-4" />

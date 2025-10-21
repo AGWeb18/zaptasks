@@ -71,10 +71,10 @@ export async function POST(req: NextRequest) {
         },
         controller: {
           fees: {
-            payer: "application",
+            payer: "account",
           },
           losses: {
-            payments: "application",
+            payments: "stripe",
           },
           stripe_dashboard: {
             type: "express",
@@ -118,6 +118,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const stripeAccount = await stripe.accounts.retrieve(accountId);
+    const currentlyDue = stripeAccount.requirements?.currently_due ?? [];
+    const accountIsReady =
+      Boolean(stripeAccount.charges_enabled) &&
+      Boolean(stripeAccount.payouts_enabled) &&
+      currentlyDue.length === 0;
+
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
       refresh_url: `${baseUrl}/pro/jobs?onboarding=retry`,
@@ -125,13 +132,18 @@ export async function POST(req: NextRequest) {
       type: "account_onboarding",
     });
 
+    const jobUpdatePayload: Record<string, unknown> = {
+      provider_stripe_account_id: accountId,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (accountIsReady) {
+      jobUpdatePayload.job_status = "awaiting_escrow";
+    }
+
     const { error: jobUpdateError } = await supabase
       .from("jobs")
-      .update({
-        provider_stripe_account_id: accountId,
-        job_status: "awaiting_escrow",
-        updated_at: new Date().toISOString(),
-      })
+      .update(jobUpdatePayload)
       .eq("provider_id", userId)
       .eq("job_status", "awaiting_provider_onboarding");
 
@@ -139,7 +151,13 @@ export async function POST(req: NextRequest) {
       console.warn("Failed to refresh job payout readiness", jobUpdateError);
     }
 
-    return NextResponse.json({ accountId, url: accountLink.url });
+    return NextResponse.json({
+      accountId,
+      url: accountLink.url,
+      chargesEnabled: stripeAccount.charges_enabled,
+      payoutsEnabled: stripeAccount.payouts_enabled,
+      requirementsDue: currentlyDue,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to create Stripe Connect account";
     console.error("Failed to create Stripe Connect account", error);

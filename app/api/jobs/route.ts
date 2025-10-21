@@ -155,7 +155,22 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const providerNeedsOnboarding = !providerStripeAccountId;
+    let providerNeedsOnboarding = !providerStripeAccountId;
+    if (providerStripeAccountId) {
+      try {
+        const account = await stripe.accounts.retrieve(providerStripeAccountId);
+        const requirementsDue = account.requirements?.currently_due ?? [];
+        const accountReady =
+          Boolean(account.charges_enabled) &&
+          Boolean(account.payouts_enabled) &&
+          requirementsDue.length === 0;
+
+        providerNeedsOnboarding = !accountReady;
+      } catch (error) {
+        console.warn("Failed to validate provider Stripe account", error);
+        providerNeedsOnboarding = true;
+      }
+    }
 
     const amountFromPayload =
       typeof body.overrideTotalAmount === "number"
