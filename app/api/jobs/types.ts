@@ -5,6 +5,8 @@ export interface JobPaymentRecord {
   stripe_payment_intent_id: string | null;
   amount_cents?: number | null;
   platform_fee_cents?: number | null;
+  captured_at?: string | null;
+  provider_transfer_id?: string | null;
 }
 
 export interface JobMilestoneRecord {

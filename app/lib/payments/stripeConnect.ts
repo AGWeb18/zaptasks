@@ -21,6 +21,11 @@ const SMALL_JOB_THRESHOLD_CENTS = 10000; // $100
 const MEDIUM_JOB_THRESHOLD_CENTS = 50000; // $500
 const DEFAULT_CURRENCY = "cad";
 
+export const PROVIDER_RESERVE_RATE = 0.1; // hold back 10% of provider share
+export const PROVIDER_RESERVE_MIN_CENTS = 1000; // minimum $10 reserve
+export const PROVIDER_RESERVE_HOLD_DAYS = 7; // hold for 7 days before release
+export const PROVIDER_RESERVE_HOLD_MS = PROVIDER_RESERVE_HOLD_DAYS * 24 * 60 * 60 * 1000;
+
 export type EscrowTier = "small" | "medium" | "large";
 
 export interface EscrowSchedule {
@@ -168,16 +173,14 @@ export async function createJobPaymentIntent({
     customer: customerId,
     capture_method: captureMethod,
     automatic_payment_methods: { enabled: true },
-    transfer_data: {
-      destination: providerStripeAccountId,
-    },
-    on_behalf_of: providerStripeAccountId,
-    application_fee_amount: platformFeeCents,
     metadata: {
       ...metadata,
       jobId,
       paymentType,
+      providerStripeAccountId,
+      platformFeeCents: String(platformFeeCents),
     },
+    transfer_group: jobId,
   });
 
   return paymentIntent;
@@ -213,6 +216,69 @@ export async function refundJobPaymentIntent({
   return stripe.refunds.create({
     payment_intent: paymentIntentId,
     amount: amountCents,
+  });
+}
+
+export function calculateProviderShare(amountCents: number, platformFeeCents: number): number {
+  const gross = Math.max(Number(amountCents) || 0, 0);
+  const platformFee = Math.max(Number(platformFeeCents) || 0, 0);
+  return Math.max(gross - platformFee, 0);
+}
+
+export function calculateProviderReserve(providerShareCents: number) {
+  const share = Math.max(Number(providerShareCents) || 0, 0);
+  if (share === 0) {
+    return { reserveCents: 0, immediateTransferCents: 0 };
+  }
+
+  const reserveCents = Math.min(
+    share,
+    Math.max(Math.round(share * PROVIDER_RESERVE_RATE), PROVIDER_RESERVE_MIN_CENTS),
+  );
+
+  return {
+    reserveCents,
+    immediateTransferCents: Math.max(share - reserveCents, 0),
+  };
+}
+
+type ProviderTransferInput = {
+  jobId: string;
+  providerStripeAccountId: string;
+  amountCents: number;
+  reason: "payout" | "reserve_release";
+  metadata?: Record<string, string | number | null | undefined>;
+};
+
+export async function createProviderTransfer({
+  jobId,
+  providerStripeAccountId,
+  amountCents,
+  reason,
+  metadata = {},
+}: ProviderTransferInput) {
+  if (!jobId) {
+    throw new Error("A job id is required to create a provider transfer");
+  }
+
+  if (!providerStripeAccountId) {
+    throw new Error("Provider account id is required to create a transfer");
+  }
+
+  if (!amountCents || amountCents <= 0) {
+    throw new Error("Transfer amount must be greater than zero");
+  }
+
+  return stripe.transfers.create({
+    amount: amountCents,
+    currency: DEFAULT_CURRENCY,
+    destination: providerStripeAccountId,
+    transfer_group: jobId,
+    metadata: {
+      ...metadata,
+      jobId,
+      reason,
+    },
   });
 }
 

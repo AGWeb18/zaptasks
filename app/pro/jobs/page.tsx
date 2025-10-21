@@ -16,7 +16,7 @@ import {
   Sparkles,
   XCircle,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { createClient } from "@/app/utils/supabase/client";
 import { getServiceLabels } from "@/app/lib/services/catalog";
 
@@ -60,6 +60,10 @@ interface EscrowJob {
   milestone_plan: EscrowSchedule | null;
   payments?: EscrowPaymentRecord[];
   provider_stripe_account_id?: string | null;
+  provider_reserve_cents?: number | null;
+  reserve_releasable_at?: string | null;
+  last_provider_transfer_id?: string | null;
+  provider_transfer_total_cents?: number | null;
 }
 
 interface JobApplicationMeta {
@@ -121,6 +125,7 @@ const jobStatusCopy: Record<string, string> = {
   awaiting_capture: "Escrow funded, waiting for job",
   in_progress: "Progress payment secured",
   awaiting_completion_confirmation: "Ready for homeowner sign-off",
+  reserve_hold: "Reserve hold in progress",
   completed: "Paid out",
   canceled: "Canceled",
   cancelled: "Canceled",
@@ -382,6 +387,7 @@ const ProJobsPage = () => {
 
   const [onboardingLoading, setOnboardingLoading] = useState(false);
   const [onboardingAutoAttempted, setOnboardingAutoAttempted] = useState(false);
+  const [releasingReserveId, setReleasingReserveId] = useState<string | null>(null);
 
   const startStripeOnboarding = useCallback(async () => {
     if (!userEmail) {
@@ -427,6 +433,52 @@ const ProJobsPage = () => {
       setOnboardingLoading(false);
     }
   }, [userEmail, user]);
+
+  const releaseReserve = useCallback(
+    async (jobId: string) => {
+      setReleasingReserveId(jobId);
+      setError(null);
+      try {
+        const response = await fetch(`/api/jobs/${jobId}/release-reserve`, {
+          method: "POST",
+        });
+
+        const payload = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          throw new Error(payload?.error ?? "Unable to release reserve funds.");
+        }
+
+        setEscrowJobs((prev) =>
+          prev.map((job) => {
+            if (job.id !== jobId) {
+              return job;
+            }
+
+            const reserveCents = job.provider_reserve_cents ?? 0;
+            return {
+              ...job,
+              job_status: "completed",
+              provider_reserve_cents: 0,
+              reserve_releasable_at: null,
+              last_provider_transfer_id: (payload?.transferId as string | undefined) ?? job.last_provider_transfer_id ?? null,
+              provider_transfer_total_cents: (job.provider_transfer_total_cents ?? 0) + reserveCents,
+            };
+          }),
+        );
+      } catch (err) {
+        console.error(err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "We couldn’t release the reserve. Please try again later.",
+        );
+      } finally {
+        setReleasingReserveId(null);
+      }
+    },
+    [setEscrowJobs, setError],
+  );
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
@@ -586,6 +638,12 @@ const ProJobsPage = () => {
                   const escrowStatusLabel = escrowPayment
                     ? formatPaymentStatus(escrowPayment.status)
                     : "Not funded yet";
+                  const reserveCents = job.provider_reserve_cents ?? 0;
+                  const reserveReleaseAt = job.reserve_releasable_at ? new Date(job.reserve_releasable_at) : null;
+                  const reserveReady = reserveReleaseAt ? reserveReleaseAt.getTime() <= Date.now() : false;
+                  const reserveCountdown = reserveReleaseAt
+                    ? formatDistanceToNow(reserveReleaseAt, { addSuffix: true })
+                    : null;
                   const renderPaymentBlock = (
                     label: string,
                     payment: EscrowPaymentRecord | undefined,
@@ -654,6 +712,33 @@ const ProJobsPage = () => {
                               renderPaymentBlock("Progress", progressPayment, schedule.amounts.progressCents)}
                             {renderPaymentBlock("Completion", completionPayment, schedule.amounts.completionCents)}
                           </div>
+                        </div>
+                      )}
+                      {reserveCents > 0 && (
+                        <div className="border border-amber-200 bg-amber-50 text-amber-700 rounded-lg p-4 space-y-2">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-semibold">Reserve hold</p>
+                              <p className="text-xs">
+                                {formatCurrency(reserveCents)} held until {reserveReleaseAt ? format(reserveReleaseAt, "MMM d, yyyy") : "processing"}
+                                {reserveReleaseAt ? ` (${reserveCountdown ?? "processing"})` : ""}
+                              </p>
+                            </div>
+                            {reserveReady ? (
+                              <button
+                                className="btn btn-sm btn-primary text-white"
+                                onClick={() => releaseReserve(job.id)}
+                                disabled={releasingReserveId === job.id}
+                              >
+                                {releasingReserveId === job.id ? "Releasing..." : "Release reserve"}
+                              </button>
+                            ) : (
+                              <span className="text-xs font-medium">Hold active</span>
+                            )}
+                          </div>
+                          <p className="text-xs">
+                            ZapTasks keeps a short-term reserve to cover refunds and disputes. Funds become eligible once the hold period expires.
+                          </p>
                         </div>
                       )}
                     </article>

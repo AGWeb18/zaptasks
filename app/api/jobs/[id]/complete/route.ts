@@ -5,7 +5,11 @@ import { createClientWithUser } from "@/app/utils/supabase/server";
 import {
   buildEscrowSchedule,
   captureJobPaymentIntent,
+  calculateProviderReserve,
+  calculateProviderShare,
   createJobPaymentIntent,
+  createProviderTransfer,
+  PROVIDER_RESERVE_HOLD_MS,
   stripe,
 } from "@/app/lib/payments/stripeConnect";
 import type {
@@ -65,6 +69,7 @@ export async function POST(req: NextRequest, context: CompleteJobParams) {
     const payments: JobPaymentRecord[] = Array.isArray(job.payments)
       ? (job.payments as JobPaymentRecord[])
       : [];
+    let providerShareToSettleCents = 0;
     const completionPayment = payments.find(
       (payment) => payment.payment_type === "completion" && payment.status !== "canceled",
     );
@@ -155,14 +160,25 @@ export async function POST(req: NextRequest, context: CompleteJobParams) {
         }, { status: 409 });
       }
 
+      const completionAlreadyCaptured = Boolean(completionPayment?.captured_at);
+
       if (completionPayment?.id) {
         await supabase
           .from("payments")
           .update({
             status: finalPaymentIntent.status,
-            captured_at: new Date().toISOString(),
+            captured_at: completionAlreadyCaptured
+              ? completionPayment.captured_at
+              : new Date().toISOString(),
           })
           .eq("id", completionPayment.id);
+      }
+
+      if (completionPayment && !completionAlreadyCaptured) {
+        providerShareToSettleCents += calculateProviderShare(
+          completionPayment.amount_cents ?? 0,
+          completionPayment.platform_fee_cents ?? 0,
+        );
       }
     }
 
@@ -199,14 +215,78 @@ export async function POST(req: NextRequest, context: CompleteJobParams) {
         .eq("id", payment.id);
 
       capturedIds.push(String(payment.id));
+
+      if (captureResult.status === "succeeded") {
+        providerShareToSettleCents += calculateProviderShare(
+          payment.amount_cents ?? 0,
+          payment.platform_fee_cents ?? 0,
+        );
+      }
     }
+
+    if (!job.provider_stripe_account_id) {
+      return NextResponse.json({ error: "Provider payouts are not configured" }, { status: 400 });
+    }
+
+    const now = Date.now();
+    const existingReserveCents = Number(job.provider_reserve_cents ?? 0);
+    const existingReserveReleaseTs = job.reserve_releasable_at
+      ? new Date(job.reserve_releasable_at).getTime()
+      : 0;
+    const existingTransferTotalCents = Number(job.provider_transfer_total_cents ?? 0);
+
+    let reserveCents = 0;
+    let immediateTransferCents = 0;
+    let payoutTransferId: string | null = null;
+
+    if (providerShareToSettleCents > 0) {
+      const reservePlan = calculateProviderReserve(providerShareToSettleCents);
+      reserveCents = reservePlan.reserveCents;
+      immediateTransferCents = reservePlan.immediateTransferCents;
+
+      if (immediateTransferCents > 0) {
+        const transfer = await createProviderTransfer({
+          jobId,
+          providerStripeAccountId: job.provider_stripe_account_id,
+          amountCents: immediateTransferCents,
+          reason: "payout",
+          metadata: {
+            capturedPaymentIds: capturedIds.join(","),
+          },
+        });
+
+        payoutTransferId = transfer.id;
+
+        await supabase.from("payment_logs").insert({
+          job_id: jobId,
+          action: "provider_transfer_initiated",
+          payload: {
+            transferId: transfer.id,
+            amountCents: immediateTransferCents,
+            paymentShareCents: providerShareToSettleCents,
+            reserveCents,
+          },
+        });
+      }
+    }
+
+    const totalReserveCents = existingReserveCents + reserveCents;
+    const releaseTimestamp = totalReserveCents > 0
+      ? Math.max(existingReserveReleaseTs, now + PROVIDER_RESERVE_HOLD_MS)
+      : 0;
+
+    const totalTransferredCents = existingTransferTotalCents + immediateTransferCents;
 
     await supabase
       .from("jobs")
       .update({
-        job_status: "completed",
+        job_status: totalReserveCents > 0 ? "reserve_hold" : "completed",
         completion_date: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        provider_reserve_cents: totalReserveCents,
+        reserve_releasable_at: releaseTimestamp > 0 ? new Date(releaseTimestamp).toISOString() : null,
+        last_provider_transfer_id: payoutTransferId ?? job.last_provider_transfer_id ?? null,
+        provider_transfer_total_cents: totalTransferredCents,
       })
       .eq("id", jobId);
 
@@ -235,8 +315,22 @@ export async function POST(req: NextRequest, context: CompleteJobParams) {
       payload: {
         completionAmountCents,
         capturedPaymentIds: capturedIds,
+        providerShareSettledCents: providerShareToSettleCents,
+        providerTransferInitiatedCents: immediateTransferCents,
+        providerReserveCents: totalReserveCents,
       },
     });
+
+    if (reserveCents > 0) {
+      await supabase.from("payment_logs").insert({
+        job_id: jobId,
+        action: "provider_reserve_created",
+        payload: {
+          reserveCents,
+          releaseAfter: releaseTimestamp,
+        },
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
