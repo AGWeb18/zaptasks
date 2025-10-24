@@ -6,7 +6,6 @@ import {
   buildEscrowSchedule,
   createJobPaymentIntent,
 } from "@/app/lib/payments/stripeConnect";
-import type { JobMilestoneRecord } from "@/app/api/jobs/types";
 
 type MilestoneParams = {
   params: Promise<{ id: string }>;
@@ -92,10 +91,6 @@ export async function POST(req: NextRequest, context: MilestoneParams) {
       return NextResponse.json({ error: "Payment details incomplete" }, { status: 400 });
     }
 
-    const milestones: JobMilestoneRecord[] = Array.isArray(job.job_milestones)
-      ? (job.job_milestones as JobMilestoneRecord[])
-      : [];
-
     const paymentIntent = await createJobPaymentIntent({
       jobId,
       amountCents,
@@ -103,7 +98,7 @@ export async function POST(req: NextRequest, context: MilestoneParams) {
       customerId: job.stripe_customer_id,
       providerStripeAccountId: job.provider_stripe_account_id,
       paymentType: "progress",
-      captureMethod: "manual",
+      captureMethod: "automatic",
       metadata: { milestoneId: milestone.id },
     });
 

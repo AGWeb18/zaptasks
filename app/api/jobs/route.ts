@@ -262,7 +262,7 @@ export async function POST(req: NextRequest) {
         customerId,
         providerStripeAccountId,
         paymentType: "escrow",
-        captureMethod: "manual",
+        captureMethod: "automatic",
         metadata: {
           homeownerName: jobRequest.homeowner_name ?? undefined,
           providerName: selectedApplication.provider_name ?? undefined,

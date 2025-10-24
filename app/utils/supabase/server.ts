@@ -1,4 +1,5 @@
 
+import { createClient as createSupabaseClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import crypto from "node:crypto";
@@ -84,3 +85,28 @@ export const createClientWithUser = async (
   userId: string,
   cookieStoreInput?: CookieStore
 ) => initSupabaseClient(cookieStoreInput, userId);
+
+let cachedServiceRoleClient: SupabaseClient | null = null;
+
+export const createServiceRoleClient = (): SupabaseClient => {
+  if (cachedServiceRoleClient) {
+    return cachedServiceRoleClient;
+  }
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !serviceRoleKey) {
+    throw new Error(
+      "Missing Supabase service role configuration. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY."
+    );
+  }
+
+  cachedServiceRoleClient = createSupabaseClient(url, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+    },
+  });
+
+  return cachedServiceRoleClient;
+};

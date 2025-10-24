@@ -29,7 +29,8 @@ ZapTasks is a platform where local service providers can list their offerings, a
 
 - Clients pay for services through the platform.
 - ZapTasks charges a **10% finder's fee** on each transaction for connecting you with a provider.
-- The remaining 90% is paid out to the provider after the service is completed.
+- Payments are processed with Stripe Connect destination charges, so the homeowner pays securely through ZapTasks while Stripe automatically routes 90% to the pro and 10% to ZapTasks.
+- Funds are authorized and captured immediately; providers get their payout once the job is wrapped and Stripe marks the charge as succeeded.
 
 ## 💡 How It Works
 

@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
 
     let amountCents = schedule.amounts.escrowCents;
     let platformFeeCents = schedule.amounts.platformFeeEscrowCents;
-    let captureMethod: "manual" | "automatic" = "manual";
+    let captureMethod: "manual" | "automatic" = "automatic";
     let metadata: Record<string, string> = {};
 
     if (paymentType === "progress") {
@@ -158,10 +158,7 @@ export async function POST(req: NextRequest) {
       if (paymentType === "completion") {
         return "awaiting_completion_confirmation";
       }
-      if (paymentType === "progress") {
-        return "in_progress";
-      }
-      return "awaiting_capture";
+      return "in_progress";
     })();
 
     await supabase

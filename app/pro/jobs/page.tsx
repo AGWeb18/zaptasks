@@ -120,10 +120,10 @@ const formatCurrency = (amountCents: number | null | undefined): string => {
 };
 
 const jobStatusCopy: Record<string, string> = {
-  awaiting_provider_onboarding: "Finish Stripe Connect onboarding to unlock escrow",
-  awaiting_escrow: "Waiting on homeowner to fund escrow",
-  awaiting_capture: "Escrow funded, waiting for job",
-  in_progress: "Progress payment secured",
+  awaiting_provider_onboarding: "Finish Stripe Connect onboarding to unlock payouts",
+  awaiting_escrow: "Waiting on homeowner payment",
+  awaiting_capture: "Payment submitted – we’re tracking it",
+  in_progress: "Payment secured – go ahead and work",
   awaiting_completion_confirmation: "Ready for homeowner sign-off",
   reserve_hold: "Reserve hold in progress",
   completed: "Paid out",

@@ -167,18 +167,28 @@ export async function createJobPaymentIntent({
     throw new Error("Payment intent amount must be greater than zero");
   }
 
+  if (!providerStripeAccountId) {
+    throw new Error("Provider Stripe account id is required for destination charge");
+  }
+
+  const applicationFeeCents = Math.max(Math.min(Math.round(platformFeeCents), amountCents), 0);
+
   const paymentIntent = await stripe.paymentIntents.create({
     amount: amountCents,
     currency: DEFAULT_CURRENCY,
     customer: customerId,
     capture_method: captureMethod,
     automatic_payment_methods: { enabled: true },
+    application_fee_amount: applicationFeeCents,
+    transfer_data: {
+      destination: providerStripeAccountId,
+    },
     metadata: {
       ...metadata,
       jobId,
       paymentType,
       providerStripeAccountId,
-      platformFeeCents: String(platformFeeCents),
+      platformFeeCents: String(applicationFeeCents),
     },
     transfer_group: jobId,
   });

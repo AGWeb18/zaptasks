@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useSearchParams } from "next/navigation";
 import { addDays, format } from "date-fns";
@@ -21,6 +21,13 @@ import {
 import Navbar from "../components/NavBar";
 import AddressAutocomplete from "../components/AddressAutocomplete";
 import TimeSelector from "../components/TimeSelector";
+import Image from "next/image";
+import { createClient as createSupabaseClient } from "@/app/utils/supabase/client";
+
+const MAX_JOB_PHOTOS = 4;
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5MB per photo
+const MAX_PHOTO_MB = MAX_PHOTO_BYTES / (1024 * 1024);
+const JOB_PHOTO_BUCKET = "job-photos";
 
 const tagSuggestions = [
   "Home upkeep",
@@ -73,6 +80,8 @@ const BookingPage: React.FC = () => {
   const [contactPreference, setContactPreference] = useState<
     "messages" | "phone" | "email"
   >("messages");
+  const [photos, setPhotos] = useState<Array<{ file: File; preview: string }>>([]);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [extraNotes, setExtraNotes] = useState("");
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +89,8 @@ const BookingPage: React.FC = () => {
   const [submissionStatus, setSubmissionStatus] = useState<"idle" | "success">(
     "idle"
   );
+  const supabase = useMemo(() => createSupabaseClient(), []);
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
   const addTag = useCallback(
     (tag: string, options?: { allowDuplicate?: boolean }) => {
       const trimmed = tag.trim();
@@ -139,6 +150,59 @@ const BookingPage: React.FC = () => {
     e.preventDefault();
     addTag(customTagInput);
     setCustomTagInput("");
+  };
+
+  const handlePhotoSelection = (fileList: FileList | null) => {
+    if (!fileList) return;
+
+    const availableSlots = MAX_JOB_PHOTOS - photos.length;
+    if (availableSlots <= 0) {
+      setError(`You can add up to ${MAX_JOB_PHOTOS} photos per job.`);
+      return;
+    }
+
+    const newPhotos: Array<{ file: File; preview: string }> = [];
+    const messages: string[] = [];
+
+    Array.from(fileList)
+      .slice(0, availableSlots)
+      .forEach((file) => {
+        if (!file.type.startsWith("image/")) {
+          messages.push(`"${file.name}" is not a supported image type.`);
+          return;
+        }
+
+        if (file.size > MAX_PHOTO_BYTES) {
+          messages.push(
+            `"${file.name}" is larger than ${Math.round(MAX_PHOTO_MB)}MB. Choose a smaller photo.`,
+          );
+          return;
+        }
+
+        const preview = URL.createObjectURL(file);
+        newPhotos.push({ file, preview });
+      });
+
+    if (messages.length > 0) {
+      setError(messages.join(" "));
+    } else {
+      setError(null);
+    }
+
+    if (newPhotos.length > 0) {
+      setPhotos((prev) => [...prev, ...newPhotos]);
+    }
+  };
+
+  const handleRemovePhoto = (index: number) => {
+    setPhotos((prev) => {
+      const updated = [...prev];
+      const [removed] = updated.splice(index, 1);
+      if (removed) {
+        URL.revokeObjectURL(removed.preview);
+      }
+      return updated;
+    });
   };
 
   const isReadyToSubmit = Boolean(
@@ -203,6 +267,50 @@ const BookingPage: React.FC = () => {
     setError(null);
 
     try {
+      let uploadedPhotoUrls: string[] = [];
+
+      if (photos.length > 0) {
+        setUploadingPhotos(true);
+        const uploadResults = await Promise.all(
+          photos.map(async ({ file }) => {
+            const extension = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+            const safeBaseName = file.name
+              .replace(/[^a-zA-Z0-9._-]/g, "-")
+              .replace(/-+/g, "-")
+              .toLowerCase();
+            const uniqueId =
+              typeof crypto !== "undefined" && "randomUUID" in crypto
+                ? crypto.randomUUID()
+                : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            const objectPath = `${user.id}/${uniqueId}-${safeBaseName}.${extension}`;
+
+            const { error: uploadError } = await supabase.storage
+              .from(JOB_PHOTO_BUCKET)
+              .upload(objectPath, file, {
+                contentType: file.type,
+                cacheControl: "3600",
+                upsert: false,
+              });
+
+            if (uploadError) {
+              throw new Error(uploadError.message);
+            }
+
+            const { data: publicUrlData } = supabase.storage
+              .from(JOB_PHOTO_BUCKET)
+              .getPublicUrl(objectPath);
+
+            if (!publicUrlData?.publicUrl) {
+              throw new Error("Unable to generate an image URL after upload.");
+            }
+
+            return publicUrlData.publicUrl;
+          }),
+        );
+
+        uploadedPhotoUrls = uploadResults;
+      }
+
       const response = await fetch("/api/job-requests", {
         method: "POST",
         headers: {
@@ -229,7 +337,7 @@ const BookingPage: React.FC = () => {
             notes: extraNotes.trim() || null,
           },
           contactPreference,
-          photoUrls: [],
+          photoUrls: uploadedPhotoUrls,
         }),
       });
 
@@ -253,10 +361,14 @@ const BookingPage: React.FC = () => {
       setContactPreference("messages");
       setExtraNotes("");
       setAgreeToTerms(false);
+      photos.forEach((photo) => URL.revokeObjectURL(photo.preview));
+      setPhotos([]);
     } catch (submitError) {
       console.error(submitError);
-      setError("Something went wrong posting your job. Please try again.");
+      const fallbackMessage = "Something went wrong posting your job. Please try again.";
+      setError(submitError instanceof Error ? submitError.message || fallbackMessage : fallbackMessage);
     } finally {
+      setUploadingPhotos(false);
       setIsLoading(false);
     }
   };
@@ -384,6 +496,72 @@ const BookingPage: React.FC = () => {
                     and your ideal timing.
                   </span>
                 </label>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <span className="label-text font-medium text-slate-800">
+                        Add helpful photos <span className="text-slate-500 text-sm">(optional)</span>
+                      </span>
+                      <p className="text-xs text-slate-500">
+                        Clear photos of the work area help providers respond with accurate offers.
+                      </p>
+                    </div>
+                    <span className="text-xs text-slate-400">
+                      {photos.length}/{MAX_JOB_PHOTOS} uploaded
+                    </span>
+                  </div>
+
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(event) => {
+                      handlePhotoSelection(event.target.files);
+                      event.target.value = "";
+                    }}
+                  />
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {photos.map((photo, index) => (
+                      <div
+                        key={photo.preview}
+                        className="relative aspect-square overflow-hidden rounded-xl border border-slate-200"
+                      >
+                        <Image
+                          src={photo.preview}
+                          alt={`Selected job photo ${index + 1}`}
+                          fill
+                          className="object-cover"
+                          unoptimized
+                        />
+                        <button
+                          type="button"
+                          className="absolute top-2 right-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/70 text-white hover:bg-black/80"
+                          onClick={() => handleRemovePhoto(index)}
+                          aria-label="Remove photo"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+
+                    {photos.length < MAX_JOB_PHOTOS && (
+                      <button
+                        type="button"
+                        onClick={() => photoInputRef.current?.click()}
+                        className="aspect-square flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 text-slate-500 hover:border-blue-400 hover:text-blue-500"
+                        disabled={isLoading || uploadingPhotos}
+                      >
+                        <Plus className="h-6 w-6" />
+                        <span className="text-xs font-medium">Add photo</span>
+                        <span className="text-[10px] text-slate-400">PNG or JPG, up to {Math.round(MAX_PHOTO_MB)}MB</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
               </section>
 
               <section className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6 space-y-5">

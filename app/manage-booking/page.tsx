@@ -87,6 +87,14 @@ interface EscrowJob {
   job_milestones?: EscrowMilestone[];
 }
 
+interface UnsettledPaymentAction {
+  type?: "escrow" | "progress" | "completion" | string;
+  paymentIntentId?: string | null;
+  clientSecret?: string | null;
+  amountCents?: number | null;
+  status?: string | null;
+}
+
 interface PaymentModalState {
   jobId: string;
   paymentType: "escrow" | "progress" | "completion";
@@ -597,33 +605,66 @@ const ManageJobsPage = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
+      const payload = await response.json().catch(() => null);
+
+      if (response.status === 409 && payload?.requiresPaymentActions) {
+        const unsettled = Array.isArray(payload.unsettled)
+          ? (payload.unsettled as UnsettledPaymentAction[])
+          : [];
+        const actionable = unsettled.find(
+          (item) => item?.clientSecret && item?.type,
+        );
+
+        if (actionable) {
+          const paymentType = (actionable.type ?? "escrow") as PaymentModalState["paymentType"];
+          const payments = jobsById[job.id]?.payments ?? [];
+          const matchedPayment = payments.find((payment) =>
+            payment.stripe_payment_intent_id === actionable.paymentIntentId,
+          );
+          if (!actionable.clientSecret) {
+            setError("We still need to finish the payment. Please try again in a moment.");
+            await fetchJobs({ silent: true });
+            return;
+          }
+          const fallbackAmount = (() => {
+            if (paymentType === "completion") {
+              return jobsById[job.id]?.milestone_plan?.amounts?.completionCents ?? 0;
+            }
+            if (paymentType === "progress") {
+              return jobsById[job.id]?.milestone_plan?.amounts?.progressCents ?? 0;
+            }
+            return jobsById[job.id]?.milestone_plan?.amounts?.escrowCents ?? 0;
+          })();
+
+          setPaymentModal({
+            jobId: job.id,
+            paymentType,
+            clientSecret: actionable.clientSecret,
+            paymentIntentId: actionable.paymentIntentId ?? matchedPayment?.stripe_payment_intent_id ?? "",
+            amountCents:
+              actionable.amountCents ?? matchedPayment?.amount_cents ?? fallbackAmount,
+            label:
+              paymentType === "completion"
+                ? "Pay Remaining"
+                : paymentType === "progress"
+                ? "Pay Progress"
+                : "Pay Escrow",
+          });
+        }
+
+        setInfoMessage("We still need to finish your payment before we can wrap up this job.");
+        await fetchJobs({ silent: true });
+        return;
+      }
 
       if (!response.ok) {
-        const payload = await response.json().catch(() => null);
         throw new Error(payload?.error ?? "Could not complete job");
       }
 
-      const payload = await response.json();
-
-      if (
-        payload?.requiresFinalPayment &&
-        payload?.paymentIntent?.clientSecret
-      ) {
-        setPaymentModal({
-          jobId: job.id,
-          paymentType: "completion",
-          clientSecret: payload.paymentIntent.clientSecret,
-          paymentIntentId: payload.paymentIntent.id,
-          amountCents:
-            jobsById[job.id]?.milestone_plan?.amounts?.completionCents ?? 0,
-          label: "Pay Remaining",
-        });
-      } else {
-        setInfoMessage(
-          "All payments released to your pro. Thanks for using ZapTasks!"
-        );
-        await fetchJobs({ silent: true });
-      }
+      setInfoMessage(
+        "All payments released to your pro. Thanks for using ZapTasks!"
+      );
+      await fetchJobs({ silent: true });
     } catch (err) {
       console.error(err);
       setError(
@@ -642,9 +683,15 @@ const ManageJobsPage = () => {
         body: JSON.stringify({ finalPaymentIntentId: paymentIntentId }),
       });
 
+      const payload = await response.json().catch(() => null);
+
+      if (response.status === 409 && payload?.requiresPaymentActions) {
+        setError("We still need you to confirm the payment. Please try again.");
+        return;
+      }
+
       if (!response.ok) {
-        const payload = await response.json().catch(() => null);
-        throw new Error(payload?.error ?? "Failed to capture escrow");
+        throw new Error(payload?.error ?? "Failed to finalize payment");
       }
 
       await fetchJobs({ silent: true });
