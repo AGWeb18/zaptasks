@@ -16,6 +16,8 @@ import {
   ChevronUp,
   Inbox,
   Sparkles,
+  Tag,
+  Star,
 } from "lucide-react";
 import { format } from "date-fns";
 import { createClient } from "@/app/utils/supabase/client";
@@ -85,6 +87,7 @@ interface EscrowJob {
   milestone_plan: EscrowSchedule | null;
   payments?: EscrowPaymentRecord[];
   job_milestones?: EscrowMilestone[];
+  provider_reviews?: ProviderReviewRecord[];
 }
 
 interface UnsettledPaymentAction {
@@ -102,6 +105,22 @@ interface PaymentModalState {
   paymentIntentId: string;
   amountCents: number;
   label: string;
+}
+
+interface ProviderReviewRecord {
+  id: string;
+  rating: number | null;
+  review_type: string | null;
+  comment: string | null;
+  created_at: string;
+  homeowner_id?: string | null;
+}
+
+interface ReviewModalState {
+  jobId: string;
+  rating: number;
+  reviewType: "positive" | "no_show" | "issue";
+  comment: string;
 }
 
 const parseEscrowSchedule = (raw: unknown): EscrowSchedule | null => {
@@ -242,6 +261,7 @@ interface JobRequest {
   budget_amount: number | null;
   budget_notes: string | null;
   contact_preference: string | null;
+  pricing_mode: string | null;
   status: string;
   selected_provider_id: string | null;
   selected_provider_name: string | null;
@@ -299,6 +319,24 @@ const ManageJobsPage = () => {
   const [paymentModal, setPaymentModal] = useState<PaymentModalState | null>(
     null
   );
+  const [reviewModal, setReviewModal] = useState<ReviewModalState | null>(null);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+
+  const renderStars = (value: number | null | undefined) => {
+    if (!value || value <= 0) return null;
+    return (
+      <div className="flex items-center gap-1">
+        {Array.from({ length: 5 }, (_, index) => (
+          <Star
+            key={index}
+            className={`h-4 w-4 ${index < value ? "text-amber-500" : "text-slate-300"}`}
+            fill={index < value ? "currentColor" : "none"}
+          />
+        ))}
+      </div>
+    );
+  };
   const [disputeJobId, setDisputeJobId] = useState<string | null>(null);
   const [disputeReason, setDisputeReason] = useState<string>("");
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
@@ -350,6 +388,9 @@ const ManageJobsPage = () => {
             milestone_plan: parseEscrowSchedule(rawJob.milestone_plan),
             payments: rawJob.payments ?? [],
             job_milestones: rawJob.job_milestones ?? [],
+            provider_reviews: Array.isArray(rawJob.provider_reviews)
+              ? rawJob.provider_reviews
+              : [],
           };
 
           if (mappedJob.job_request_id) {
@@ -597,6 +638,14 @@ const ManageJobsPage = () => {
 
   const handleMarkComplete = async (job: EscrowJob) => {
     try {
+      if (typeof window !== "undefined") {
+        const confirmed = window.confirm(
+          "Please confirm the job is complete and the work looks good. This will release payment to your pro."
+        );
+        if (!confirmed) {
+          return;
+        }
+      }
       setUpdatingJobId(job.job_request_id ?? job.id);
       setError(null);
 
@@ -731,6 +780,54 @@ const ManageJobsPage = () => {
       );
     } finally {
       setUpdatingJobId(null);
+    }
+  };
+
+  const openReviewModal = (job: EscrowJob) => {
+    setReviewError(null);
+    setReviewModal({
+      jobId: job.id,
+      rating: 5,
+      reviewType: "positive",
+      comment: "",
+    });
+  };
+
+  const submitReview = async () => {
+    if (!reviewModal) return;
+    try {
+      setReviewSubmitting(true);
+      setReviewError(null);
+
+      const response = await fetch(`/api/jobs/${reviewModal.jobId}/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rating: reviewModal.rating,
+          reviewType: reviewModal.reviewType,
+          comment: reviewModal.comment.trim(),
+        }),
+      });
+
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        setReviewError(payload?.error ?? "We couldn’t save your review.");
+        return;
+      }
+
+      setReviewModal(null);
+      setInfoMessage("Thanks for rating your pro. Your feedback helps the community stay safe.");
+      await fetchJobs({ silent: true });
+    } catch (err) {
+      console.error(err);
+      setReviewError(
+        err instanceof Error
+          ? err.message
+          : "We couldn’t submit your review."
+      );
+    } finally {
+      setReviewSubmitting(false);
     }
   };
 
@@ -950,6 +1047,14 @@ const ManageJobsPage = () => {
                             "requires_confirmation",
                             "requires_action",
                           ].includes(completionPayment.status ?? "");
+                        const homeownerReview = escrowJob?.provider_reviews?.find(
+                          (review) => review?.homeowner_id === user?.id
+                        );
+                        const canReview =
+                          !!escrowJob &&
+                          ["completed", "reserve_hold", "canceled", "disputed"].includes(
+                            escrowJob.job_status ?? ""
+                          );
                         const escrowFundedCents =
                           escrowPayment &&
                           [
@@ -1072,17 +1177,25 @@ const ManageJobsPage = () => {
                                       </span>
                                     </div>
                                     <div className="flex items-center gap-2">
+                                      <Tag className="w-4 h-4" />
+                                      <span>
+                                        {job.pricing_mode === "provider_quote"
+                                          ? "Awaiting provider quotes"
+                                          : "Budget shared with providers"}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
                                       <DollarSign className="w-4 h-4" />
                                       <span>
-                                        {job.budget_amount
-                                          ? `${
-                                              job.budget_type === "hourly"
-                                                ? "Hourly"
-                                                : "Flat"
-                                            } • $${job.budget_amount.toFixed(
-                                              0
-                                            )}`
-                                          : "Budget hidden"}
+                                        {job.pricing_mode === "provider_quote"
+                                          ? "Providers will quote"
+                                          : job.budget_amount
+                                              ? `${
+                                                  job.budget_type === "hourly"
+                                                    ? "Hourly"
+                                                    : "Flat"
+                                                } • $${job.budget_amount.toFixed(0)}`
+                                              : "Budget hidden"}
                                       </span>
                                     </div>
                                   </div>
@@ -1277,6 +1390,9 @@ const ManageJobsPage = () => {
                                           Escrow status: {escrowStatusLabel} •
                                           Secured so far: {escrowFundedLabel}
                                         </p>
+                                        <p className="text-xs text-blue-600">
+                                          Providers operate as independent contractors. Walk through the scope together and request proof of insurance for licensed work—ZapTasks mediates disputes but isn’t the service provider.
+                                        </p>
                                         <div className="flex flex-wrap gap-2">
                                           <button
                                             className="btn btn-xs btn-primary"
@@ -1320,6 +1436,23 @@ const ManageJobsPage = () => {
                                         </div>
                                       </div>
                                     )}
+                                  {canReview && escrowJob && (
+                                    homeownerReview ? (
+                                      <div className="flex items-center gap-2 text-xs text-emerald-600">
+                                        <span className="font-semibold">
+                                          You rated this pro
+                                        </span>
+                                        {renderStars(homeownerReview.rating ?? null)}
+                                      </div>
+                                    ) : (
+                                      <button
+                                        className="btn btn-xs btn-success"
+                                        onClick={() => openReviewModal(escrowJob)}
+                                      >
+                                        Rate your pro
+                                      </button>
+                                    )
+                                  )}
                                   <button
                                     onClick={() => handleToggleJob(job.id)}
                                     className="btn btn-sm btn-outline"
@@ -1531,6 +1664,112 @@ const ManageJobsPage = () => {
                 onClose={() => setPaymentModal(null)}
               />
             </Elements>
+          </div>
+        </div>
+      )}
+
+      {reviewModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
+            <header className="space-y-1">
+              <p className="text-sm uppercase tracking-wide text-emerald-500">
+                Community feedback
+              </p>
+              <h3 className="text-2xl font-semibold text-slate-900">
+                How did your pro do?
+              </h3>
+              <p className="text-sm text-slate-600">
+                Honest reviews help neighbours choose reliable providers and keep no-shows off the platform.
+              </p>
+            </header>
+            <div className="flex items-center justify-center gap-2">
+              {Array.from({ length: 5 }, (_, index) => index + 1).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() =>
+                    setReviewModal((prev) =>
+                      prev ? { ...prev, rating: value } : prev
+                    )
+                  }
+                  className={`btn btn-sm ${
+                    value <= reviewModal.rating ? "btn-warning" : "btn-ghost"
+                  }`}
+                >
+                  <Star
+                    className={`h-4 w-4 ${
+                      value <= reviewModal.rating
+                        ? "text-amber-500"
+                        : "text-slate-400"
+                    }`}
+                    fill={value <= reviewModal.rating ? "currentColor" : "none"}
+                  />
+                </button>
+              ))}
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              {[
+                { value: "positive" as const, label: "Great service" },
+                { value: "no_show" as const, label: "No-show" },
+                { value: "issue" as const, label: "Issue on site" },
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() =>
+                    setReviewModal((prev) =>
+                      prev ? { ...prev, reviewType: option.value } : prev
+                    )
+                  }
+                  className={`btn btn-xs ${
+                    reviewModal.reviewType === option.value
+                      ? "btn-primary"
+                      : "btn-outline"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <label className="form-control">
+              <span className="label-text text-sm text-slate-700">
+                Share any context (optional)
+              </span>
+              <textarea
+                className="textarea textarea-bordered h-24"
+                value={reviewModal.comment}
+                onChange={(event) =>
+                  setReviewModal((prev) =>
+                    prev ? { ...prev, comment: event.target.value } : prev
+                  )
+                }
+                maxLength={1000}
+                placeholder="Were they on time? Did anything go wrong?"
+              />
+            </label>
+            {reviewError && (
+              <p className="text-sm text-error" role="alert">
+                {reviewError}
+              </p>
+            )}
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setReviewModal(null)}
+                disabled={reviewSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => void submitReview()}
+                disabled={reviewSubmitting}
+              >
+                {reviewSubmitting ? "Sending..." : "Submit review"}
+              </button>
+            </div>
           </div>
         </div>
       )}

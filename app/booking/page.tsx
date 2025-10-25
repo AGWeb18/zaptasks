@@ -45,6 +45,8 @@ ZapTasks Terms & Conditions
 • ZapTasks connects homeowners with independent Canadian service providers. We do not guarantee service outcomes.
 • Payments are held in Stripe-powered escrow based on job size: under $100 = 100% upfront, $100–$500 = 50% upfront/50% on completion, over $500 = 30% upfront/30% progress/40% on completion.
 • ZapTasks collects a 10% platform fee (8% on large trades) to cover Stripe fees, support, and dispute mediation.
+• Service providers are independent contractors. They are responsible for their own tools, licensing, taxes, and commercial insurance. ZapTasks is a marketplace and is not liable for property damage or on-site injuries.
+• Homeowners agree to provide a safe work area, confirm the scope directly with their provider, and verify proof of insurance when required (e.g., electrical, plumbing, large projects).
 • Cancellations inside 24 hours of the scheduled start may forfeit the in-progress payment. Report disputes within 24 hours of completion so our team can help mediate.
 • Keep communication in-app and share photo updates through chat when requested. Ensure the work area is safe and accessible.
 • Using ZapTasks means you accept these terms and agree to our Privacy Policy and Terms of Service.`;
@@ -77,6 +79,7 @@ const BookingPage: React.FC = () => {
   const [estimatedHours, setEstimatedHours] = useState<string>("");
   const [budgetAmount, setBudgetAmount] = useState<string>("");
   const [budgetType, setBudgetType] = useState<"flat" | "hourly">("flat");
+  const [pricingMode, setPricingMode] = useState<"client_budget" | "provider_quote">("client_budget");
   const [contactPreference, setContactPreference] = useState<
     "messages" | "phone" | "email"
   >("messages");
@@ -221,10 +224,11 @@ const BookingPage: React.FC = () => {
   };
 
   const parsedBudget = useMemo(() => {
+    if (pricingMode === "provider_quote") return null;
     if (!budgetAmount.trim()) return null;
     const numeric = Number(budgetAmount);
     return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
-  }, [budgetAmount]);
+  }, [budgetAmount, pricingMode]);
 
   const parsedHours = useMemo(() => {
     if (!estimatedHours.trim()) return null;
@@ -251,7 +255,7 @@ const BookingPage: React.FC = () => {
       return;
     }
 
-    if (budgetAmount.trim() && parsedBudget === null) {
+    if (pricingMode === "client_budget" && budgetAmount.trim() && parsedBudget === null) {
       setError(
         "Enter a valid Canadian dollar amount or leave the budget blank."
       );
@@ -331,6 +335,7 @@ const BookingPage: React.FC = () => {
           address: selectedAddress || null,
           latitude: selectedLat,
           longitude: selectedLng,
+          pricingMode,
           budget: {
             type: parsedBudget ? budgetType : null,
             amount: parsedBudget,
@@ -358,6 +363,7 @@ const BookingPage: React.FC = () => {
       setEstimatedHours("");
       setBudgetAmount("");
       setBudgetType("flat");
+      setPricingMode("client_budget");
       setContactPreference("messages");
       setExtraNotes("");
       setAgreeToTerms(false);
@@ -373,11 +379,13 @@ const BookingPage: React.FC = () => {
     }
   };
 
-  const budgetSummary = parsedBudget
-    ? `${formatCurrency(parsedBudget)}${
-        budgetType === "hourly" ? "/hr" : " flat"
-      }`
-    : "Not set";
+  const budgetSummary = pricingMode === "provider_quote"
+    ? "Pros will quote after reviewing your request"
+    : parsedBudget
+      ? `${formatCurrency(parsedBudget)}${
+          budgetType === "hourly" ? "/hr" : " flat"
+        }`
+      : "Flexible";
 
   return (
     <div data-theme="light">
@@ -703,6 +711,50 @@ const BookingPage: React.FC = () => {
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
+                  <label className={`form-control cursor-pointer rounded-xl border ${pricingMode === "client_budget" ? "border-blue-400 bg-blue-50/80" : "border-slate-200 bg-white"} p-4 transition`}
+                    onClick={() => setPricingMode("client_budget")}
+                  >
+                    <span className="label-text font-semibold text-slate-900 flex items-center gap-2">
+                      <PiggyBank className="h-4 w-4" />
+                      Share my target budget
+                    </span>
+                    <span className="label-text-alt text-xs text-slate-600 mt-2">
+                      Set a flat or hourly budget to attract providers in your price range. They can still counter-offer.
+                    </span>
+                    <div className="mt-3 flex items-center gap-2 text-sm text-slate-600">
+                      <input
+                        type="radio"
+                        className="radio radio-primary"
+                        checked={pricingMode === "client_budget"}
+                        onChange={() => setPricingMode("client_budget")}
+                      />
+                      <span>I have a budget in mind</span>
+                    </div>
+                  </label>
+
+                  <label className={`form-control cursor-pointer rounded-xl border ${pricingMode === "provider_quote" ? "border-emerald-400 bg-emerald-50/80" : "border-slate-200 bg-white"} p-4 transition`}
+                    onClick={() => setPricingMode("provider_quote")}
+                  >
+                    <span className="label-text font-semibold text-slate-900 flex items-center gap-2">
+                      <Tag className="h-4 w-4" />
+                      Ask providers for quotes
+                    </span>
+                    <span className="label-text-alt text-xs text-slate-600 mt-2">
+                      Skip setting a price. Pros will recommend a fair rate based on their expertise and materials.
+                    </span>
+                    <div className="mt-3 flex items-center gap-2 text-sm text-slate-600">
+                      <input
+                        type="radio"
+                        className="radio radio-primary"
+                        checked={pricingMode === "provider_quote"}
+                        onChange={() => setPricingMode("provider_quote")}
+                      />
+                      <span>I’ll review quotes</span>
+                    </div>
+                  </label>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
                   <label className="form-control">
                     <span className="label-text font-medium text-slate-800">
                       Estimated hours (optional)
@@ -717,7 +769,11 @@ const BookingPage: React.FC = () => {
                     />
                   </label>
 
-                  <label className="form-control">
+                  <label
+                    className={`form-control ${
+                      pricingMode === "provider_quote" ? "opacity-50 pointer-events-none" : ""
+                    }`}
+                  >
                     <span className="label-text font-medium text-slate-800">
                       Budget (optional)
                     </span>
@@ -727,8 +783,9 @@ const BookingPage: React.FC = () => {
                         min={1}
                         value={budgetAmount}
                         onChange={(e) => setBudgetAmount(e.target.value)}
-                        placeholder="e.g. 150"
+                        placeholder={pricingMode === "provider_quote" ? "Providers will quote" : "e.g. 150"}
                         className="input input-bordered flex-1"
+                        disabled={pricingMode === "provider_quote"}
                       />
                       <select
                         value={budgetType}
@@ -736,7 +793,7 @@ const BookingPage: React.FC = () => {
                           setBudgetType(e.target.value as "flat" | "hourly")
                         }
                         className="select select-bordered"
-                        disabled={!budgetAmount.trim()}
+                        disabled={pricingMode === "provider_quote" || !budgetAmount.trim()}
                       >
                         <option value="flat">Flat</option>
                         <option value="hourly">Hourly</option>
@@ -816,6 +873,14 @@ const BookingPage: React.FC = () => {
                       {parsedHours
                         ? `${parsedHours} hour${parsedHours > 1 ? "s" : ""}`
                         : "Flexible"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Pricing preference</span>
+                    <span className="text-right max-w-xs">
+                      {pricingMode === "provider_quote"
+                        ? "Ask providers for quotes"
+                        : "Share my target budget"}
                     </span>
                   </div>
                   <div className="flex justify-between">

@@ -15,6 +15,7 @@ import {
   Bell,
   Sparkles,
   XCircle,
+  Star,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { createClient } from "@/app/utils/supabase/client";
@@ -64,6 +65,7 @@ interface EscrowJob {
   reserve_releasable_at?: string | null;
   last_provider_transfer_id?: string | null;
   provider_transfer_total_cents?: number | null;
+  provider_reviews?: ProviderReviewRecord[];
 }
 
 interface JobApplicationMeta {
@@ -86,10 +88,19 @@ interface OpenJobRequest {
   budget_amount: number | null;
   budget_notes: string | null;
   contact_preference: string | null;
+  pricing_mode: string | null;
   status: string;
   created_at: string;
   job_applications?: JobApplicationMeta[];
   photo_urls?: string[] | null;
+}
+
+interface ProviderReviewRecord {
+  id: string;
+  rating: number | null;
+  review_type: string | null;
+  comment: string | null;
+  created_at: string;
 }
 
 interface NotificationItem {
@@ -117,6 +128,22 @@ const formatCurrency = (amountCents: number | null | undefined): string => {
     return "$0.00";
   }
   return `$${(amountCents / 100).toFixed(2)}`;
+};
+
+const renderStars = (value: number | null | undefined) => {
+  if (!value || value <= 0) return null;
+  const rounded = Math.round(value);
+  return (
+    <div className="flex items-center gap-1">
+      {Array.from({ length: 5 }, (_, index) => (
+        <Star
+          key={index}
+          className={`h-4 w-4 ${index < rounded ? "text-amber-500" : "text-slate-300"}`}
+          fill={index < rounded ? "currentColor" : "none"}
+        />
+      ))}
+    </div>
+  );
 };
 
 const jobStatusCopy: Record<string, string> = {
@@ -226,6 +253,7 @@ const ProJobsPage = () => {
             ...raw,
             milestone_plan: parseEscrowSchedule(raw.milestone_plan),
             payments: raw.payments ?? [],
+            provider_reviews: raw.provider_reviews ?? [],
           })),
         );
       } else {
@@ -611,6 +639,14 @@ const ProJobsPage = () => {
                 </button>
               )}
             </div>
+            <div className="alert alert-info bg-blue-50 border border-blue-100 text-xs text-blue-700 mb-4">
+              <div>
+                <p className="font-semibold">Stay covered</p>
+                <p>
+                  ZapTasks connects you with homeowners, but you remain an independent contractor. Keep your insurance, licences, and safety gear up to date, and document site conditions in chat.
+                </p>
+              </div>
+            </div>
             {loadingEscrow ? (
               <div className="flex items-center gap-2 text-base-content/60 text-sm">
                 <span className="loading loading-spinner loading-xs"></span> Checking your payouts…
@@ -628,6 +664,13 @@ const ProJobsPage = () => {
                   const total = job.total_amount_cents;
                   const platformFee = job.platform_fee_cents;
                   const providerTakeHome = Math.max(total - platformFee, 0);
+                  const reviewCount = job.provider_reviews?.length ?? 0;
+                  const averageRating = reviewCount
+                    ? (job.provider_reviews ?? []).reduce(
+                        (sum, review) => sum + (review?.rating ?? 0),
+                        0,
+                      ) / reviewCount
+                    : null;
                   const escrowPayment = job.payments?.find((payment) => payment.payment_type === "escrow");
                   const progressPayment = job.payments?.find((payment) => payment.payment_type === "progress");
                   const completionPayment = job.payments?.find((payment) => payment.payment_type === "completion");
@@ -674,6 +717,16 @@ const ProJobsPage = () => {
                         <p className="text-xs uppercase tracking-wide text-blue-500">{jobStatusCopy[job.job_status] ?? job.job_status}</p>
                         <h3 className="text-xl font-semibold text-slate-900">{jobTitle}</h3>
                         <p className="text-sm text-slate-600">{jobAddress}</p>
+                        {reviewCount > 0 ? (
+                          <div className="flex items-center gap-2 text-xs text-amber-600">
+                            {renderStars(averageRating)}
+                            <span>
+                              {averageRating?.toFixed(1)} ({reviewCount} review{reviewCount === 1 ? "" : "s"})
+                            </span>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-slate-500">No homeowner reviews yet</p>
+                        )}
                       </header>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                         <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4">
@@ -909,13 +962,21 @@ const ProJobsPage = () => {
                           <div className="flex items-center gap-2">
                             <DollarSign className="w-4 h-4" />
                             <span>
-                              {job.budget_amount
-                                ? job.budget_type === "hourly"
-                                  ? `$${job.budget_amount}/hr`
-                                  : `$${job.budget_amount} flat`
-                                : "Budget open"}
+                              {job.pricing_mode === "provider_quote"
+                                ? "Homeowner wants providers to quote"
+                                : job.budget_amount
+                                    ? job.budget_type === "hourly"
+                                      ? `$${job.budget_amount}/hr`
+                                      : `$${job.budget_amount} flat`
+                                    : "Budget open"}
                             </span>
                           </div>
+                          {job.pricing_mode === "provider_quote" && (
+                            <div className="flex items-center gap-2 text-xs text-slate-500">
+                              <MessageCircle className="w-3 h-3" />
+                              <span>Suggest a fair price when you apply.</span>
+                            </div>
+                          )}
                           <div className="flex items-center gap-2">
                             <MessageCircle className="w-4 h-4" />
                             <span>{job.contact_preference === "phone" ? "Prefers phone chat" : job.contact_preference === "email" ? "Prefers email" : "Prefers ZapTasks chat"}</span>

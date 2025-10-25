@@ -63,6 +63,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Homeowner mismatch." }, { status: 403 });
     }
 
+    const pricingMode = body.pricingMode === "provider_quote" ? "provider_quote" : "client_budget";
+
     const supabase = await createClientWithUser(userId);
 
     const normalizeCoordinate = (value: unknown) => {
@@ -101,6 +103,7 @@ export async function POST(req: NextRequest) {
         budget_amount: body.budget?.amount,
         budget_notes: body.budget?.notes,
         contact_preference: body.contactPreference,
+        pricing_mode: pricingMode,
         photo_urls: Array.isArray(body.photoUrls) && body.photoUrls.length > 0 ? body.photoUrls : null,
         status: "open",
       })

@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
 
     let query = supabase
       .from("jobs")
-      .select("*, job_requests(*), payments(*), job_milestones(*)")
+      .select("*, job_requests(*), payments(*), job_milestones(*), provider_reviews(*)")
       .order("created_at", { ascending: false });
 
     if (jobRequestId) {

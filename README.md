@@ -53,6 +53,9 @@ At ZapTasks, we're more than just a service provider. We're your neighbors, your
 
 We understand that inviting someone into your home requires trust. That's why all our helpers undergo thorough background checks and are fully insured. Your safety and peace of mind are our top priorities.
 
+- ZapTasks is a marketplace: providers are independent contractors who bring their own insurance, tools, and licences. Always confirm credentials for regulated trades.
+- Homeowners rate every completed job, and no-shows or disputes are logged so the community can see who’s dependable.
+
 ## 📞 Get in Touch
 
 Need help or have questions? We're always here for you:
