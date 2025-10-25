@@ -32,9 +32,7 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({ value, onChange }) => {
 
   return (
     <div className="form-control flex-1">
-      <label className="label" htmlFor="time">
-        <span className="label-text">Time</span>
-      </label>
+      <label className="label" htmlFor="time"></label>
       <div className="relative">
         <Clock
           className="absolute left-3 top-1/2 transform -translate-y-1/2 text-base-content/50"
