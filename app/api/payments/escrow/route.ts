@@ -158,7 +158,10 @@ export async function POST(req: NextRequest) {
       if (paymentType === "completion") {
         return "awaiting_completion_confirmation";
       }
-      return "in_progress";
+      if (paymentType === "escrow" || paymentType === "progress") {
+        return "awaiting_capture";
+      }
+      return job.job_status;
     })();
 
     await supabase
