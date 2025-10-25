@@ -271,13 +271,6 @@ const LandingPage: React.FC = () => {
         </section>
 
         <section className="mb-16">
-          <TestimonialsCarousel
-            testimonials={testimonials}
-            className="bg-gradient-to-br from-white via-blue-50/50 to-white"
-          />
-        </section>
-
-        <section className="mb-16">
           <div className="bg-blue-50 border border-blue-100 rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="md:w-2/3">
               <h3 className="text-2xl font-semibold text-blue-900">
