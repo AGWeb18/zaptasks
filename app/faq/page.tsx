@@ -11,12 +11,12 @@ const faqs = [
   {
     question: "What happens if there is a dispute?",
     answer:
-      "Contact support within 24 hours. We pause any remaining escrow release and gather documentation from both sides. Most disputes resolve in under 48 hours thanks to our mediation checklist.",
+      "Contact support within 24 hours. We pause any remaining payouts and gather documentation from both sides. Most disputes resolve in under 48 hours thanks to our mediation checklist.",
   },
   {
     question: "Can I get a refund on the deposit?",
     answer:
-      "Escrow deposits follow our tiered model. They are fully refundable if the provider cancels or if you revoke approval before work begins. After work starts, we follow the scope agreed to in writing between you and the provider.",
+      "Payments follow our secure milestone model. They are fully refundable if the provider cancels or if you revoke approval before work begins. After work starts, we follow the scope agreed to in writing between you and the provider.",
   },
   {
     question: "How do payouts work for providers?",
@@ -38,8 +38,8 @@ export default function FAQPage() {
             Frequently asked questions
           </h1>
           <p className="mt-3 text-slate-600">
-            Everything you need to know about ZapTasks security, the tiered
-            escrow payment structure, and how we support Canadian communities.
+            Everything you need to know about ZapTasks security, the secure
+            payment structure, and how we support Canadian communities.
           </p>
         </div>
 

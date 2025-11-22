@@ -404,7 +404,7 @@ const BookingPage: React.FC = () => {
                 <p className="mt-4 text-lg text-slate-700">
                   Describe what you need, add a few tags, and share your ideal
                   timing. Providers across Canada can apply, message you, and
-                  get paid through our tiered Stripe escrow (100%, 50/50, or
+                  get paid through our secure payment system (100% upfront, 50/50, or
                   milestone-based).
                 </p>
                 <div className="mt-6 grid gap-3 text-sm text-slate-700 sm:grid-cols-3">
@@ -415,8 +415,8 @@ const BookingPage: React.FC = () => {
                   <div className="flex items-start gap-2 rounded-xl bg-white px-4 py-3 shadow-sm border border-blue-100">
                     <PiggyBank className="mt-1 h-4 w-4 text-blue-500" />
                     <span>
-                      Industry standard payment processing and escrow to handle
-                      disputes
+                      Industry standard payment processing to handle
+                      disputes securely
                     </span>
                   </div>
                   <div className="flex items-start gap-2 rounded-xl bg-white px-4 py-3 shadow-sm border border-blue-100">
@@ -970,7 +970,7 @@ const BookingPage: React.FC = () => {
                 <p>
                   Jobs under $100 are paid in full upfront to secure the slot.
                   Larger jobs use split payments (50/50 or milestones) so providers can start work with confidence.
-                  Funds are held securely by Stripe until the work is approved.
+                  Funds are processed securely by Stripe.
                 </p>
               </div>
             </aside>

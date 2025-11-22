@@ -248,7 +248,7 @@ const ProJobsPage = () => {
       setLoadingEscrow(true);
       const response = await fetch("/api/jobs?scope=provider");
       if (!response.ok) {
-        throw new Error("Failed to load your escrow jobs");
+        throw new Error("Failed to load your booked jobs");
       }
       const data = await response.json();
       if (Array.isArray(data.jobs)) {

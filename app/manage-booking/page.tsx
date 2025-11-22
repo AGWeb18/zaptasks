@@ -526,7 +526,7 @@ const ManageJobsPage = () => {
 
       if (!response.ok) {
         const errorPayload = await response.json().catch(() => null);
-        throw new Error(errorPayload?.error ?? "Failed to create job escrow");
+        throw new Error(errorPayload?.error ?? "Failed to create job payment");
       }
 
       const payload = await response.json();
@@ -552,7 +552,7 @@ const ManageJobsPage = () => {
 
       if (payload?.requiresProviderOnboarding) {
         setInfoMessage(
-          "Your provider has been awarded, but they need to finish Stripe payouts before escrow can be funded. We'll alert you as soon as it's ready."
+          "Your provider has been awarded, but they need to finish Stripe payouts before payments can be processed. We'll alert you as soon as it's ready."
         );
       } else if (
         payload?.schedule?.amounts &&
@@ -749,7 +749,7 @@ const ManageJobsPage = () => {
       }
 
       await fetchJobs({ silent: true });
-      setInfoMessage("Payment confirmed and escrow released. Thank you!");
+      setInfoMessage("Payment confirmed and released. Thank you!");
     } catch (err) {
       console.error(err);
       setError(
@@ -775,7 +775,7 @@ const ManageJobsPage = () => {
       }
 
       setInfoMessage(
-        "Job cancelled and any escrow will be released within 5-10 days."
+        "Job cancelled and any payment will be released within 5-10 days."
       );
       await fetchJobs({ silent: true });
     } catch (err) {
