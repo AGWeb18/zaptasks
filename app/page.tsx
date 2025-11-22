@@ -34,9 +34,9 @@ const services = [
         height="100px"
       />
     ),
-    name: "Grocery Runs",
+    name: "Senior Support",
     description:
-      "A friendly neighbour can pick up and deliver your groceries, whether it's a few items or a full list.",
+      "Extra help for seniors—from grocery runs to moving heavy items—provided by caring neighbours.",
   },
   {
     id: "handyman",
@@ -47,9 +47,9 @@ const services = [
         height="100px"
       />
     ),
-    name: "General Help",
+    name: "Landlord & Home Repairs",
     description:
-      "Need an extra hand? Get help with small tasks, moving furniture, or assembling items around the house.",
+      "Quick fixes for rentals or your own home. Furniture assembly, minor repairs, and maintenance tasks.",
   },
   {
     id: "outdoor",
@@ -60,9 +60,9 @@ const services = [
         height="100px"
       />
     ),
-    name: "Yard Work",
+    name: "Yard Work & Seasonal",
     description:
-      "From raking leaves to shovelling snow, neighbours can help keep your property looking great year-round.",
+      "Snow shovelling, leaf raking, and garden cleanup. Keep your property safe and tidy in every season.",
   },
 ];
 
@@ -125,12 +125,10 @@ const LandingPage: React.FC = () => {
               🇨🇦 Proudly Canadian • Built for local communities
             </span>
             <h1 className="mt-4 text-4xl md:text-5xl font-bold text-slate-900 leading-tight">
-              Need a hand? Post a task and get help from a neighbour.
+              Reliable help for Homeowners, Landlords & Seniors.
             </h1>
             <p className="mt-4 text-lg text-slate-600">
-              ZapTasks is the Canadian marketplace where you can post any
-              task—from grocery runs to yard work—and find trusted neighbours to
-              help. Compare offers, chat before booking, and pay securely.
+              ZapTasks acts as a broker connecting you with independent local providers. Whether you need handyman repairs for a rental, yard work for a senior, or extra hands for a busy family, we make it easy to find help and pay securely in Canadian Dollars (CAD).
             </p>
             <div className="mt-6">
               <ServiceSearchBar />

@@ -42,13 +42,12 @@ const tagSuggestions = [
 const termsAndConditions = `
 ZapTasks Terms & Conditions
 
-• ZapTasks connects homeowners with independent Canadian service providers. We do not guarantee service outcomes.
-• Payments are held in Stripe-powered escrow based on job size: under $100 = 100% upfront, $100–$500 = 50% upfront/50% on completion, over $500 = 30% upfront/30% progress/40% on completion.
-• ZapTasks collects a 10% platform fee (8% on large trades) to cover Stripe fees, support, and dispute mediation.
-• Service providers are independent contractors. They are responsible for their own tools, licensing, taxes, and commercial insurance. ZapTasks is a marketplace and is not liable for property damage or on-site injuries.
-• Homeowners agree to provide a safe work area, confirm the scope directly with their provider, and verify proof of insurance when required (e.g., electrical, plumbing, large projects).
-• Cancellations inside 24 hours of the scheduled start may forfeit the in-progress payment. Report disputes within 24 hours of completion so our team can help mediate.
-• Keep communication in-app and share photo updates through chat when requested. Ensure the work area is safe and accessible.
+• ZapTasks acts solely as a broker connecting homeowners with independent Canadian service providers. We do not perform, endorse, or guarantee any work.
+• ZapTasks is NOT liable for the work done, nor for any damage to property or personal injury caused during the task. Users engage providers at their own risk.
+• All payments and fees are in Canadian Dollars (CAD).
+• Payments are processed securely via Stripe. ZapTasks collects a 10% platform fee (8% on large trades) to facilitate the connection.
+• Service providers are independent contractors responsible for their own tools, licensing, taxes, and insurance. Always verify credentials for regulated trades.
+• Cancellations inside 24 hours of the scheduled start may forfeit the payment.
 • Using ZapTasks means you accept these terms and agree to our Privacy Policy and Terms of Service.`;
 
 const formatCurrency = (value: number | null | undefined) => {
