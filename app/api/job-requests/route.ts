@@ -168,7 +168,7 @@ export async function PATCH(req: NextRequest) {
 
     if (body?.selectedApplicationId) {
       return NextResponse.json({
-        error: "Use POST /api/jobs to award applications and set up escrow.",
+        error: "Use POST /api/jobs to award applications and set up payment.",
       }, { status: 400 });
     }
 

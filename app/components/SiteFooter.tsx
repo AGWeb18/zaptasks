@@ -17,7 +17,7 @@ export function SiteFooter() {
             <h3 className="text-lg font-semibold mb-3">ZapTasks</h3>
             <p className="text-sm text-slate-400 leading-relaxed">
               Canadian-built marketplace connecting homeowners with trusted
-              local pros from coast to coast. Tiered Stripe escrow keeps every
+              local pros from coast to coast. Secure payments keep every
               booking transparent, and shared ratings help you spot neighbours
               who consistently deliver.
             </p>

@@ -322,7 +322,7 @@ export async function POST(req: NextRequest) {
             payload: {
               jobId: jobRequest.id,
               jobTitle: jobRequest.job_title,
-              message: "Finish Stripe payouts to unlock escrow deposits.",
+              message: "Finish Stripe payouts to unlock payments.",
             },
           }
         : {
