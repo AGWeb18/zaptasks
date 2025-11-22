@@ -34,9 +34,9 @@ const services = [
         height="100px"
       />
     ),
-    name: "Grocery Runs",
+    name: "Senior Support",
     description:
-      "A friendly neighbour can pick up and deliver your groceries, whether it's a few items or a full list.",
+      "Extra help for seniors—from grocery runs to moving heavy items—provided by caring neighbours.",
   },
   {
     id: "handyman",
@@ -47,9 +47,9 @@ const services = [
         height="100px"
       />
     ),
-    name: "General Help",
+    name: "Landlord & Home Repairs",
     description:
-      "Need an extra hand? Get help with small tasks, moving furniture, or assembling items around the house.",
+      "Quick fixes for rentals or your own home. Furniture assembly, minor repairs, and maintenance tasks.",
   },
   {
     id: "outdoor",
@@ -60,9 +60,9 @@ const services = [
         height="100px"
       />
     ),
-    name: "Yard Work",
+    name: "Yard Work & Seasonal",
     description:
-      "From raking leaves to shovelling snow, neighbours can help keep your property looking great year-round.",
+      "Snow shovelling, leaf raking, and garden cleanup. Keep your property safe and tidy in every season.",
   },
 ];
 
@@ -80,7 +80,7 @@ const bookingSteps = [
   {
     icon: <CreditCard className="w-6 h-6 text-blue-600" />,
     title: "Secure & finish",
-    copy: "Lock in the booking with the right escrow milestone via Stripe Connect, then release the rest once the job is signed off.",
+    copy: "Lock in the booking with secure payments via Stripe Connect. Funds are released to the provider as milestones are met.",
   },
 ];
 
@@ -91,7 +91,7 @@ const testimonials: Testimonial[] = [
     role: "Cottage owner",
     rating: 5,
     quote:
-      "ZapTasks lined up a snow removal crew within an hour. The tiered escrow made paying and tipping straightforward.",
+      "ZapTasks lined up a snow removal crew within an hour. The secure payment system made paying and tipping straightforward.",
     location: "Muskoka, ON",
   },
   {
@@ -125,12 +125,10 @@ const LandingPage: React.FC = () => {
               🇨🇦 Proudly Canadian • Built for local communities
             </span>
             <h1 className="mt-4 text-4xl md:text-5xl font-bold text-slate-900 leading-tight">
-              Need a hand? Post a task and get help from a neighbour.
+              Reliable help for Homeowners, Landlords & Seniors.
             </h1>
             <p className="mt-4 text-lg text-slate-600">
-              ZapTasks is the Canadian marketplace where you can post any
-              task—from grocery runs to yard work—and find trusted neighbours to
-              help. Compare offers, chat before booking, and pay securely.
+              ZapTasks acts as a broker connecting you with independent local providers. Whether you need handyman repairs for a rental, yard work for a senior, or extra hands for a busy family, we make it easy to find help and pay securely in Canadian Dollars (CAD).
             </p>
             <div className="mt-6">
               <ServiceSearchBar />
@@ -142,7 +140,7 @@ const LandingPage: React.FC = () => {
             <div className="mt-6 flex flex-col sm:flex-row gap-3 text-sm text-slate-600">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-emerald-500" />
-                Tiered escrow with every booking
+                Secure payments with every booking
               </div>
               <div className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4 text-blue-500" />
@@ -160,7 +158,7 @@ const LandingPage: React.FC = () => {
                 href="/pro/jobs"
                 className="btn btn-outline btn-lg border-2 border-blue-200 hover:border-blue-500"
               >
-                Find Local Jobs
+                Earn Money as a Neighbour
               </Link>
             </div>
             <p className="mt-3 text-xs text-slate-500">
@@ -250,21 +248,20 @@ const LandingPage: React.FC = () => {
               </a>
             </h4>
             <p>
-              ZapTasks keeps peer-to-peer work transparent with tiered escrow
-              that adapts to the size of every job:
+              ZapTasks keeps peer-to-peer work transparent with secure milestones
+              that adapt to the size of every job:
             </p>
             <ul className="list-disc list-inside mt-2">
-              <li>Jobs under $100: 100% held in escrow until completion.</li>
+              <li>Jobs under $100: 100% paid upfront to secure the slot.</li>
               <li>
-                Jobs from $100–$500: 50% deposit before work, 50% on approval.
+                Jobs from $100–$500: 50% deposit to start, 50% on completion.
               </li>
               <li>
                 Jobs over $500: milestone plan (30%/30%/40%) with progress
                 payments.
               </li>
               <li>
-                ZapTasks deducts a 10% platform fee (8% on larger trades) once
-                funds are released.
+                ZapTasks deducts a 10% platform fee (8% on larger trades) automatically.
               </li>
             </ul>
           </div>
@@ -278,8 +275,8 @@ const LandingPage: React.FC = () => {
               </h3>
               <ul className="mt-4 space-y-3 text-sm text-blue-900/80">
                 <li>
-                  • Tiered Stripe escrow handles deposits, progress payments,
-                  and completion releases.
+                  • Secure Stripe payments handle deposits, progress payments,
+                  and completion releases effortlessly.
                 </li>
                 <li>
                   • Transparent 10% platform fee (8% on large trades) keeps
@@ -297,7 +294,7 @@ const LandingPage: React.FC = () => {
                   Flat 10% marketplace fee
                 </p>
                 <p className="text-xs text-blue-900/70 mt-2">
-                  Every job supports escrow-style payments, dispute resolution,
+                  Every job supports secure payments, dispute resolution,
                   and local customer success with one transparent 10% ZapTasks
                   fee (8% for eligible large projects).
                 </p>

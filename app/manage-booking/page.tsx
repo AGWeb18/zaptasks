@@ -29,6 +29,7 @@ import {
   useStripe,
 } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
+import ChatModal from "@/app/components/ChatModal";
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -322,6 +323,10 @@ const ManageJobsPage = () => {
   const [reviewModal, setReviewModal] = useState<ReviewModalState | null>(null);
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
+  const [chatModalProvider, setChatModalProvider] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const renderStars = (value: number | null | undefined) => {
     if (!value || value <= 0) return null;
@@ -554,9 +559,9 @@ const ManageJobsPage = () => {
         payload?.escrowPaymentIntent?.clientSecret
       ) {
         setInfoMessage(
-          `Escrow created: hold $${(
+          `Payment setup: Pay $${(
             payload.schedule.amounts.escrowCents / 100
-          ).toFixed(2)} now, pay the rest when the job is complete.`
+          ).toFixed(2)} now to secure the job. The rest is due on completion.`
         );
       }
 
@@ -567,7 +572,7 @@ const ManageJobsPage = () => {
           clientSecret: payload.escrowPaymentIntent.clientSecret,
           paymentIntentId: payload.escrowPaymentIntent.id,
           amountCents: payload.schedule?.amounts?.escrowCents ?? 0,
-          label: "Pay Escrow",
+          label: "Pay Deposit",
         });
       }
 
@@ -619,7 +624,7 @@ const ManageJobsPage = () => {
         label:
           options?.label ??
           (paymentType === "escrow"
-            ? "Pay Escrow"
+              ? "Pay Deposit"
             : paymentType === "progress"
             ? "Pay Progress"
             : "Pay Remaining"),
@@ -697,7 +702,7 @@ const ManageJobsPage = () => {
                 ? "Pay Remaining"
                 : paymentType === "progress"
                 ? "Pay Progress"
-                : "Pay Escrow",
+                : "Pay Deposit",
           });
         }
 
@@ -1206,8 +1211,7 @@ const ManageJobsPage = () => {
                                         Payment plan
                                       </h4>
                                       <p className="text-sm text-slate-600 mb-4">
-                                        We hold funds in Stripe-powered escrow
-                                        so both sides feel safe.
+                                        Payments are secured by Stripe Connect.
                                       </p>
                                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <div className="p-4 border border-blue-100 rounded-lg bg-blue-50 flex flex-col gap-2">
@@ -1387,13 +1391,27 @@ const ManageJobsPage = () => {
                                           </p>
                                         )}
                                         <p className="text-xs text-blue-600">
-                                          Escrow status: {escrowStatusLabel} •
-                                          Secured so far: {escrowFundedLabel}
+                                          Payment status: {escrowStatusLabel} •
+                                          Paid so far: {escrowFundedLabel}
                                         </p>
                                         <p className="text-xs text-blue-600">
                                           Providers operate as independent contractors. Walk through the scope together and request proof of insurance for licensed work—ZapTasks mediates disputes but isn’t the service provider.
                                         </p>
                                         <div className="flex flex-wrap gap-2">
+                                          <button
+                                            className="btn btn-xs btn-secondary"
+                                            onClick={() =>
+                                              awardedApplication.provider_id &&
+                                              setChatModalProvider({
+                                                id: awardedApplication.provider_id,
+                                                name:
+                                                  awardedApplication.provider_name ??
+                                                  "Provider",
+                                              })
+                                            }
+                                          >
+                                            Chat
+                                          </button>
                                           <button
                                             className="btn btn-xs btn-primary"
                                             disabled={
@@ -1488,7 +1506,7 @@ const ManageJobsPage = () => {
                                     {escrowSchedule && (
                                       <div className="text-xs text-slate-600 space-y-2">
                                         <p>
-                                          Planned escrow releases:{" "}
+                                          Payment schedule:{" "}
                                           {escrowSchedule.escrowPercentage}%
                                           upfront,{" "}
                                           {escrowSchedule.progressPercentage ??
@@ -1498,9 +1516,8 @@ const ManageJobsPage = () => {
                                           on completion.
                                         </p>
                                         <p>
-                                          Escrow funded so far:{" "}
-                                          {escrowFundedLabel}. Planned remaining
-                                          releases: {plannedRemainingLabel}.
+                                          Paid so far:{" "}
+                                          {escrowFundedLabel}. Remaining due: {plannedRemainingLabel}.
                                         </p>
                                         <p>
                                           ZapTasks fee (
@@ -1586,6 +1603,20 @@ const ManageJobsPage = () => {
                                               </div>
                                             </div>
                                             <div className="flex flex-col gap-2">
+                                              <button
+                                                className="btn btn-outline btn-sm"
+                                                onClick={() =>
+                                                  application.provider_id &&
+                                                  setChatModalProvider({
+                                                    id: application.provider_id,
+                                                    name:
+                                                      application.provider_name ??
+                                                      "Provider",
+                                                  })
+                                                }
+                                              >
+                                                Chat
+                                              </button>
                                               {job.status === "open" && (
                                                 <button
                                                   className="btn btn-primary btn-sm"
@@ -1772,6 +1803,14 @@ const ManageJobsPage = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {chatModalProvider && (
+        <ChatModal
+          providerId={chatModalProvider.id}
+          providerName={chatModalProvider.name}
+          onClose={() => setChatModalProvider(null)}
+        />
       )}
 
       {disputeJobId && (

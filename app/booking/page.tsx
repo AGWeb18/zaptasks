@@ -42,13 +42,12 @@ const tagSuggestions = [
 const termsAndConditions = `
 ZapTasks Terms & Conditions
 
-• ZapTasks connects homeowners with independent Canadian service providers. We do not guarantee service outcomes.
-• Payments are held in Stripe-powered escrow based on job size: under $100 = 100% upfront, $100–$500 = 50% upfront/50% on completion, over $500 = 30% upfront/30% progress/40% on completion.
-• ZapTasks collects a 10% platform fee (8% on large trades) to cover Stripe fees, support, and dispute mediation.
-• Service providers are independent contractors. They are responsible for their own tools, licensing, taxes, and commercial insurance. ZapTasks is a marketplace and is not liable for property damage or on-site injuries.
-• Homeowners agree to provide a safe work area, confirm the scope directly with their provider, and verify proof of insurance when required (e.g., electrical, plumbing, large projects).
-• Cancellations inside 24 hours of the scheduled start may forfeit the in-progress payment. Report disputes within 24 hours of completion so our team can help mediate.
-• Keep communication in-app and share photo updates through chat when requested. Ensure the work area is safe and accessible.
+• ZapTasks acts solely as a broker connecting homeowners with independent Canadian service providers. We do not perform, endorse, or guarantee any work.
+• ZapTasks is NOT liable for the work done, nor for any damage to property or personal injury caused during the task. Users engage providers at their own risk.
+• All payments and fees are in Canadian Dollars (CAD).
+• Payments are processed securely via Stripe. ZapTasks collects a 10% platform fee (8% on large trades) to facilitate the connection.
+• Service providers are independent contractors responsible for their own tools, licensing, taxes, and insurance. Always verify credentials for regulated trades.
+• Cancellations inside 24 hours of the scheduled start may forfeit the payment.
 • Using ZapTasks means you accept these terms and agree to our Privacy Policy and Terms of Service.`;
 
 const formatCurrency = (value: number | null | undefined) => {
@@ -902,8 +901,7 @@ const BookingPage: React.FC = () => {
                       required
                     />
                     <span className="label-text text-sm text-slate-700">
-                      I understand ZapTasks holds funds in escrow until I
-                      approve the work.
+                      I understand ZapTasks secures funds upfront and releases them when I approve the work.
                     </span>
                   </label>
                 </div>
@@ -949,7 +947,7 @@ const BookingPage: React.FC = () => {
                   Why Canadians trust ZapTasks
                 </h3>
                 <ul className="space-y-3 text-sm text-blue-900/80">
-                  <li>• Tiered escrow keeps deposits clear for both sides.</li>
+                  <li>• Secure payments protect both homeowners and providers.</li>
                   <li>
                     • Ratings and reviews from real homeowners stay front and
                     centre on provider profiles.
@@ -967,12 +965,12 @@ const BookingPage: React.FC = () => {
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 space-y-3 text-sm text-emerald-900">
                 <h4 className="text-lg font-semibold flex items-center gap-2">
                   <PiggyBank className="h-5 w-5" />
-                  Tiered escrow payments
+                  Secure Payment Milestones
                 </h4>
                 <p>
-                  Jobs under $100 are paid in full upfront, $100–$500 split
-                  50/50, and larger projects use 30%/30%/40% milestones. Funds
-                  sit safely in Stripe escrow until you sign off.
+                  Jobs under $100 are paid in full upfront to secure the slot.
+                  Larger jobs use split payments (50/50 or milestones) so providers can start work with confidence.
+                  Funds are held securely by Stripe until the work is approved.
                 </p>
               </div>
             </aside>

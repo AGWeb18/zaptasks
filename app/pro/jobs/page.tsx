@@ -20,6 +20,7 @@ import {
 import { format, formatDistanceToNow } from "date-fns";
 import { createClient } from "@/app/utils/supabase/client";
 import { getServiceLabels } from "@/app/lib/services/catalog";
+import ChatModal from "@/app/components/ChatModal";
 
 type EscrowTier = "small" | "medium" | "large";
 
@@ -75,6 +76,7 @@ interface JobApplicationMeta {
 interface OpenJobRequest {
   id: string;
   homeowner_id: string;
+  homeowner_name?: string | null;
   job_title: string;
   services: string[];
   description: string;
@@ -201,6 +203,10 @@ const ProJobsPage = () => {
   const [rateType, setRateType] = useState<"flat" | "hourly">("flat");
   const [rateAmount, setRateAmount] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
+  const [chatModalHomeowner, setChatModalHomeowner] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const currentUserId = user?.id;
 
@@ -273,6 +279,26 @@ const ProJobsPage = () => {
       fetchMyEscrowJobs();
     }
   }, [isLoaded, isSignedIn]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const checkProviderStatus = async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("providers")
+        .select("stripe_account_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      // If no record or no stripe id, we need onboarding
+      if (!data?.stripe_account_id) {
+        setStripeAccountMissing(true);
+      } else {
+        setStripeAccountMissing(false);
+      }
+    };
+    void checkProviderStatus();
+  }, [user?.id]);
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn || !user?.id) return;
@@ -413,6 +439,7 @@ const ProJobsPage = () => {
   );
   const userEmail = user?.primaryEmailAddress?.emailAddress ?? null;
 
+  const [stripeAccountMissing, setStripeAccountMissing] = useState(false);
   const [onboardingLoading, setOnboardingLoading] = useState(false);
   const [onboardingAutoAttempted, setOnboardingAutoAttempted] = useState(false);
   const [releasingReserveId, setReleasingReserveId] = useState<string | null>(null);
@@ -624,20 +651,27 @@ const ProJobsPage = () => {
           </header>
 
           <section className="mb-12">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
-              <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-blue-500" /> Your escrowed jobs
-              </h2>
-              {requiresOnboarding && (
+            {(requiresOnboarding || stripeAccountMissing) && (
+              <div className="alert alert-warning mb-6">
+                <div className="flex-1">
+                  <h3 className="font-bold text-sm">Action Required: Connect Bank Account</h3>
+                  <p className="text-xs">You must connect a Stripe account to receive payouts and get hired.</p>
+                </div>
                 <button
                   type="button"
-                  className="btn btn-sm btn-primary text-white md:self-end"
+                  className="btn btn-sm btn-primary text-white"
                   onClick={startStripeOnboarding}
                   disabled={onboardingLoading}
                 >
-                  {onboardingLoading ? "Opening Stripe…" : "Enable instant payouts"}
+                  {onboardingLoading ? "Connecting..." : "Connect now"}
                 </button>
-              )}
+              </div>
+            )}
+
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
+              <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-blue-500" /> Your Booked Jobs
+              </h2>
             </div>
             <div className="alert alert-info bg-blue-50 border border-blue-100 text-xs text-blue-700 mb-4">
               <div>
@@ -653,7 +687,7 @@ const ProJobsPage = () => {
               </div>
             ) : escrowJobs.length === 0 ? (
               <p className="text-base-content/60 text-sm">
-                When a homeowner chooses you, we’ll hold their payment safely in Stripe-powered escrow and show it here.
+                When a homeowner chooses you, the booking and payment details will appear here.
               </p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -727,6 +761,21 @@ const ProJobsPage = () => {
                         ) : (
                           <p className="text-xs text-slate-500">No homeowner reviews yet</p>
                         )}
+                        <button
+                          className="btn btn-xs btn-secondary mt-2"
+                          onClick={() => {
+                            if (job.job_requests?.homeowner_id) {
+                              setChatModalHomeowner({
+                                id: job.job_requests.homeowner_id,
+                                name:
+                                  job.job_requests.homeowner_name ??
+                                  "Homeowner",
+                              });
+                            }
+                          }}
+                        >
+                          Chat with Homeowner
+                        </button>
                       </header>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                         <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4">
@@ -735,7 +784,7 @@ const ProJobsPage = () => {
                           <p className="text-xs text-emerald-700 mt-1">After ZapTasks fee ({Math.round(job.platform_fee_rate * 100)}%)</p>
                         </div>
                         <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-                          <p className="text-xs uppercase text-slate-600">Escrow funded so far</p>
+                          <p className="text-xs uppercase text-slate-600">Paid so far</p>
                           <p className="text-2xl font-semibold text-slate-900">{escrowFundedLabel}</p>
                           <p className="text-xs text-slate-500 mt-1">{escrowStatusLabel}</p>
                         </div>
@@ -744,7 +793,7 @@ const ProJobsPage = () => {
                         <div className="alert alert-warning text-sm">
                           <div>
                             <p className="font-semibold">Connect payouts to receive funds</p>
-                            <p className="text-xs">Stripe unlocks once you finish onboarding. It takes about two minutes.</p>
+                            <p className="text-xs">You need to connect Stripe to accept jobs and receive payments.</p>
                           </div>
                           <button
                             type="button"
@@ -752,15 +801,15 @@ const ProJobsPage = () => {
                             onClick={startStripeOnboarding}
                             disabled={onboardingLoading}
                           >
-                            {onboardingLoading ? "Opening Stripe…" : "Finish setup"}
+                            {onboardingLoading ? "Connecting..." : "Finish setup"}
                           </button>
                         </div>
                       )}
                       {schedule && (
                         <div className="space-y-3">
-                          <p className="text-xs uppercase text-slate-400 tracking-wide">Escrow timeline</p>
+                          <p className="text-xs uppercase text-slate-400 tracking-wide">Payment timeline</p>
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-slate-700">
-                            {renderPaymentBlock("Escrow", escrowPayment, schedule.amounts.escrowCents)}
+                            {renderPaymentBlock("Upfront", escrowPayment, schedule.amounts.escrowCents)}
                             {schedule.amounts.progressCents > 0 &&
                               renderPaymentBlock("Progress", progressPayment, schedule.amounts.progressCents)}
                             {renderPaymentBlock("Completion", completionPayment, schedule.amounts.completionCents)}
@@ -1013,6 +1062,14 @@ const ProJobsPage = () => {
           )}
         </section>
       </main>
+
+      {chatModalHomeowner && (
+        <ChatModal
+          providerId={chatModalHomeowner.id}
+          providerName={chatModalHomeowner.name}
+          onClose={() => setChatModalHomeowner(null)}
+        />
+      )}
 
       {selectedJobId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
