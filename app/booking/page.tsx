@@ -940,7 +940,7 @@ const BookingPage: React.FC = () => {
               </section>
             </form>
 
-            <aside className="space-y-6">
+            <aside className="space-y-6 lg:sticky lg:top-24 h-fit">
               <div className="rounded-2xl border border-blue-200 bg-white shadow-sm p-6 space-y-4">
                 <h3 className="text-lg font-semibold text-blue-900 flex items-center gap-2">
                   <ShieldCheck className="h-5 w-5" />

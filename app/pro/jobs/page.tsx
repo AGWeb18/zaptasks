@@ -207,8 +207,22 @@ const ProJobsPage = () => {
     id: string;
     name: string;
   } | null>(null);
+  const [activeTab, setActiveTab] = useState<"find" | "booked">("find");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [stripeAccountMissing, setStripeAccountMissing] = useState(false);
 
   const currentUserId = user?.id;
+
+  const filteredJobs = useMemo(() => {
+    if (!searchQuery.trim()) return jobs;
+    const lower = searchQuery.toLowerCase();
+    return jobs.filter(
+      (j) =>
+        j.job_title.toLowerCase().includes(lower) ||
+        j.description.toLowerCase().includes(lower) ||
+        j.address?.toLowerCase().includes(lower)
+    );
+  }, [jobs, searchQuery]);
 
   const fetchJobs = async () => {
     try {
@@ -290,7 +304,6 @@ const ProJobsPage = () => {
         .eq("user_id", user.id)
         .maybeSingle();
 
-      // If no record or no stripe id, we need onboarding
       if (!data?.stripe_account_id) {
         setStripeAccountMissing(true);
       } else {
@@ -439,7 +452,6 @@ const ProJobsPage = () => {
   );
   const userEmail = user?.primaryEmailAddress?.emailAddress ?? null;
 
-  const [stripeAccountMissing, setStripeAccountMissing] = useState(false);
   const [onboardingLoading, setOnboardingLoading] = useState(false);
   const [onboardingAutoAttempted, setOnboardingAutoAttempted] = useState(false);
   const [releasingReserveId, setReleasingReserveId] = useState<string | null>(null);
@@ -650,48 +662,80 @@ const ProJobsPage = () => {
             </div>
           </header>
 
-          <section className="mb-12">
-            {(requiresOnboarding || stripeAccountMissing) && (
-              <div className="alert alert-warning mb-6">
-                <div className="flex-1">
-                  <h3 className="font-bold text-sm">Action Required: Connect Bank Account</h3>
-                  <p className="text-xs">You must connect a Stripe account to receive payouts and get hired.</p>
-                </div>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-primary text-white"
-                  onClick={startStripeOnboarding}
-                  disabled={onboardingLoading}
-                >
-                  {onboardingLoading ? "Connecting..." : "Connect now"}
-                </button>
-              </div>
-            )}
-
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
-              <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-blue-500" /> Your Booked Jobs
-              </h2>
-            </div>
-            <div className="alert alert-info bg-blue-50 border border-blue-100 text-xs text-blue-700 mb-4">
-              <div>
-                <p className="font-semibold">Stay covered</p>
-                <p>
-                  ZapTasks connects you with homeowners, but you remain an independent contractor. Keep your insurance, licences, and safety gear up to date, and document site conditions in chat.
+          {(requiresOnboarding || stripeAccountMissing) && (
+            <div className="alert alert-warning mb-6">
+              <div className="flex-1">
+                <h3 className="font-bold text-sm">
+                  Action Required: Connect Bank Account
+                </h3>
+                <p className="text-xs">
+                  You must connect a Stripe account to receive payouts and get
+                  hired.
                 </p>
               </div>
+              <button
+                type="button"
+                className="btn btn-sm btn-primary text-white"
+                onClick={startStripeOnboarding}
+                disabled={onboardingLoading}
+              >
+                {onboardingLoading ? "Connecting..." : "Connect now"}
+              </button>
             </div>
-            {loadingEscrow ? (
-              <div className="flex items-center gap-2 text-base-content/60 text-sm">
-                <span className="loading loading-spinner loading-xs"></span> Checking your payouts…
+          )}
+
+          <div className="tabs tabs-boxed bg-white border border-slate-200 mb-8 p-1">
+            <a
+              className={`tab ${activeTab === "find" ? "tab-active bg-blue-100 text-blue-800" : ""}`}
+              onClick={() => setActiveTab("find")}
+            >
+              Find Work
+            </a>
+            <a
+              className={`tab ${activeTab === "booked" ? "tab-active bg-blue-100 text-blue-800" : ""}`}
+              onClick={() => setActiveTab("booked")}
+            >
+              My Jobs{" "}
+              {escrowJobs.length > 0 && (
+                <div className="badge badge-sm badge-primary ml-2">
+                  {escrowJobs.length}
+                </div>
+              )}
+            </a>
+          </div>
+
+          {activeTab === "booked" && (
+            <section className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
+                <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-blue-500" /> Your Booked
+                  Jobs
+                </h2>
               </div>
-            ) : escrowJobs.length === 0 ? (
-              <p className="text-base-content/60 text-sm">
-                When a homeowner chooses you, the booking and payment details will appear here.
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {escrowJobs.map((job) => {
+              <div className="alert alert-info bg-blue-50 border border-blue-100 text-xs text-blue-700 mb-4">
+                <div>
+                  <p className="font-semibold">Stay covered</p>
+                  <p>
+                    ZapTasks connects you with homeowners, but you remain an
+                    independent contractor. Keep your insurance, licences, and
+                    safety gear up to date, and document site conditions in
+                    chat.
+                  </p>
+                </div>
+              </div>
+              {loadingEscrow ? (
+                <div className="flex items-center gap-2 text-base-content/60 text-sm">
+                  <span className="loading loading-spinner loading-xs"></span>{" "}
+                  Checking your payouts…
+                </div>
+              ) : escrowJobs.length === 0 ? (
+                <p className="text-base-content/60 text-sm">
+                  When a homeowner chooses you, the booking and payment details
+                  will appear here.
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {escrowJobs.map((job) => {
                   const schedule = job.milestone_plan;
                   const jobTitle = job.job_requests?.job_title ?? "ZapTasks job";
                   const jobAddress = job.job_requests?.address ?? "Address shared after confirmation";
@@ -848,7 +892,8 @@ const ProJobsPage = () => {
                 })}
               </div>
             )}
-          </section>
+            </section>
+          )}
 
           {error && (
             <div className="alert alert-error shadow mb-6">
@@ -857,76 +902,36 @@ const ProJobsPage = () => {
             </div>
           )}
 
-          <section className="mb-12">
-            <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-              <Bell className="w-4 h-4" /> Notifications
-            </h2>
-            {loadingNotifications ? (
-              <div className="flex items-center gap-2 text-base-content/60 text-sm">
-                <span className="loading loading-spinner loading-xs"></span> Loading alerts…
+          {activeTab === "find" && (
+            <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="mb-6 relative">
+                <input
+                  type="text"
+                  placeholder="Search by title, description, or city..."
+                  className="input input-bordered w-full pl-10"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <Sparkles className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               </div>
-            ) : notifications.length === 0 ? (
-              <p className="text-base-content/60 text-sm">
-                No notifications yet. Apply to jobs and we’ll keep you posted on homeowner decisions.
-              </p>
-            ) : (
-              <ul className="space-y-3">
-                {notifications.map((notification) => (
-                  <li
-                    key={notification.id}
-                    className={`bg-white border border-slate-200 rounded-lg px-4 py-3 text-sm flex justify-between items-start ${
-                      notification.read_at ? "opacity-75" : ""
-                    }`}
-                  >
-                    <div>
-                      <p className="font-semibold capitalize mb-1">
-                        {notification.type.replace(/_/g, " ")}
-                      </p>
-                      <p className="text-base-content/70 text-xs">
-                        {format(new Date(notification.created_at), "MMM d, yyyy h:mma")}
-                      </p>
-                    </div>
-                    {!notification.read_at && (
-                      <button
-                        className="btn btn-ghost btn-xs"
-                        onClick={async () => {
-                          await fetch("/api/notifications", {
-                            method: "PATCH",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ notificationId: notification.id }),
-                          });
-                          setNotifications((prev) =>
-                            prev.map((item) =>
-                              item.id === notification.id ? { ...item, read_at: new Date().toISOString() } : item
-                            )
-                          );
-                        }}
-                      >
-                        Mark read
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
 
-          {loadingJobs ? (
-            <div className="flex justify-center py-20">
-              <span className="loading loading-spinner loading-lg text-primary"></span>
-            </div>
-          ) : jobs.length === 0 ? (
-            <div className="bg-white rounded-lg shadow p-10 text-center">
-              <CheckCircle className="w-14 h-14 mx-auto text-green-400 mb-4" />
-              <h2 className="text-2xl font-semibold mb-2">All caught up</h2>
-              <p className="text-base-content/70">
-                There are no open job requests right now. Check back soon—we’ll ping you when new work lands.
-              </p>
-            </div>
-          ) : (
-            <div className="max-h-[75vh] overflow-y-auto pr-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 pb-2">
-                {jobs.map((job) => {
+              {loadingJobs ? (
+                <div className="flex justify-center py-20">
+                  <span className="loading loading-spinner loading-lg text-primary"></span>
+                </div>
+              ) : filteredJobs.length === 0 ? (
+                <div className="bg-white rounded-lg shadow p-10 text-center">
+                  <CheckCircle className="w-14 h-14 mx-auto text-green-400 mb-4" />
+                  <h2 className="text-2xl font-semibold mb-2">All caught up</h2>
+                  <p className="text-base-content/70">
+                    {searchQuery
+                      ? "No jobs match your search."
+                      : "There are no open job requests right now."}
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 pb-2">
+                  {filteredJobs.map((job) => {
                   const applied = hasApplied(job.id);
                   const isOwnJob = job.homeowner_id === currentUserId;
                   const primaryPhoto = job.photo_urls?.[0] ?? "/images/job-card-placeholder.svg";
@@ -1058,10 +1063,63 @@ const ProJobsPage = () => {
                   );
                 })}
               </div>
-            </div>
+            )}
+            </section>
           )}
-        </section>
-      </main>
+
+          <section className="mb-12">
+            <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <Bell className="w-4 h-4" /> Notifications
+            </h2>
+            {loadingNotifications ? (
+              <div className="flex items-center gap-2 text-base-content/60 text-sm">
+                <span className="loading loading-spinner loading-xs"></span> Loading alerts…
+              </div>
+            ) : notifications.length === 0 ? (
+              <p className="text-base-content/60 text-sm">
+                No notifications yet. Apply to jobs and we’ll keep you posted on homeowner decisions.
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {notifications.map((notification) => (
+                  <li
+                    key={notification.id}
+                    className={`bg-white border border-slate-200 rounded-lg px-4 py-3 text-sm flex justify-between items-start ${
+                      notification.read_at ? "opacity-75" : ""
+                    }`}
+                  >
+                    <div>
+                      <p className="font-semibold capitalize mb-1">
+                        {notification.type.replace(/_/g, " ")}
+                      </p>
+                      <p className="text-base-content/70 text-xs">
+                        {format(new Date(notification.created_at), "MMM d, yyyy h:mma")}
+                      </p>
+                    </div>
+                    {!notification.read_at && (
+                      <button
+                        className="btn btn-ghost btn-xs"
+                        onClick={async () => {
+                          await fetch("/api/notifications", {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ notificationId: notification.id }),
+                          });
+                          setNotifications((prev) =>
+                            prev.map((item) =>
+                              item.id === notification.id ? { ...item, read_at: new Date().toISOString() } : item
+                            )
+                          );
+                        }}
+                      >
+                        Mark read
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
 
       {chatModalHomeowner && (
         <ChatModal
