@@ -26,21 +26,21 @@ export default function LegalPage() {
           <p className="text-sm text-slate-600">
             By using ZapTasks, you agree to these terms, our Privacy Policy, and any supplemental policies posted on the platform. If you do not agree, do not use the service.
           </p>
-          <h3 className="text-lg font-semibold text-slate-900">2. Marketplace role</h3>
+          <h3 className="text-lg font-semibold text-slate-900">2. Marketplace role & Brokerage</h3>
           <p className="text-sm text-slate-600">
-            We facilitate bookings, tiered escrow payments, and dispute support. Providers are independent contractors responsible for their work, insurance, and compliance with Ontario regulations.
+            ZapTasks acts solely as a broker facilitating connections between homeowners and independent service providers. We do not perform, endorse, supervise, or guarantee any work. Providers are independent contractors responsible for their own work, tools, insurance, and compliance with local regulations.
           </p>
-          <h3 className="text-lg font-semibold text-slate-900">3. Fees</h3>
+          <h3 className="text-lg font-semibold text-slate-900">3. Fees & Currency</h3>
           <p className="text-sm text-slate-600">
-            Homeowners pay no booking fee. ZapTasks collects a 10% platform fee on completed jobs, with an 8% rate available for larger licensed trades. Fees are deducted automatically from Stripe Connect payouts when funds are released.
+            All transactions are in Canadian Dollars (CAD). ZapTasks collects a 10% platform fee on completed jobs (8% for large licensed trades) from the total transaction. Fees are deducted automatically from payouts.
           </p>
           <h3 className="text-lg font-semibold text-slate-900">4. Deposits & releases</h3>
           <p className="text-sm text-slate-600">
             Escrow milestones depend on job size: under $100 pays 100% upfront, $100–$500 uses a 50% deposit with the balance on completion, and projects over $500 rely on 30%/30%/40% milestones. ZapTasks may pause payouts during disputes until resolution.
           </p>
-          <h3 className="text-lg font-semibold text-slate-900">5. Liability</h3>
+          <h3 className="text-lg font-semibold text-slate-900">5. Liability Disclaimer</h3>
           <p className="text-sm text-slate-600">
-            We are not liable for indirect or consequential damages. Our aggregate liability is limited to fees paid to us in the preceding 12 months.
+            ZapTasks is not liable for any work performed, nor for any property damage, personal injury, or losses arising from tasks booked through the platform. Users engage providers at their own risk. Our aggregate liability is limited to the platform fees paid to us in the preceding 12 months.
           </p>
         </section>
 

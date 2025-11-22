@@ -20,6 +20,7 @@ import {
 import { format, formatDistanceToNow } from "date-fns";
 import { createClient } from "@/app/utils/supabase/client";
 import { getServiceLabels } from "@/app/lib/services/catalog";
+import ChatModal from "@/app/components/ChatModal";
 
 type EscrowTier = "small" | "medium" | "large";
 
@@ -75,6 +76,7 @@ interface JobApplicationMeta {
 interface OpenJobRequest {
   id: string;
   homeowner_id: string;
+  homeowner_name?: string | null;
   job_title: string;
   services: string[];
   description: string;
@@ -201,6 +203,10 @@ const ProJobsPage = () => {
   const [rateType, setRateType] = useState<"flat" | "hourly">("flat");
   const [rateAmount, setRateAmount] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
+  const [chatModalHomeowner, setChatModalHomeowner] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const currentUserId = user?.id;
 
@@ -727,6 +733,21 @@ const ProJobsPage = () => {
                         ) : (
                           <p className="text-xs text-slate-500">No homeowner reviews yet</p>
                         )}
+                        <button
+                          className="btn btn-xs btn-secondary mt-2"
+                          onClick={() => {
+                            if (job.job_requests?.homeowner_id) {
+                              setChatModalHomeowner({
+                                id: job.job_requests.homeowner_id,
+                                name:
+                                  job.job_requests.homeowner_name ??
+                                  "Homeowner",
+                              });
+                            }
+                          }}
+                        >
+                          Chat with Homeowner
+                        </button>
                       </header>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                         <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4">
@@ -1013,6 +1034,14 @@ const ProJobsPage = () => {
           )}
         </section>
       </main>
+
+      {chatModalHomeowner && (
+        <ChatModal
+          providerId={chatModalHomeowner.id}
+          providerName={chatModalHomeowner.name}
+          onClose={() => setChatModalHomeowner(null)}
+        />
+      )}
 
       {selectedJobId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">

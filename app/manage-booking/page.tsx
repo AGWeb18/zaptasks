@@ -29,6 +29,7 @@ import {
   useStripe,
 } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
+import ChatModal from "@/app/components/ChatModal";
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -322,6 +323,10 @@ const ManageJobsPage = () => {
   const [reviewModal, setReviewModal] = useState<ReviewModalState | null>(null);
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
+  const [chatModalProvider, setChatModalProvider] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const renderStars = (value: number | null | undefined) => {
     if (!value || value <= 0) return null;
@@ -1395,6 +1400,20 @@ const ManageJobsPage = () => {
                                         </p>
                                         <div className="flex flex-wrap gap-2">
                                           <button
+                                            className="btn btn-xs btn-secondary"
+                                            onClick={() =>
+                                              awardedApplication.provider_id &&
+                                              setChatModalProvider({
+                                                id: awardedApplication.provider_id,
+                                                name:
+                                                  awardedApplication.provider_name ??
+                                                  "Provider",
+                                              })
+                                            }
+                                          >
+                                            Chat
+                                          </button>
+                                          <button
                                             className="btn btn-xs btn-primary"
                                             disabled={
                                               !escrowJob ||
@@ -1586,6 +1605,20 @@ const ManageJobsPage = () => {
                                               </div>
                                             </div>
                                             <div className="flex flex-col gap-2">
+                                              <button
+                                                className="btn btn-outline btn-sm"
+                                                onClick={() =>
+                                                  application.provider_id &&
+                                                  setChatModalProvider({
+                                                    id: application.provider_id,
+                                                    name:
+                                                      application.provider_name ??
+                                                      "Provider",
+                                                  })
+                                                }
+                                              >
+                                                Chat
+                                              </button>
                                               {job.status === "open" && (
                                                 <button
                                                   className="btn btn-primary btn-sm"
@@ -1772,6 +1805,14 @@ const ManageJobsPage = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {chatModalProvider && (
+        <ChatModal
+          providerId={chatModalProvider.id}
+          providerName={chatModalProvider.name}
+          onClose={() => setChatModalProvider(null)}
+        />
       )}
 
       {disputeJobId && (
