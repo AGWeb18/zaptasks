@@ -34,9 +34,9 @@ export default function LegalPage() {
           <p className="text-sm text-slate-600">
             All transactions are in Canadian Dollars (CAD). ZapTasks collects a 10% platform fee on completed jobs (8% for large licensed trades) from the total transaction. Fees are deducted automatically from payouts.
           </p>
-          <h3 className="text-lg font-semibold text-slate-900">4. Deposits & releases</h3>
+          <h3 className="text-lg font-semibold text-slate-900">4. Payment Milestones</h3>
           <p className="text-sm text-slate-600">
-            Escrow milestones depend on job size: under $100 pays 100% upfront, $100–$500 uses a 50% deposit with the balance on completion, and projects over $500 rely on 30%/30%/40% milestones. ZapTasks may pause payouts during disputes until resolution.
+            Payment schedules depend on job size: under $100 is paid 100% upfront to secure the booking. Jobs $100–$500 use a 50% deposit with the balance on completion. Projects over $500 rely on 30%/30%/40% milestones. ZapTasks may pause payouts during disputes until resolution.
           </p>
           <h3 className="text-lg font-semibold text-slate-900">5. Liability Disclaimer</h3>
           <p className="text-sm text-slate-600">
@@ -70,7 +70,7 @@ export default function LegalPage() {
         <section className="bg-blue-50 border border-blue-100 rounded-3xl p-8 text-sm text-blue-900/90">
           <h2 className="text-xl font-semibold text-blue-900">Dispute resolution</h2>
           <ol className="list-decimal list-inside space-y-2 mt-3">
-            <li>Contact support within 24 hours of the issue. We pause any remaining escrow release.</li>
+            <li>Contact support within 24 hours of the issue. We pause any remaining payouts.</li>
             <li>Submit photos, chat transcripts, and receipts. Providers may propose a fix or refund.</li>
             <li>ZapTasks mediates within 48 hours. Possible outcomes include partial refund, rework, or payout release.</li>
           </ol>

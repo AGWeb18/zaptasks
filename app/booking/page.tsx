@@ -901,8 +901,7 @@ const BookingPage: React.FC = () => {
                       required
                     />
                     <span className="label-text text-sm text-slate-700">
-                      I understand ZapTasks holds funds in escrow until I
-                      approve the work.
+                      I understand ZapTasks secures funds upfront and releases them when I approve the work.
                     </span>
                   </label>
                 </div>
@@ -948,7 +947,7 @@ const BookingPage: React.FC = () => {
                   Why Canadians trust ZapTasks
                 </h3>
                 <ul className="space-y-3 text-sm text-blue-900/80">
-                  <li>• Tiered escrow keeps deposits clear for both sides.</li>
+                  <li>• Secure payments protect both homeowners and providers.</li>
                   <li>
                     • Ratings and reviews from real homeowners stay front and
                     centre on provider profiles.
@@ -966,12 +965,12 @@ const BookingPage: React.FC = () => {
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 space-y-3 text-sm text-emerald-900">
                 <h4 className="text-lg font-semibold flex items-center gap-2">
                   <PiggyBank className="h-5 w-5" />
-                  Tiered escrow payments
+                  Secure Payment Milestones
                 </h4>
                 <p>
-                  Jobs under $100 are paid in full upfront, $100–$500 split
-                  50/50, and larger projects use 30%/30%/40% milestones. Funds
-                  sit safely in Stripe escrow until you sign off.
+                  Jobs under $100 are paid in full upfront to secure the slot.
+                  Larger jobs use split payments (50/50 or milestones) so providers can start work with confidence.
+                  Funds are held securely by Stripe until the work is approved.
                 </p>
               </div>
             </aside>
