@@ -6,7 +6,6 @@ import {
 const isProtectedRoute = createRouteMatcher([
   '/booking(.*)',
   '/api/create-customer',
-  '/api/create-invoice',
   // '/forum(.*)',
 ]);
 
