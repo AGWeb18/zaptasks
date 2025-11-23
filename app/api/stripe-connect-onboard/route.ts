@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
         email,
         business_type: "individual",
         business_profile: {
-          mcc: "7299", // Miscellaneous personal services – closest MCC for home services.
+          mcc: "7299",
           url: baseUrl,
         },
         capabilities: {

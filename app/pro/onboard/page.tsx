@@ -74,9 +74,9 @@ export default function PayoutOnboarding() {
                 Get paid securely
               </h1>
               <p className="text-slate-600 text-lg leading-relaxed">
-                Connect your bank account to receive payments for jobs. We
-                partner with <strong>Stripe</strong> – your data stays secure on
-                their servers.
+                To receive payments for your jobs, we need to connect your bank
+                account. We partner with <strong>Stripe</strong> to handle all
+                financial data securely.
               </p>
             </div>
 
@@ -90,7 +90,8 @@ export default function PayoutOnboarding() {
                     Bank-Grade Security
                   </h3>
                   <p className="text-sm text-slate-500 mt-1">
-                    Banking data encrypted – never stored on ZapTasks servers.
+                    Your banking data is encrypted and never stored on our
+                    servers.
                   </p>
                 </div>
               </div>
@@ -104,17 +105,19 @@ export default function PayoutOnboarding() {
                     Direct Deposit
                   </h3>
                   <p className="text-sm text-slate-500 mt-1">
-                    Funds to your bank 1-2 days after job completion.
+                    Funds are routed directly to your account. No holding
+                    periods.
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-slate-900 rounded-xl p-6 md:p-8 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
+            <div className="bg-slate-900 rounded-xl p-6 md:p-8 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl shadow-slate-200">
               <div>
                 <h3 className="text-xl font-bold mb-2">Ready to connect?</h3>
                 <p className="text-slate-300 text-sm mb-4 md:mb-0">
-                  Redirected to Stripe&apos;s secure portal (5 mins).
+                  You will be redirected to Stripe&apos;s secure portal to
+                  verify your identity.
                 </p>
               </div>
 
@@ -159,26 +162,29 @@ export default function PayoutOnboarding() {
             <div className="space-y-4">
               <details className="group cursor-pointer">
                 <summary className="flex justify-between items-center font-medium text-slate-700 list-none">
-                  <span>Why SIN/SSN?</span>
+                  <span>Why do I need to provide my SIN/SSN?</span>
                   <span className="transition group-open:rotate-180">
                     <ChevronRight className="w-4 h-4" />
                   </span>
                 </summary>
                 <p className="text-slate-600 text-sm mt-2 pl-4 border-l-2 border-slate-200">
-                  Law requires payment processors verify recipients (KYC/AML).
+                  Payment processors are required by law (KYC/AML regulations)
+                  to verify the identity of anyone receiving money to prevent
+                  fraud and money laundering.
                 </p>
               </details>
 
               <details className="group cursor-pointer">
                 <summary className="flex justify-between items-center font-medium text-slate-700 list-none">
-                  <span>Does ZapTasks see bank login?</span>
+                  <span>Does ZapTasks see my bank login?</span>
                   <span className="transition group-open:rotate-180">
                     <ChevronRight className="w-4 h-4" />
                   </span>
                 </summary>
                 <p className="text-slate-600 text-sm mt-2 pl-4 border-l-2 border-slate-200">
-                  <strong>No.</strong> Entered directly on Stripe&apos;s
-                  encrypted servers.
+                  <strong>No.</strong> We never see or store your login
+                  credentials or full account numbers. All sensitive data is
+                  entered directly on Stripe&apos;s encrypted servers.
                 </p>
               </details>
             </div>
@@ -186,7 +192,7 @@ export default function PayoutOnboarding() {
         </div>
 
         <p className="text-center text-slate-400 text-sm mt-8">
-          Powered by Stripe Connect
+          Powered by Stripe Connect. Protected by 256-bit encryption.
         </p>
       </main>
     </div>
