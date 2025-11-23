@@ -91,10 +91,14 @@ const LandingPage: React.FC = () => {
         <section className="flex flex-col-reverse lg:flex-row items-center gap-12 mb-16">
           <div className="w-full lg:w-1/2">
             <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-700 shadow-sm mb-4">
-              Early Access • Join First Canadians
+              🇨🇦 Early Canadians Helping Neighbours
             </span>
-            <h1 className="mt-4 text-5xl md:text-6xl font-bold text-slate-900 leading-tight">
-              Get reliable local help in minutes
+            <h1 className="mt-4 text-5xl md:text-7xl font-black text-slate-900 leading-tight mb-6">
+              Local Help
+              <br className="hidden md:block" />
+              <span className="bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent">
+                in Minutes
+              </span>
             </h1>
             <p className="mt-6 text-xl text-slate-600 max-w-2xl">
               Post your task, get offers from neighbours, chat securely, pay
@@ -104,17 +108,17 @@ const LandingPage: React.FC = () => {
             <div className="mt-8 flex flex-col sm:flex-row gap-4">
               <Link
                 href="/booking"
-                className="btn btn-primary btn-lg text-white shadow-lg hover:shadow-xl flex items-center gap-2"
+                className="btn btn-primary btn-lg text-white shadow-xl hover:shadow-2xl px-8 py-4 text-lg font-semibold flex items-center gap-3"
               >
-                <Sparkles className="w-5 h-5" />
+                <Sparkles className="w-6 h-6" />
                 Post Job Free
               </Link>
               <Link
                 href="/pro/jobs"
-                className="btn btn-outline btn-lg border-2 border-blue-200 hover:border-blue-500 hover:bg-blue-50 flex items-center gap-2"
+                className="btn btn-outline btn-lg border-2 border-blue-200 hover:border-blue-500 hover:bg-blue-50 px-8 py-4 text-lg font-semibold flex items-center gap-3"
               >
-                <DollarSign className="w-5 h-5" />
-                Earn Helping Neighbours
+                <DollarSign className="w-6 h-6" />
+                Earn Helping
               </Link>
             </div>
             <p className="mt-3 text-xs text-slate-500">
@@ -203,31 +207,6 @@ const LandingPage: React.FC = () => {
                 height="400px"
               />
             </div>
-          </div>
-          <div className="mt-8 bg-gray-100 p-6 rounded-lg">
-            <h4 id="payment-structure" className="text-xl font-semibold mb-2">
-              <a href="#payment-structure" className="anchor-link">
-                Marketplace Payment Structure
-              </a>
-            </h4>
-            <p>
-              ZapTasks keeps peer-to-peer work transparent with secure
-              milestones that adapt to the size of every job:
-            </p>
-            <ul className="list-disc list-inside mt-2">
-              <li>Jobs under $100: 100% paid upfront to secure the slot.</li>
-              <li>
-                Jobs from $100–$500: 50% deposit to start, 50% on completion.
-              </li>
-              <li>
-                Jobs over $500: milestone plan (30%/30%/40%) with progress
-                payments.
-              </li>
-              <li>
-                ZapTasks deducts a 10% platform fee (8% on larger trades)
-                automatically.
-              </li>
-            </ul>
           </div>
         </section>
 

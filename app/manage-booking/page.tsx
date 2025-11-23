@@ -881,7 +881,7 @@ const ManageJobsPage = () => {
       }
 
       setInfoMessage(
-        "We’ve logged your dispute. A ZapTasks specialist will reach out within 24 hours."
+        "We’ve logged your dispute. A ZapTasks specialist will reach out soon."
       );
       setDisputeJobId(null);
       setDisputeReason("");

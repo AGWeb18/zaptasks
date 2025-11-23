@@ -17,9 +17,9 @@ export function SiteFooter() {
             <h3 className="text-lg font-semibold mb-3">ZapTasks</h3>
             <p className="text-sm text-slate-400 leading-relaxed">
               Canadian-built marketplace connecting homeowners with trusted
-              local pros from coast to coast. Secure payments keep every
-              booking transparent, and shared ratings help you spot neighbours
-              who consistently deliver.
+              local pros from coast to coast. Secure payments keep every booking
+              transparent, and shared ratings help you spot neighbours who
+              consistently deliver.
             </p>
             <div className="mt-4 flex items-center gap-2 text-xs text-slate-400 uppercase tracking-wide">
               <ShieldCheck className="h-4 w-4 text-emerald-400" />
@@ -66,10 +66,10 @@ export function SiteFooter() {
               <li className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-blue-400" />
                 <Link
-                  href="mailto:hello@zaptasks.com"
+                  href="mailto:myzaptasks@gmail.com"
                   className="hover:text-white"
                 >
-                  hello@zaptasks.com
+                  myzaptasks@gmail.com
                 </Link>
               </li>
               <li>Mon–Sat • 8am–8pm Eastern</li>

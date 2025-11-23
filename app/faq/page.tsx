@@ -11,12 +11,7 @@ const faqs = [
   {
     question: "What happens if there is a dispute?",
     answer:
-      "Contact support within 24 hours. We pause any remaining payouts and gather documentation from both sides. Most disputes resolve in under 48 hours thanks to our mediation checklist.",
-  },
-  {
-    question: "Can I get a refund on the deposit?",
-    answer:
-      "Payments follow our secure milestone model. They are fully refundable if the provider cancels or if you revoke approval before work begins. After work starts, we follow the scope agreed to in writing between you and the provider.",
+      "Contact support. We pause any remaining payouts and gather documentation from both sides. Most disputes resolve in under 48 hours thanks to our mediation checklist.",
   },
   {
     question: "How do payouts work for providers?",
