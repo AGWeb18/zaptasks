@@ -24,6 +24,7 @@ import {
   X,
 } from "lucide-react";
 
+import Link from "next/link";
 import Navbar from "../components/NavBar";
 import AddressAutocomplete from "../components/AddressAutocomplete";
 import TimeSelector from "../components/TimeSelector";
@@ -55,6 +56,8 @@ ZapTasks Terms & Conditions
 • Service providers are independent contractors responsible for their own tools, licensing, taxes, and insurance. Always verify credentials for regulated trades.
 • Cancellations inside 24 hours of the scheduled start may forfeit the payment.
 • Using ZapTasks means you accept these terms and agree to our Privacy Policy and Terms of Service.`;
+
+const shortTerms = `Broker only. No liability for work. 10% fee. CAD payments. Verify helper credentials.`;
 
 const formatCurrency = (value: number | null | undefined) => {
   if (!Number.isFinite(value)) return "Not set";
@@ -424,55 +427,25 @@ const BookingPage: React.FC = () => {
                 <h1 className="mt-4 text-4xl font-bold text-slate-900 leading-tight">
                   Post a Job, Get Offers from Local Helpers
                 </h1>
-                <p className="mt-4 text-lg text-slate-700">
-                  Simply describe the work you need done, set your terms, and
-                  connect with local helpers. You&apos;ll receive quotes from
-                  neighbours, chat securely, and manage payments
-                  all in one place.
-                </p>{" "}
-                <div className="mt-6 grid gap-3 text-sm text-slate-700 sm:grid-cols-3">
-                  <div className="flex items-start gap-2 rounded-xl bg-white px-4 py-3 shadow-sm border border-blue-100">
-                    <CheckCircle className="mt-1 h-4 w-4 text-emerald-500" />
-                    <span>Connect with reviewed local helpers</span>
+                <p className="mt-4 text-xl text-slate-700 mb-8">
+                  Describe your task. Get neighbour offers. Chat & pay securely.
+                </p>
+                <div className="grid grid-cols-3 gap-6 mb-12 max-w-2xl mx-auto">
+                  <div className="flex flex-col items-center p-4 hover:scale-105 transition">
+                    <CheckCircle className="w-12 h-12 text-emerald-500 mb-2" />
+                    <p className="text-sm font-semibold">Reviewed Helpers</p>
+                    <p className="text-xs text-slate-500">Community ratings</p>
                   </div>
-                  <div className="flex items-start gap-2 rounded-xl bg-white px-4 py-3 shadow-sm border border-blue-100">
-                    <PiggyBank className="mt-1 h-4 w-4 text-blue-500" />
-                    <span>
-                      Industry standard payment processing to handle disputes
-                      securely
-                    </span>
+                  <div className="flex flex-col items-center p-4 hover:scale-105 transition">
+                    <PiggyBank className="w-12 h-12 text-blue-500 mb-2" />
+                    <p className="text-sm font-semibold">Secure Escrow</p>
+                    <p className="text-xs text-slate-500">Pay when happy</p>
                   </div>
-                  <div className="flex items-start gap-2 rounded-xl bg-white px-4 py-3 shadow-sm border border-blue-100">
-                    <MessageCircle className="mt-1 h-4 w-4 text-purple-500" />
-                    <span>
-                      In-app chat keeps every detail in one secure thread
-                    </span>
+                  <div className="flex flex-col items-center p-4 hover:scale-105 transition">
+                    <MessageCircle className="w-12 h-12 text-purple-500 mb-2" />
+                    <p className="text-sm font-semibold">In-App Chat</p>
+                    <p className="text-xs text-slate-500">No phone needed</p>
                   </div>
-                </div>
-              </div>
-              <div className="hidden lg:flex flex-col gap-4 text-sm text-blue-900">
-                <div className="rounded-2xl border border-blue-200 bg-white/80 backdrop-blur px-5 py-4 shadow-sm">
-                  <p className="font-semibold uppercase tracking-wide text-xs text-blue-500">
-                    How it works
-                  </p>
-                  <ul className="mt-3 space-y-2">
-                    <li>1. Share what you need and when</li>
-                    <li>2. Compare applicants and chat safely</li>
-                    <li>
-                      3. Approve the right helper and release payment after
-                      completion
-                    </li>
-                  </ul>
-                </div>
-                <div className="rounded-2xl border border-blue-200 bg-white/80 backdrop-blur px-5 py-4 shadow-sm">
-                  <p className="font-semibold uppercase tracking-wide text-xs text-blue-500">
-                    Need inspiration?
-                  </p>
-                  <ul className="mt-3 space-y-2 text-sm">
-                    <li>• Assemble an IKEA wardrobe and remove packaging</li>
-                    <li>• Weekly snow removal while we are away</li>
-                    <li>• Same-day pet sitter to walk our dog</li>
-                  </ul>
                 </div>
               </div>
             </div>
@@ -482,552 +455,524 @@ const BookingPage: React.FC = () => {
         <div className="container mx-auto px-4 mt-10 max-w-6xl">
           <div className="grid gap-8 lg:grid-cols-[2fr,1fr]">
             <form onSubmit={handleSubmit} className="space-y-6">
-              <section className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6 space-y-5">
-                <header className="space-y-2">
-                  <p className="text-xs uppercase tracking-wide text-blue-600 font-semibold">
-                    Step 1
-                  </p>
-                  <h2 className="text-xl font-semibold text-slate-900">
-                    Tell neighbours what you need
-                  </h2>
-                  <p className="text-sm text-slate-600">
-                    Keep it short but clear. Mention the location type, access
-                    details, and anything they should prepare for.
-                  </p>
-                </header>
-
-                <label className="form-control">
-                  <span className="label-text font-medium text-slate-800">
-                    Job headline
-                  </span>
-                  <input
-                    type="text"
-                    value={jobTitle}
-                    onChange={(e) => setJobTitle(e.target.value)}
-                    placeholder="e.g. Mount a TV and hide the cords"
-                    className="input input-bordered w-full"
-                    required
-                  />
-                </label>
-
-                <label className="form-control">
-                  <span className="label-text font-medium text-slate-800">
-                    Describe the work
-                  </span>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Share what needs to be done, where, and any timing or access notes."
-                    className="textarea textarea-bordered h-28"
-                    required
-                  />
-                  <span className="label-text-alt text-xs text-slate-500 mt-1">
-                    Tip: mention parking, entry instructions, materials on-site,
-                    and your ideal timing.
-                  </span>
-                </label>
-
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <span className="label-text font-medium text-slate-800">
-                        Add helpful photos{" "}
-                        <span className="text-slate-500 text-sm">
-                          (optional)
-                        </span>
-                      </span>
-                      <p className="text-xs text-slate-500">
-                        Clear photos of the work area help providers respond
-                        with accurate offers.
-                      </p>
-                    </div>
-                    <span className="text-xs text-slate-400">
-                      {photos.length}/{MAX_JOB_PHOTOS} uploaded
-                    </span>
+              <div className="accordion accordion-compact space-y-2">
+                <div className="collapse collapse-arrow border border-base-300 rounded-box">
+                  <input type="radio" name="booking-steps" defaultChecked />
+                  <div className="collapse-title text-xl font-semibold">
+                    <span className="badge badge-primary mr-2">1</span> Job
+                    Details
                   </div>
+                  <div className="collapse-content p-6">
+                    <section className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6 space-y-5">
+                      <header className="space-y-2">
+                        <p className="text-xs uppercase tracking-wide text-blue-600 font-semibold">
+                          Step 1
+                        </p>
+                        <h2 className="text-xl font-semibold text-slate-900">
+                          Tell neighbours what you need
+                        </h2>
+                        <p className="text-sm text-slate-600">
+                          Keep it short but clear. Mention the location type,
+                          access details, and anything they should prepare for.
+                        </p>
+                      </header>
 
-                  <input
-                    ref={photoInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={(event) => {
-                      handlePhotoSelection(event.target.files);
-                      event.target.value = "";
-                    }}
-                  />
-
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {photos.map((photo, index) => (
-                      <div
-                        key={photo.preview}
-                        className="relative aspect-square overflow-hidden rounded-xl border border-slate-200"
-                      >
-                        <Image
-                          src={photo.preview}
-                          alt={`Selected job photo ${index + 1}`}
-                          fill
-                          className="object-cover"
-                          unoptimized
+                      <label className="form-control">
+                        <span className="label-text font-medium text-slate-800">
+                          Job headline
+                        </span>
+                        <input
+                          type="text"
+                          value={jobTitle}
+                          onChange={(e) => setJobTitle(e.target.value)}
+                          placeholder="e.g. Mount a TV and hide the cords"
+                          className="input input-bordered w-full"
+                          required
                         />
-                        <button
-                          type="button"
-                          className="absolute top-2 right-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/70 text-white hover:bg-black/80"
-                          onClick={() => handleRemovePhoto(index)}
-                          aria-label="Remove photo"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
+                      </label>
 
-                    {photos.length < MAX_JOB_PHOTOS && (
-                      <button
-                        type="button"
-                        onClick={() => photoInputRef.current?.click()}
-                        className="aspect-square flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 text-slate-500 hover:border-blue-400 hover:text-blue-500"
-                        disabled={isLoading || uploadingPhotos}
-                      >
-                        <Plus className="h-6 w-6" />
-                        <span className="text-xs font-medium">Add photo</span>
-                        <span className="text-[10px] text-slate-400">
-                          PNG or JPG, up to {Math.round(MAX_PHOTO_MB)}MB
+                      <label className="form-control">
+                        <span className="label-text font-medium text-slate-800">
+                          Describe the work
                         </span>
-                      </button>
-                    )}
+                        <textarea
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          placeholder="What needs to be done?"
+                          className="textarea textarea-bordered h-28"
+                          required
+                        />
+                        <span className="label-text-alt text-xs text-slate-500 mt-1">
+                          Tip: mention parking, entry instructions, materials
+                          on-site, and your ideal timing.
+                        </span>
+                      </label>
+
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <span className="label-text font-medium text-slate-800">
+                              Add helpful photos{" "}
+                              <span className="text-slate-500 text-sm">
+                                (optional)
+                              </span>
+                            </span>
+                            <p className="text-xs text-slate-500">
+                              Clear photos of the work area help providers
+                              respond with accurate offers.
+                            </p>
+                          </div>
+                          <span className="text-xs text-slate-400">
+                            {photos.length}/{MAX_JOB_PHOTOS} uploaded
+                          </span>
+                        </div>
+
+                        <input
+                          ref={photoInputRef}
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={(event) => {
+                            handlePhotoSelection(event.target.files);
+                            event.target.value = "";
+                          }}
+                        />
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          {photos.map((photo, index) => (
+                            <div
+                              key={photo.preview}
+                              className="relative aspect-square overflow-hidden rounded-xl border border-slate-200"
+                            >
+                              <Image
+                                src={photo.preview}
+                                alt={`Selected job photo ${index + 1}`}
+                                fill
+                                className="object-cover"
+                                unoptimized
+                              />
+                              <button
+                                type="button"
+                                className="absolute top-2 right-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/70 text-white hover:bg-black/80"
+                                onClick={() => handleRemovePhoto(index)}
+                                aria-label="Remove photo"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ))}
+
+                          {photos.length < MAX_JOB_PHOTOS && (
+                            <button
+                              type="button"
+                              onClick={() => photoInputRef.current?.click()}
+                              className="aspect-square flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 text-slate-500 hover:border-blue-400 hover:text-blue-500"
+                              disabled={isLoading || uploadingPhotos}
+                            >
+                              <Plus className="h-6 w-6" />
+                              <span className="text-xs font-medium">
+                                Add photo
+                              </span>
+                              <span className="text-[10px] text-slate-400">
+                                PNG or JPG, up to {Math.round(MAX_PHOTO_MB)}MB
+                              </span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </section>
                   </div>
                 </div>
-              </section>
+                <div className="collapse collapse-arrow border border-base-300 rounded-box">
+                  <input type="radio" name="booking-steps" />
+                  <div className="collapse-title text-xl font-semibold">
+                    <span className="badge badge-secondary mr-2">2</span>{" "}
+                    Location & Timing
+                  </div>
+                  <div className="collapse-content p-6">
+                    <section className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6 space-y-5">
+                      <header className="space-y-2">
+                        <p className="text-xs uppercase tracking-wide text-blue-600 font-semibold">
+                          Step 2
+                        </p>
+                        <h2 className="text-xl font-semibold text-slate-900">
+                          Add tags and location context
+                        </h2>
+                        <p className="text-sm text-slate-600">
+                          Tags help the right neighbours find your post. Add
+                          your own if no suggestion fits.
+                        </p>
+                      </header>
 
-              <section className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6 space-y-5">
-                <header className="space-y-2">
-                  <p className="text-xs uppercase tracking-wide text-blue-600 font-semibold">
-                    Step 2
-                  </p>
-                  <h2 className="text-xl font-semibold text-slate-900">
-                    Add tags and location context
-                  </h2>
-                  <p className="text-sm text-slate-600">
-                    Tags help the right neighbours find your post. Add your own
-                    if no suggestion fits.
-                  </p>
-                </header>
-
-                <div>
-                  <span className="label-text font-medium text-slate-800 flex items-center gap-2">
-                    <Tag className="h-4 w-4" />
-                    Tags
-                  </span>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {serviceTags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="badge badge-primary badge-outline flex items-center gap-1"
-                      >
-                        {tag}
-                        <button
-                          type="button"
-                          onClick={() => removeTag(tag)}
-                          aria-label={`Remove ${tag}`}
-                          className="ml-1"
+                      <div>
+                        <span className="label-text font-medium text-slate-800 flex items-center gap-2">
+                          <Tag className="h-4 w-4" />
+                          Tags
+                        </span>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {serviceTags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="badge badge-primary badge-outline flex items-center gap-1"
+                            >
+                              {tag}
+                              <button
+                                type="button"
+                                onClick={() => removeTag(tag)}
+                                aria-label={`Remove ${tag}`}
+                                className="ml-1"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {tagSuggestions.map((suggestion) => (
+                            <button
+                              key={suggestion}
+                              type="button"
+                              onClick={() => addTag(suggestion)}
+                              className="btn btn-xs bg-blue-50 text-blue-700 border border-blue-100 hover:bg-blue-100"
+                            >
+                              {suggestion}
+                            </button>
+                          ))}
+                        </div>
+                        <form
+                          onSubmit={handleCustomTagSubmit}
+                          className="mt-4 flex gap-2"
                         >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </span>
-                    ))}
+                          <input
+                            type="text"
+                            value={customTagInput}
+                            onChange={(e) => setCustomTagInput(e.target.value)}
+                            placeholder={
+                              'Add your own tag (e.g. "Snow removal" or "Kids party")'
+                            }
+                            className="input input-bordered flex-1"
+                          />
+                          <button
+                            type="submit"
+                            className="btn btn-outline"
+                            disabled={!customTagInput.trim()}
+                          >
+                            <Plus className="h-4 w-4" />
+                            Add
+                          </button>
+                        </form>
+                      </div>
+
+                      <label className="form-control">
+                        <span className="label-text font-medium text-slate-800 flex items-center gap-2">
+                          <MapPin className="h-4 w-4" />
+                          Approximate location (optional)
+                        </span>
+                        <div className="relative">
+                          <div className="pl-0">
+                            <AddressAutocomplete
+                              onPlaceSelected={handlePlaceSelected}
+                              apiKey={
+                                process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
+                                ""
+                              }
+                            />
+                          </div>
+                        </div>
+                        <span className="label-text-alt text-xs text-slate-500 mt-1">
+                          Street address stays private until you book. Postal
+                          code or neighbourhood helps locals scope travel.
+                        </span>
+                      </label>
+                    </section>
                   </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {tagSuggestions.map((suggestion) => (
+                </div>
+                <div className="collapse collapse-arrow border border-base-300 rounded-box">
+                  <input type="radio" name="booking-steps" />
+                  <div className="collapse-title text-xl font-semibold">
+                    <span className="badge badge-accent mr-2">3</span> Budget &
+                    Review
+                  </div>
+                  <div className="collapse-content p-6">
+                    <section className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6 space-y-5">
+                      <header className="space-y-2">
+                        <p className="text-xs uppercase tracking-wide text-blue-600 font-semibold">
+                          Step 3
+                        </p>
+                        <h2 className="text-xl font-semibold text-slate-900">
+                          Set your budget and review details
+                        </h2>
+                        <p className="text-sm text-slate-600">
+                          Provide an estimated budget and timeline, or let
+                          helpers suggest. Review your job details before
+                          posting.
+                        </p>
+                      </header>
+
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <label className="form-control">
+                          <span className="label-text font-medium text-slate-800 flex items-center gap-2">
+                            <Calendar className="h-4 w-4" />
+                            Preferred date
+                          </span>
+                          <input
+                            type="date"
+                            min={minDate}
+                            value={date}
+                            onChange={(e) => setDate(e.target.value)}
+                            className="input input-bordered"
+                          />
+                        </label>
+
+                        <label className="form-control">
+                          <span className="label-text font-medium text-slate-800 flex items-center gap-2">
+                            <Clock className="h-4 w-4" />
+                            Preferred start time
+                          </span>
+                          <div className="pl-0">
+                            <TimeSelector
+                              value={time}
+                              onChange={(newTime: string) => setTime(newTime)}
+                            />
+                          </div>
+                        </label>
+                      </div>
+
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <label
+                          className={`form-control cursor-pointer rounded-xl border ${
+                            pricingMode === "client_budget"
+                              ? "border-blue-400 bg-blue-50/80"
+                              : "border-slate-200 bg-white"
+                          } p-4 transition`}
+                          onClick={() => setPricingMode("client_budget")}
+                        >
+                          <span className="label-text font-semibold text-slate-900 flex items-center gap-2">
+                            <PiggyBank className="h-4 w-4" />
+                            Share my target budget
+                          </span>
+                          <span className="label-text-alt text-xs text-slate-600 mt-2">
+                            Set a flat or hourly budget to attract providers in
+                            your price range. They can still counter-offer.
+                          </span>
+                          <div className="mt-3 flex items-center gap-2 text-sm text-slate-600">
+                            <input
+                              type="radio"
+                              className="radio radio-primary"
+                              checked={pricingMode === "client_budget"}
+                              onChange={() => setPricingMode("client_budget")}
+                            />
+                            <span>I have a budget in mind</span>
+                          </div>
+                        </label>
+
+                        <label
+                          className={`form-control cursor-pointer rounded-xl border ${
+                            pricingMode === "provider_quote"
+                              ? "border-emerald-400 bg-emerald-50/80"
+                              : "border-slate-200 bg-white"
+                          } p-4 transition`}
+                          onClick={() => setPricingMode("provider_quote")}
+                        >
+                          <span className="label-text font-semibold text-slate-900 flex items-center gap-2">
+                            <Tag className="h-4 w-4" />
+                            Ask providers for quotes
+                          </span>
+                          <span className="label-text-alt text-xs text-slate-600 mt-2">
+                            Skip setting a price. Helpers will recommend a fair
+                            rate based on their expertise and materials.
+                          </span>
+                          <div className="mt-3 flex items-center gap-2 text-sm text-slate-600">
+                            <input
+                              type="radio"
+                              className="radio radio-primary"
+                              checked={pricingMode === "provider_quote"}
+                              onChange={() => setPricingMode("provider_quote")}
+                            />
+                            <span>I’ll review quotes</span>
+                          </div>
+                        </label>
+                      </div>
+
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <label className="form-control">
+                          <span className="label-text font-medium text-slate-800">
+                            Estimated hours (optional)
+                          </span>
+                          <input
+                            type="number"
+                            min={1}
+                            value={estimatedHours}
+                            onChange={(e) => setEstimatedHours(e.target.value)}
+                            placeholder="e.g. 3"
+                            className="input input-bordered"
+                          />
+                        </label>
+
+                        <label
+                          className={`form-control ${
+                            pricingMode === "provider_quote"
+                              ? "opacity-50 pointer-events-none"
+                              : ""
+                          }`}
+                        >
+                          <span className="label-text font-medium text-slate-800">
+                            Budget (optional)
+                          </span>
+                          <div className="flex gap-2">
+                            <input
+                              type="number"
+                              min={1}
+                              value={budgetAmount}
+                              onChange={(e) => setBudgetAmount(e.target.value)}
+                              placeholder={
+                                pricingMode === "provider_quote"
+                                  ? "Providers will quote"
+                                  : "e.g. 150"
+                              }
+                              className="input input-bordered flex-1"
+                              disabled={pricingMode === "provider_quote"}
+                            />
+                            <select
+                              value={budgetType}
+                              onChange={(e) =>
+                                setBudgetType(
+                                  e.target.value as "flat" | "hourly"
+                                )
+                              }
+                              className="select select-bordered"
+                              disabled={
+                                pricingMode === "provider_quote" ||
+                                !budgetAmount.trim()
+                              }
+                            >
+                              <option value="flat">Flat</option>
+                              <option value="hourly">Hourly</option>
+                            </select>
+                          </div>
+                        </label>
+                      </div>
+
+                      <label className="form-control">
+                        <span className="label-text font-medium text-slate-800">
+                          Anything else providers should know? (optional)
+                        </span>
+                        <textarea
+                          value={extraNotes}
+                          onChange={(e) => setExtraNotes(e.target.value)}
+                          placeholder="Add parking notes, tool requirements, or milestones."
+                          className="textarea textarea-bordered h-20"
+                        />
+                      </label>
+
+                      <section className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 space-y-2">
+                        <div className="grid grid-cols-2 gap-4 text-xs">
+                          <div>Headline</div>
+                          <div className="font-medium text-slate-900">
+                            {jobTitle || "—"}
+                          </div>
+                          <div>Tags</div>
+                          <div className="font-medium text-slate-900">
+                            {serviceTags.length > 0
+                              ? serviceTags.join(", ")
+                              : "—"}
+                          </div>
+                          <div>Preferred date</div>
+                          <div className="font-medium text-slate-900">
+                            {date
+                              ? format(new Date(date), "MMM d, yyyy")
+                              : "Flexible"}
+                          </div>
+                          <div>Preferred time</div>
+                          <div className="font-medium text-slate-900">
+                            {time || "Flexible"}
+                          </div>
+                          <div>Estimated hours</div>
+                          <div className="font-medium text-slate-900">
+                            {parsedHours
+                              ? `${parsedHours} hour${
+                                  parsedHours > 1 ? "s" : ""
+                                }`
+                              : "Flexible"}
+                          </div>
+                          <div>Pricing preference</div>
+                          <div className="font-medium text-slate-900">
+                            {pricingMode === "provider_quote"
+                              ? "Ask providers for quotes"
+                              : "Share my target budget"}
+                          </div>
+                          <div>Budget</div>
+                          <div className="font-medium text-slate-900">
+                            {budgetSummary}
+                          </div>
+                        </div>
+                      </section>
+
+                      <div>
+                        <div className="h-20 overflow-y-auto border border-slate-200 rounded-md bg-slate-50 p-3 text-xs text-slate-700 whitespace-pre-wrap">
+                          {shortTerms}
+                        </div>
+                        <Link href="/legal" className="text-blue-500 text-xs">
+                          Full terms
+                        </Link>
+                      </div>
+
+                      <div>
+                        <label className="label cursor-pointer justify-start gap-3 mt-3">
+                          <input
+                            type="checkbox"
+                            className="checkbox checkbox-primary"
+                            checked={agreeToTerms}
+                            onChange={(e) => setAgreeToTerms(e.target.checked)}
+                            required
+                          />
+                          <span className="label-text text-sm text-slate-700">
+                            I understand ZapTasks secures funds upfront and
+                            releases them when I approve the work.
+                          </span>
+                        </label>
+                      </div>
+
+                      {error && (
+                        <div className="alert alert-error">
+                          <span>{error}</span>
+                        </div>
+                      )}
+
+                      {submissionStatus === "success" && (
+                        <div className="alert alert-success">
+                          <div>
+                            <h3 className="font-semibold">Job posted!</h3>
+                            <p className="text-sm">
+                              We&apos;ll notify nearby helpers so they can
+                              apply. Review profiles, chat, and hire with
+                              confidence.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
                       <button
-                        key={suggestion}
-                        type="button"
-                        onClick={() => addTag(suggestion)}
-                        className="btn btn-xs bg-blue-50 text-blue-700 border border-blue-100 hover:bg-blue-100"
-                      >
-                        {suggestion}
-                      </button>
-                    ))}
-                  </div>
-                  <form
-                    onSubmit={handleCustomTagSubmit}
-                    className="mt-4 flex gap-2"
-                  >
-                    <input
-                      type="text"
-                      value={customTagInput}
-                      onChange={(e) => setCustomTagInput(e.target.value)}
-                      placeholder={
-                        'Add your own tag (e.g. "Snow removal" or "Kids party")'
-                      }
-                      className="input input-bordered flex-1"
-                    />
-                    <button
-                      type="submit"
-                      className="btn btn-outline"
-                      disabled={!customTagInput.trim()}
-                    >
-                      <Plus className="h-4 w-4" />
-                      Add
-                    </button>
-                  </form>
-                </div>
-
-                <label className="form-control">
-                  <span className="label-text font-medium text-slate-800 flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    Approximate location (optional)
-                  </span>
-                  <div className="relative">
-                    <div className="pl-0">
-                      <AddressAutocomplete
-                        onPlaceSelected={handlePlaceSelected}
-                        apiKey={
-                          process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
-                        }
-                      />
-                    </div>
-                  </div>
-                  <span className="label-text-alt text-xs text-slate-500 mt-1">
-                    Street address stays private until you book. Postal code or
-                    neighbourhood helps locals scope travel.
-                  </span>
-                </label>
-              </section>
-
-              <section className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6 space-y-5">
-                <header className="space-y-2">
-                  <p className="text-xs uppercase tracking-wide text-blue-600 font-semibold">
-                    Step 3
-                  </p>
-                  <h2 className="text-xl font-semibold text-slate-900">
-                    Timing and budget (optional)
-                  </h2>
-                  <p className="text-sm text-slate-600">
-                    Share your target schedule and budget if you have one.
-                    Providers can still send quotes if you are unsure.
-                  </p>
-                </header>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <label className="form-control">
-                    <span className="label-text font-medium text-slate-800 flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      Preferred date
-                    </span>
-                    <input
-                      type="date"
-                      min={minDate}
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      className="input input-bordered"
-                    />
-                  </label>
-
-                  <label className="form-control">
-                    <span className="label-text font-medium text-slate-800 flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      Preferred start time
-                    </span>
-                    <div className="pl-0">
-                      <TimeSelector
-                        value={time}
-                        onChange={(newTime: string) => setTime(newTime)}
-                      />
-                    </div>
-                  </label>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <label
-                    className={`form-control cursor-pointer rounded-xl border ${
-                      pricingMode === "client_budget"
-                        ? "border-blue-400 bg-blue-50/80"
-                        : "border-slate-200 bg-white"
-                    } p-4 transition`}
-                    onClick={() => setPricingMode("client_budget")}
-                  >
-                    <span className="label-text font-semibold text-slate-900 flex items-center gap-2">
-                      <PiggyBank className="h-4 w-4" />
-                      Share my target budget
-                    </span>
-                    <span className="label-text-alt text-xs text-slate-600 mt-2">
-                      Set a flat or hourly budget to attract providers in your
-                      price range. They can still counter-offer.
-                    </span>
-                    <div className="mt-3 flex items-center gap-2 text-sm text-slate-600">
-                      <input
-                        type="radio"
-                        className="radio radio-primary"
-                        checked={pricingMode === "client_budget"}
-                        onChange={() => setPricingMode("client_budget")}
-                      />
-                      <span>I have a budget in mind</span>
-                    </div>
-                  </label>
-
-                  <label
-                    className={`form-control cursor-pointer rounded-xl border ${
-                      pricingMode === "provider_quote"
-                        ? "border-emerald-400 bg-emerald-50/80"
-                        : "border-slate-200 bg-white"
-                    } p-4 transition`}
-                    onClick={() => setPricingMode("provider_quote")}
-                  >
-                    <span className="label-text font-semibold text-slate-900 flex items-center gap-2">
-                      <Tag className="h-4 w-4" />
-                      Ask providers for quotes
-                    </span>
-                    <span className="label-text-alt text-xs text-slate-600 mt-2">
-                      Skip setting a price. Helpers will recommend a fair rate
-                      based on their expertise and materials.
-                    </span>
-                    <div className="mt-3 flex items-center gap-2 text-sm text-slate-600">
-                      <input
-                        type="radio"
-                        className="radio radio-primary"
-                        checked={pricingMode === "provider_quote"}
-                        onChange={() => setPricingMode("provider_quote")}
-                      />
-                      <span>I’ll review quotes</span>
-                    </div>
-                  </label>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <label className="form-control">
-                    <span className="label-text font-medium text-slate-800">
-                      Estimated hours (optional)
-                    </span>
-                    <input
-                      type="number"
-                      min={1}
-                      value={estimatedHours}
-                      onChange={(e) => setEstimatedHours(e.target.value)}
-                      placeholder="e.g. 3"
-                      className="input input-bordered"
-                    />
-                  </label>
-
-                  <label
-                    className={`form-control ${
-                      pricingMode === "provider_quote"
-                        ? "opacity-50 pointer-events-none"
-                        : ""
-                    }`}
-                  >
-                    <span className="label-text font-medium text-slate-800">
-                      Budget (optional)
-                    </span>
-                    <div className="flex gap-2">
-                      <input
-                        type="number"
-                        min={1}
-                        value={budgetAmount}
-                        onChange={(e) => setBudgetAmount(e.target.value)}
-                        placeholder={
-                          pricingMode === "provider_quote"
-                            ? "Providers will quote"
-                            : "e.g. 150"
-                        }
-                        className="input input-bordered flex-1"
-                        disabled={pricingMode === "provider_quote"}
-                      />
-                      <select
-                        value={budgetType}
-                        onChange={(e) =>
-                          setBudgetType(e.target.value as "flat" | "hourly")
-                        }
-                        className="select select-bordered"
+                        type="submit"
+                        className="btn btn-primary btn-block text-base"
                         disabled={
-                          pricingMode === "provider_quote" ||
-                          !budgetAmount.trim()
+                          !isReadyToSubmit || !agreeToTerms || isLoading
                         }
                       >
-                        <option value="flat">Flat</option>
-                        <option value="hourly">Hourly</option>
-                      </select>
-                    </div>
-                  </label>
-                </div>
-
-                <label className="form-control">
-                  <span className="label-text font-medium text-slate-800">
-                    Anything else providers should know? (optional)
-                  </span>
-                  <textarea
-                    value={extraNotes}
-                    onChange={(e) => setExtraNotes(e.target.value)}
-                    placeholder="Add parking notes, tool requirements, or milestones."
-                    className="textarea textarea-bordered h-20"
-                  />
-                </label>
-              </section>
-
-              <section className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6 space-y-5">
-                <header className="space-y-2">
-                  <h2 className="text-xl font-semibold text-slate-900">
-                    Review and share
-                  </h2>
-                  <p className="text-sm text-slate-600">
-                    Confirm how you prefer to be contacted and post your job to
-                    the community.
-                  </p>
-                </header>
-
-                <label className="form-control">
-                  <span className="label-text font-medium text-slate-800">
-                    Contact preference
-                  </span>
-                  <select
-                    value={contactPreference}
-                    onChange={(e) =>
-                      setContactPreference(
-                        e.target.value as "messages" | "phone" | "email"
-                      )
-                    }
-                    className="select select-bordered"
-                  >
-                    <option value="messages">ZapTasks messages</option>
-                    <option value="phone">Phone call</option>
-                    <option value="email">Email</option>
-                  </select>
-                </label>
-
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 space-y-2">
-                  <div className="flex justify-between">
-                    <span className="font-medium">Headline</span>
-                    <span className="text-right max-w-xs truncate">
-                      {jobTitle || "—"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium">Tags</span>
-                    <span className="text-right max-w-xs truncate">
-                      {serviceTags.length > 0 ? serviceTags.join(", ") : "—"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium">Preferred schedule</span>
-                    <span className="text-right max-w-xs">
-                      {date
-                        ? format(new Date(date), "MMM d, yyyy")
-                        : "Flexible"}
-                      {time ? ` @ ${time}` : ""}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium">Estimated hours</span>
-                    <span>
-                      {parsedHours
-                        ? `${parsedHours} hour${parsedHours > 1 ? "s" : ""}`
-                        : "Flexible"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium">Pricing preference</span>
-                    <span className="text-right max-w-xs">
-                      {pricingMode === "provider_quote"
-                        ? "Ask providers for quotes"
-                        : "Share my target budget"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium">Budget</span>
-                    <span>{budgetSummary}</span>
+                        {isLoading ? "Posting..." : "Post my job"}
+                      </button>
+                      {!isReadyToSubmit && (
+                        <p className="text-xs text-error">
+                          Add a headline, description, and at least one tag to
+                          continue.
+                        </p>
+                      )}
+                    </section>
                   </div>
                 </div>
-
-                <div>
-                  <div className="h-32 overflow-y-auto border border-slate-200 rounded-md bg-slate-50 p-3 text-xs text-slate-700 whitespace-pre-wrap">
-                    {termsAndConditions}
-                  </div>
-                  <label className="label cursor-pointer justify-start gap-3 mt-3">
-                    <input
-                      type="checkbox"
-                      className="checkbox checkbox-primary"
-                      checked={agreeToTerms}
-                      onChange={(e) => setAgreeToTerms(e.target.checked)}
-                      required
-                    />
-                    <span className="label-text text-sm text-slate-700">
-                      I understand ZapTasks secures funds upfront and releases
-                      them when I approve the work.
-                    </span>
-                  </label>
-                </div>
-
-                {error && (
-                  <div className="alert alert-error">
-                    <span>{error}</span>
-                  </div>
-                )}
-
-                {submissionStatus === "success" && (
-                  <div className="alert alert-success">
-                    <div>
-                      <h3 className="font-semibold">Job posted!</h3>
-                      <p className="text-sm">
-                        We&apos;ll notify nearby helpers so they can apply.
-                        Review profiles, chat, and hire with confidence.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  className="btn btn-primary btn-block text-base"
-                  disabled={!isReadyToSubmit || !agreeToTerms || isLoading}
-                >
-                  {isLoading ? "Posting..." : "Post my job"}
-                </button>
-                {!isReadyToSubmit && (
-                  <p className="text-xs text-error">
-                    Add a headline, description, and at least one tag to
-                    continue.
-                  </p>
-                )}
-              </section>
+              </div>
             </form>
-
-            <aside className="space-y-6">
-              <div className="rounded-2xl border border-blue-200 bg-white shadow-sm p-6 space-y-4">
-                <h3 className="text-lg font-semibold text-blue-900 flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5" />
-                  Why Canadians trust ZapTasks
-                </h3>
-                <ul className="space-y-3 text-sm text-blue-900/80">
-                  <li>
-                    • Secure payments protect both homeowners and providers.
-                  </li>
-                  <li>
-                    • Ratings and reviews from real homeowners stay front and
-                    centre on provider profiles.
-                  </li>
-                  <li>
-                    • Support team monitors payouts, refunds, and disputes.
-                  </li>
-                </ul>
-                <p className="text-xs text-blue-900/70">
-                  ZapTasks Inc. is proudly Canadian. Funds are processed in CAD
-                  and settle to providers once you mark the job complete.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 space-y-3 text-sm text-emerald-900">
-                <h4 className="text-lg font-semibold flex items-center gap-2">
-                  <PiggyBank className="h-5 w-5" />
-                  Secure Payment Milestones
-                </h4>
-                <p>
-                  Jobs under $100 are paid in full upfront to secure the slot.
-                  Larger jobs use split payments (50/50 or milestones) so
-                  providers can start work with confidence. Funds are processed
-                  securely by Stripe.
-                </p>
-              </div>
-            </aside>
           </div>
         </div>
       </main>
