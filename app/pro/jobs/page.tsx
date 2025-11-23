@@ -1233,8 +1233,8 @@ const ProJobsPage = () => {
 
       {chatModalHomeowner && (
         <ChatModal
-          providerId={chatModalHomeowner.id}
-          providerName={chatModalHomeowner.name}
+          helperId={chatModalHomeowner.id}
+          helperName={chatModalHomeowner.name}
           onClose={() => setChatModalHomeowner(null)}
         />
       )}

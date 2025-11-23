@@ -1754,8 +1754,8 @@ const ManageJobsPage = () => {
 
       {chatModalProvider && (
         <ChatModal
-          providerId={chatModalProvider.id}
-          providerName={chatModalProvider.name}
+          helperId={chatModalProvider.id}
+          helperName={chatModalProvider.name}
           onClose={() => setChatModalProvider(null)}
         />
       )}
