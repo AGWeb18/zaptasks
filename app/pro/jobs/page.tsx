@@ -629,7 +629,7 @@ const ProJobsPage = () => {
             <div>
               <h1 className="text-4xl font-bold text-blue-600 mb-2">Browse open jobs near you</h1>
               <p className="text-base-content/70 max-w-2xl">
-                Scroll the community job board for tasks posted by neighbours across Canada. You don’t have to be a pro—apply with a quick note, chat through the details, and get paid through ZapTasks when you’re selected.
+                Scroll the community job board for tasks posted by neighbours across Canada. Anyone can apply—send a quick note, chat through the details, and get paid through ZapTasks when you&apos;re selected.
               </p>
             </div>
             <div className="bg-white rounded-xl shadow border border-slate-200 p-4 flex flex-col gap-3 min-w-[220px]">
@@ -793,7 +793,7 @@ const ProJobsPage = () => {
                         <div className="alert alert-warning text-sm">
                           <div>
                             <p className="font-semibold">Connect payouts to receive funds</p>
-                            <p className="text-xs">You need to connect Stripe to accept jobs and receive payments.</p>
+                            <p className="text-xs">You need to connect Stripe to accept jobs and receive payments from neighbours.</p>
                           </div>
                           <button
                             type="button"
@@ -805,14 +805,13 @@ const ProJobsPage = () => {
                           </button>
                         </div>
                       )}
-                      {schedule && (
+                      {job.provider_stripe_account_id && schedule && (
                         <div className="space-y-3">
-                          <p className="text-xs uppercase text-slate-400 tracking-wide">Payment timeline</p>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-slate-700">
-                            {renderPaymentBlock("Upfront", escrowPayment, schedule.amounts.escrowCents)}
-                            {schedule.amounts.progressCents > 0 &&
-                              renderPaymentBlock("Progress", progressPayment, schedule.amounts.progressCents)}
-                            {renderPaymentBlock("Completion", completionPayment, schedule.amounts.completionCents)}
+                          <p className="text-xs uppercase text-slate-400 tracking-wide">Payment</p>
+                          <div className="p-4 border border-blue-100 rounded-lg bg-blue-50">
+                            <p className="text-sm font-semibold">Full ${((schedule.amounts.escrowCents / 100).toFixed(2))} in escrow</p>
+                            <p className="text-xs text-blue-700">Status: {escrowStatusLabel}</p>
+                            <p className="text-xs">You&apos;ll receive ${((providerTakeHome / 100).toFixed(2))} after completion</p>
                           </div>
                         </div>
                       )}

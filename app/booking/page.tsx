@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useUser } from "@clerk/nextjs";
 import { useSearchParams } from "next/navigation";
 import { addDays, format } from "date-fns";
@@ -78,11 +84,15 @@ const BookingPage: React.FC = () => {
   const [estimatedHours, setEstimatedHours] = useState<string>("");
   const [budgetAmount, setBudgetAmount] = useState<string>("");
   const [budgetType, setBudgetType] = useState<"flat" | "hourly">("flat");
-  const [pricingMode, setPricingMode] = useState<"client_budget" | "provider_quote">("client_budget");
+  const [pricingMode, setPricingMode] = useState<
+    "client_budget" | "provider_quote"
+  >("client_budget");
   const [contactPreference, setContactPreference] = useState<
     "messages" | "phone" | "email"
   >("messages");
-  const [photos, setPhotos] = useState<Array<{ file: File; preview: string }>>([]);
+  const [photos, setPhotos] = useState<Array<{ file: File; preview: string }>>(
+    []
+  );
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [extraNotes, setExtraNotes] = useState("");
   const [agreeToTerms, setAgreeToTerms] = useState(false);
@@ -176,7 +186,9 @@ const BookingPage: React.FC = () => {
 
         if (file.size > MAX_PHOTO_BYTES) {
           messages.push(
-            `"${file.name}" is larger than ${Math.round(MAX_PHOTO_MB)}MB. Choose a smaller photo.`,
+            `"${file.name}" is larger than ${Math.round(
+              MAX_PHOTO_MB
+            )}MB. Choose a smaller photo.`
           );
           return;
         }
@@ -254,7 +266,11 @@ const BookingPage: React.FC = () => {
       return;
     }
 
-    if (pricingMode === "client_budget" && budgetAmount.trim() && parsedBudget === null) {
+    if (
+      pricingMode === "client_budget" &&
+      budgetAmount.trim() &&
+      parsedBudget === null
+    ) {
       setError(
         "Enter a valid Canadian dollar amount or leave the budget blank."
       );
@@ -276,7 +292,8 @@ const BookingPage: React.FC = () => {
         setUploadingPhotos(true);
         const uploadResults = await Promise.all(
           photos.map(async ({ file }) => {
-            const extension = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+            const extension =
+              file.name.split(".").pop()?.toLowerCase() ?? "jpg";
             const safeBaseName = file.name
               .replace(/[^a-zA-Z0-9._-]/g, "-")
               .replace(/-+/g, "-")
@@ -308,7 +325,7 @@ const BookingPage: React.FC = () => {
             }
 
             return publicUrlData.publicUrl;
-          }),
+          })
         );
 
         uploadedPhotoUrls = uploadResults;
@@ -370,17 +387,23 @@ const BookingPage: React.FC = () => {
       setPhotos([]);
     } catch (submitError) {
       console.error(submitError);
-      const fallbackMessage = "Something went wrong posting your job. Please try again.";
-      setError(submitError instanceof Error ? submitError.message || fallbackMessage : fallbackMessage);
+      const fallbackMessage =
+        "Something went wrong posting your job. Please try again.";
+      setError(
+        submitError instanceof Error
+          ? submitError.message || fallbackMessage
+          : fallbackMessage
+      );
     } finally {
       setUploadingPhotos(false);
       setIsLoading(false);
     }
   };
 
-  const budgetSummary = pricingMode === "provider_quote"
-    ? "Pros will quote after reviewing your request"
-    : parsedBudget
+  const budgetSummary =
+    pricingMode === "provider_quote"
+      ? "Helpers will quote after reviewing your request"
+      : parsedBudget
       ? `${formatCurrency(parsedBudget)}${
           budgetType === "hourly" ? "/hr" : " flat"
         }`
@@ -399,24 +422,24 @@ const BookingPage: React.FC = () => {
                   Built in Canada • Post in under 2 minutes
                 </span>
                 <h1 className="mt-4 text-4xl font-bold text-slate-900 leading-tight">
-                  Post a job and let trusted neighbours apply
+                  Post a Job, Get Offers from Local Helpers
                 </h1>
                 <p className="mt-4 text-lg text-slate-700">
-                  Describe what you need, add a few tags, and share your ideal
-                  timing. Providers across Canada can apply, message you, and
-                  get paid through our secure payment system (100% upfront, 50/50, or
-                  milestone-based).
-                </p>
+                  Simply describe the work you need done, set your terms, and
+                  connect with local helpers. You&apos;ll receive quotes from
+                  neighbours, chat securely, and manage payments
+                  all in one place.
+                </p>{" "}
                 <div className="mt-6 grid gap-3 text-sm text-slate-700 sm:grid-cols-3">
                   <div className="flex items-start gap-2 rounded-xl bg-white px-4 py-3 shadow-sm border border-blue-100">
                     <CheckCircle className="mt-1 h-4 w-4 text-emerald-500" />
-                    <span>Local helpers reviewed for social authenticity</span>
+                    <span>Connect with reviewed local helpers</span>
                   </div>
                   <div className="flex items-start gap-2 rounded-xl bg-white px-4 py-3 shadow-sm border border-blue-100">
                     <PiggyBank className="mt-1 h-4 w-4 text-blue-500" />
                     <span>
-                      Industry standard payment processing to handle
-                      disputes securely
+                      Industry standard payment processing to handle disputes
+                      securely
                     </span>
                   </div>
                   <div className="flex items-start gap-2 rounded-xl bg-white px-4 py-3 shadow-sm border border-blue-100">
@@ -436,7 +459,7 @@ const BookingPage: React.FC = () => {
                     <li>1. Share what you need and when</li>
                     <li>2. Compare applicants and chat safely</li>
                     <li>
-                      3. Approve the right pro and release payment after
+                      3. Approve the right helper and release payment after
                       completion
                     </li>
                   </ul>
@@ -508,10 +531,14 @@ const BookingPage: React.FC = () => {
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <span className="label-text font-medium text-slate-800">
-                        Add helpful photos <span className="text-slate-500 text-sm">(optional)</span>
+                        Add helpful photos{" "}
+                        <span className="text-slate-500 text-sm">
+                          (optional)
+                        </span>
                       </span>
                       <p className="text-xs text-slate-500">
-                        Clear photos of the work area help providers respond with accurate offers.
+                        Clear photos of the work area help providers respond
+                        with accurate offers.
                       </p>
                     </div>
                     <span className="text-xs text-slate-400">
@@ -564,7 +591,9 @@ const BookingPage: React.FC = () => {
                       >
                         <Plus className="h-6 w-6" />
                         <span className="text-xs font-medium">Add photo</span>
-                        <span className="text-[10px] text-slate-400">PNG or JPG, up to {Math.round(MAX_PHOTO_MB)}MB</span>
+                        <span className="text-[10px] text-slate-400">
+                          PNG or JPG, up to {Math.round(MAX_PHOTO_MB)}MB
+                        </span>
                       </button>
                     )}
                   </div>
@@ -710,7 +739,12 @@ const BookingPage: React.FC = () => {
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
-                  <label className={`form-control cursor-pointer rounded-xl border ${pricingMode === "client_budget" ? "border-blue-400 bg-blue-50/80" : "border-slate-200 bg-white"} p-4 transition`}
+                  <label
+                    className={`form-control cursor-pointer rounded-xl border ${
+                      pricingMode === "client_budget"
+                        ? "border-blue-400 bg-blue-50/80"
+                        : "border-slate-200 bg-white"
+                    } p-4 transition`}
                     onClick={() => setPricingMode("client_budget")}
                   >
                     <span className="label-text font-semibold text-slate-900 flex items-center gap-2">
@@ -718,7 +752,8 @@ const BookingPage: React.FC = () => {
                       Share my target budget
                     </span>
                     <span className="label-text-alt text-xs text-slate-600 mt-2">
-                      Set a flat or hourly budget to attract providers in your price range. They can still counter-offer.
+                      Set a flat or hourly budget to attract providers in your
+                      price range. They can still counter-offer.
                     </span>
                     <div className="mt-3 flex items-center gap-2 text-sm text-slate-600">
                       <input
@@ -731,7 +766,12 @@ const BookingPage: React.FC = () => {
                     </div>
                   </label>
 
-                  <label className={`form-control cursor-pointer rounded-xl border ${pricingMode === "provider_quote" ? "border-emerald-400 bg-emerald-50/80" : "border-slate-200 bg-white"} p-4 transition`}
+                  <label
+                    className={`form-control cursor-pointer rounded-xl border ${
+                      pricingMode === "provider_quote"
+                        ? "border-emerald-400 bg-emerald-50/80"
+                        : "border-slate-200 bg-white"
+                    } p-4 transition`}
                     onClick={() => setPricingMode("provider_quote")}
                   >
                     <span className="label-text font-semibold text-slate-900 flex items-center gap-2">
@@ -739,7 +779,8 @@ const BookingPage: React.FC = () => {
                       Ask providers for quotes
                     </span>
                     <span className="label-text-alt text-xs text-slate-600 mt-2">
-                      Skip setting a price. Pros will recommend a fair rate based on their expertise and materials.
+                      Skip setting a price. Helpers will recommend a fair rate
+                      based on their expertise and materials.
                     </span>
                     <div className="mt-3 flex items-center gap-2 text-sm text-slate-600">
                       <input
@@ -770,7 +811,9 @@ const BookingPage: React.FC = () => {
 
                   <label
                     className={`form-control ${
-                      pricingMode === "provider_quote" ? "opacity-50 pointer-events-none" : ""
+                      pricingMode === "provider_quote"
+                        ? "opacity-50 pointer-events-none"
+                        : ""
                     }`}
                   >
                     <span className="label-text font-medium text-slate-800">
@@ -782,7 +825,11 @@ const BookingPage: React.FC = () => {
                         min={1}
                         value={budgetAmount}
                         onChange={(e) => setBudgetAmount(e.target.value)}
-                        placeholder={pricingMode === "provider_quote" ? "Providers will quote" : "e.g. 150"}
+                        placeholder={
+                          pricingMode === "provider_quote"
+                            ? "Providers will quote"
+                            : "e.g. 150"
+                        }
                         className="input input-bordered flex-1"
                         disabled={pricingMode === "provider_quote"}
                       />
@@ -792,7 +839,10 @@ const BookingPage: React.FC = () => {
                           setBudgetType(e.target.value as "flat" | "hourly")
                         }
                         className="select select-bordered"
-                        disabled={pricingMode === "provider_quote" || !budgetAmount.trim()}
+                        disabled={
+                          pricingMode === "provider_quote" ||
+                          !budgetAmount.trim()
+                        }
                       >
                         <option value="flat">Flat</option>
                         <option value="hourly">Hourly</option>
@@ -901,7 +951,8 @@ const BookingPage: React.FC = () => {
                       required
                     />
                     <span className="label-text text-sm text-slate-700">
-                      I understand ZapTasks secures funds upfront and releases them when I approve the work.
+                      I understand ZapTasks secures funds upfront and releases
+                      them when I approve the work.
                     </span>
                   </label>
                 </div>
@@ -917,7 +968,7 @@ const BookingPage: React.FC = () => {
                     <div>
                       <h3 className="font-semibold">Job posted!</h3>
                       <p className="text-sm">
-                        We&apos;ll notify nearby providers so they can apply.
+                        We&apos;ll notify nearby helpers so they can apply.
                         Review profiles, chat, and hire with confidence.
                       </p>
                     </div>
@@ -947,7 +998,9 @@ const BookingPage: React.FC = () => {
                   Why Canadians trust ZapTasks
                 </h3>
                 <ul className="space-y-3 text-sm text-blue-900/80">
-                  <li>• Secure payments protect both homeowners and providers.</li>
+                  <li>
+                    • Secure payments protect both homeowners and providers.
+                  </li>
                   <li>
                     • Ratings and reviews from real homeowners stay front and
                     centre on provider profiles.
@@ -969,8 +1022,9 @@ const BookingPage: React.FC = () => {
                 </h4>
                 <p>
                   Jobs under $100 are paid in full upfront to secure the slot.
-                  Larger jobs use split payments (50/50 or milestones) so providers can start work with confidence.
-                  Funds are processed securely by Stripe.
+                  Larger jobs use split payments (50/50 or milestones) so
+                  providers can start work with confidence. Funds are processed
+                  securely by Stripe.
                 </p>
               </div>
             </aside>

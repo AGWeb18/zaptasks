@@ -15,53 +15,32 @@ const stripe = new Stripe(secretKey, {
   apiVersion: STRIPE_API_VERSION as unknown as Stripe.LatestApiVersion,
 });
 
-const PLATFORM_FEE_RATE = 0.1;
-const LARGE_JOB_FEE_RATE = 0.08;
-const SMALL_JOB_THRESHOLD_CENTS = 10000; // $100
-const MEDIUM_JOB_THRESHOLD_CENTS = 50000; // $500
-const DEFAULT_CURRENCY = "cad";
-
-export const PROVIDER_RESERVE_RATE = 0.1; // hold back 10% of provider share
-export const PROVIDER_RESERVE_MIN_CENTS = 1000; // minimum $10 reserve
-export const PROVIDER_RESERVE_HOLD_DAYS = 7; // hold for 7 days before release
-export const PROVIDER_RESERVE_HOLD_MS = PROVIDER_RESERVE_HOLD_DAYS * 24 * 60 * 60 * 1000;
-
-export type EscrowTier = "small" | "medium" | "large";
+export type EscrowTier = "simple";
 
 export interface EscrowSchedule {
   tier: EscrowTier;
-  escrowPercentage: number;
-  progressPercentage: number | null;
-  completionPercentage: number;
-  platformFeeRate: number;
+  escrowPercentage: 100;
+  progressPercentage: null;
+  completionPercentage: 0;
+  platformFeeRate: 0.1;
   amounts: {
     escrowCents: number;
-    progressCents: number;
-    completionCents: number;
+    progressCents: 0;
+    completionCents: 0;
     platformFeeTotalCents: number;
     platformFeeEscrowCents: number;
-    platformFeeProgressCents: number;
-    platformFeeCompletionCents: number;
+    platformFeeProgressCents: 0;
+    platformFeeCompletionCents: 0;
   };
 }
 
+const PLATFORM_FEE_RATE = 0.1;
+
 export function determineEscrowTier(totalAmountCents: number): EscrowTier {
-  if (totalAmountCents <= SMALL_JOB_THRESHOLD_CENTS) {
-    return "small";
-  }
-
-  if (totalAmountCents <= MEDIUM_JOB_THRESHOLD_CENTS) {
-    return "medium";
-  }
-
-  return "large";
+  return "simple";
 }
 
 function pickPlatformFeeRate(tier: EscrowTier): number {
-  if (tier === "large") {
-    return LARGE_JOB_FEE_RATE;
-  }
-
   return PLATFORM_FEE_RATE;
 }
 
@@ -86,58 +65,32 @@ function allocateAmounts(total: number, weights: number[]): number[] {
   });
 }
 
+// Simplified: always 100% escrow
 export function buildEscrowSchedule(totalAmountCents: number): EscrowSchedule {
   if (!Number.isFinite(totalAmountCents) || totalAmountCents <= 0) {
     throw new Error("Job total must be a positive integer representing cents");
   }
 
-  const tier = determineEscrowTier(totalAmountCents);
-  const platformFeeRate = pickPlatformFeeRate(tier);
-
-  let escrowPercentage = 100;
-  let progressPercentage: number | null = null;
-  let completionPercentage = 0;
-
-  if (tier === "medium") {
-    escrowPercentage = 50;
-    completionPercentage = 50;
-  } else if (tier === "large") {
-    escrowPercentage = 30;
-    progressPercentage = 30;
-    completionPercentage = 40;
-  }
-
-  const paymentPercentages = [
-    escrowPercentage,
-    progressPercentage ?? 0,
-    completionPercentage,
-  ];
-
-  const [escrowCents, progressCents, completionCents] = allocateAmounts(
-    totalAmountCents,
-    paymentPercentages,
-  );
-
+  const tier = "simple";
+  const platformFeeRate = PLATFORM_FEE_RATE;
+  const escrowCents = totalAmountCents;
   const platformFeeTotalCents = Math.round(totalAmountCents * platformFeeRate);
-  const [platformFeeEscrowCents, platformFeeProgressCents, platformFeeCompletionCents] = allocateAmounts(
-    platformFeeTotalCents,
-    [escrowCents, progressCents, completionCents],
-  );
+  const platformFeeEscrowCents = platformFeeTotalCents;
 
   return {
     tier,
-    escrowPercentage,
-    progressPercentage,
-    completionPercentage,
+    escrowPercentage: 100,
+    progressPercentage: null,
+    completionPercentage: 0,
     platformFeeRate,
     amounts: {
       escrowCents,
-      progressCents,
-      completionCents,
+      progressCents: 0,
+      completionCents: 0,
       platformFeeTotalCents,
       platformFeeEscrowCents,
-      platformFeeProgressCents,
-      platformFeeCompletionCents,
+      platformFeeProgressCents: 0,
+      platformFeeCompletionCents: 0,
     },
   };
 }
@@ -175,7 +128,7 @@ export async function createJobPaymentIntent({
 
   const paymentIntent = await stripe.paymentIntents.create({
     amount: amountCents,
-    currency: DEFAULT_CURRENCY,
+    currency: "cad",
     customer: customerId,
     capture_method: captureMethod,
     automatic_payment_methods: { enabled: true },
@@ -243,7 +196,7 @@ export function calculateProviderReserve(providerShareCents: number) {
 
   const reserveCents = Math.min(
     share,
-    Math.max(Math.round(share * PROVIDER_RESERVE_RATE), PROVIDER_RESERVE_MIN_CENTS),
+    Math.max(Math.round(share * 0.1), 1000),
   );
 
   return {
@@ -281,7 +234,7 @@ export async function createProviderTransfer({
 
   return stripe.transfers.create({
     amount: amountCents,
-    currency: DEFAULT_CURRENCY,
+    currency: "cad",
     destination: providerStripeAccountId,
     transfer_group: jobId,
     metadata: {
@@ -317,5 +270,11 @@ export async function getOrCreateCustomer({
 
   return customer.id;
 }
+
+// Ensure constants exported at top after vars
+export const PROVIDER_RESERVE_RATE = 0.1;
+export const PROVIDER_RESERVE_MIN_CENTS = 1000;
+export const PROVIDER_RESERVE_HOLD_DAYS = 7;
+export const PROVIDER_RESERVE_HOLD_MS = PROVIDER_RESERVE_HOLD_DAYS * 24 * 60 * 60 * 1000;
 
 export { stripe, PLATFORM_FEE_RATE };

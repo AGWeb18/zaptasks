@@ -79,10 +79,7 @@ const Navbar: React.FC = () => {
             <ul className="flex flex-col space-y-3 text-gray-600">
               {primaryLinks.map((link) => (
                 <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="block hover:text-blue-600"
-                  >
+                  <Link href={link.href} className="block hover:text-blue-600">
                     {link.label}
                   </Link>
                 </li>
