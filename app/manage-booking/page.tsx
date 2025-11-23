@@ -505,7 +505,7 @@ const ManageJobsPage = () => {
         return next;
       });
       setExpandedJob((prev) => (prev === jobId ? null : prev));
-      setInfoMessage("Job removed. It will no longer appear to providers.");
+      setInfoMessage("Job removed. It will no longer appear to helpers.");
     } catch (err) {
       console.error(err);
       setError(
@@ -1215,14 +1215,14 @@ const ManageJobsPage = () => {
                                       <span>
                                         {job.pricing_mode === "provider_quote"
                                           ? "Awaiting provider quotes"
-                                          : "Budget shared with providers"}
+                                          : "Budget shared with helpers"}
                                       </span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                       <DollarSign className="w-4 h-4" />
                                       <span>
                                         {job.pricing_mode === "provider_quote"
-                                          ? "Providers will quote"
+                                          ? "Helpers will quote"
                                           : job.budget_amount
                                           ? `${
                                               job.budget_type === "hourly"
@@ -1347,7 +1347,7 @@ const ManageJobsPage = () => {
                                               })
                                             }
                                           >
-                                            Chat
+                                            Chat with helper
                                           </button>
                                           <button
                                             className="btn btn-xs btn-primary"
@@ -1557,7 +1557,7 @@ const ManageJobsPage = () => {
                                                   })
                                                 }
                                               >
-                                                Chat
+                                                Chat with helper
                                               </button>
                                               {job.status === "open" && (
                                                 <button

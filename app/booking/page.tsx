@@ -49,15 +49,17 @@ const tagSuggestions = [
 const termsAndConditions = `
 ZapTasks Terms & Conditions
 
-• ZapTasks acts solely as a broker connecting homeowners with independent Canadian service providers. We do not perform, endorse, or guarantee any work.
-• ZapTasks is NOT liable for the work done, nor for any damage to property or personal injury caused during the task. Users engage providers at their own risk.
-• All payments and fees are in Canadian Dollars (CAD).
-• Payments are processed securely via Stripe. ZapTasks collects a 10% platform fee (8% on large trades) to facilitate the connection.
-• Service providers are independent contractors responsible for their own tools, licensing, taxes, and insurance. Always verify credentials for regulated trades.
-• Cancellations inside 24 hours of the scheduled start may forfeit the payment.
-• Using ZapTasks means you accept these terms and agree to our Privacy Policy and Terms of Service.`;
+• ZapTasks connects homeowners with local helpers (independent contractors). We do not verify, endorse, or guarantee work quality.
+• No liability for work, damage, or injury. Engage helpers at your own risk.
+• All payments/fees in CAD.
+• Stripe escrow: 100% upfront, 10% ZapTasks fee deducted on release.
+• Helpers handle tools/licensing/insurance/taxes. Check reviews/chat before booking.
+• Cancellations: Full refund pre-start; post-start prorated.
+• Accept terms/Privacy Policy/TOS to use.
+`;
 
-const shortTerms = `Broker only. No liability for work. 10% fee. CAD payments. Verify helper credentials.`;
+// Short terms
+const shortTerms = `Connects homeowners/helpers. No verification/liability. 10% fee. Community reviews build trust.`;
 
 const formatCurrency = (value: number | null | undefined) => {
   if (!Number.isFinite(value)) return "Not set";
@@ -518,8 +520,8 @@ const BookingPage: React.FC = () => {
                               </span>
                             </span>
                             <p className="text-xs text-slate-500">
-                              Clear photos of the work area help providers
-                              respond with accurate offers.
+                              Clear photos of the work area help helpers respond
+                              with accurate offers.
                             </p>
                           </div>
                           <span className="text-xs text-slate-400">
@@ -753,7 +755,7 @@ const BookingPage: React.FC = () => {
                             Share my target budget
                           </span>
                           <span className="label-text-alt text-xs text-slate-600 mt-2">
-                            Set a flat or hourly budget to attract providers in
+                            Set a flat or hourly budget to attract helpers in
                             your price range. They can still counter-offer.
                           </span>
                           <div className="mt-3 flex items-center gap-2 text-sm text-slate-600">
@@ -777,7 +779,7 @@ const BookingPage: React.FC = () => {
                         >
                           <span className="label-text font-semibold text-slate-900 flex items-center gap-2">
                             <Tag className="h-4 w-4" />
-                            Ask providers for quotes
+                            Ask helpers for quotes
                           </span>
                           <span className="label-text-alt text-xs text-slate-600 mt-2">
                             Skip setting a price. Helpers will recommend a fair
@@ -828,7 +830,7 @@ const BookingPage: React.FC = () => {
                               onChange={(e) => setBudgetAmount(e.target.value)}
                               placeholder={
                                 pricingMode === "provider_quote"
-                                  ? "Providers will quote"
+                                  ? "Helpers will quote"
                                   : "e.g. 150"
                               }
                               className="input input-bordered flex-1"
@@ -856,7 +858,7 @@ const BookingPage: React.FC = () => {
 
                       <label className="form-control">
                         <span className="label-text font-medium text-slate-800">
-                          Anything else providers should know? (optional)
+                          Anything else helpers should know? (optional)
                         </span>
                         <textarea
                           value={extraNotes}
@@ -899,7 +901,7 @@ const BookingPage: React.FC = () => {
                           <div>Pricing preference</div>
                           <div className="font-medium text-slate-900">
                             {pricingMode === "provider_quote"
-                              ? "Ask providers for quotes"
+                              ? "Ask helpers for quotes"
                               : "Share my target budget"}
                           </div>
                           <div>Budget</div>

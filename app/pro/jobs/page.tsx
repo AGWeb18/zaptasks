@@ -140,7 +140,9 @@ const renderStars = (value: number | null | undefined) => {
       {Array.from({ length: 5 }, (_, index) => (
         <Star
           key={index}
-          className={`h-4 w-4 ${index < rounded ? "text-amber-500" : "text-slate-300"}`}
+          className={`h-4 w-4 ${
+            index < rounded ? "text-amber-500" : "text-slate-300"
+          }`}
           fill={index < rounded ? "currentColor" : "none"}
         />
       ))}
@@ -149,7 +151,8 @@ const renderStars = (value: number | null | undefined) => {
 };
 
 const jobStatusCopy: Record<string, string> = {
-  awaiting_provider_onboarding: "Finish Stripe Connect onboarding to unlock payouts",
+  awaiting_provider_onboarding:
+    "Finish Stripe Connect onboarding to unlock payouts",
   awaiting_escrow: "Waiting on homeowner payment",
   awaiting_capture: "Payment submitted – we’re tracking it",
   in_progress: "Payment secured – go ahead and work",
@@ -163,7 +166,8 @@ const jobStatusCopy: Record<string, string> = {
 };
 
 const isCanceledStatus = (status?: string | null): boolean =>
-  typeof status === "string" && ["canceled", "cancelled"].includes(status.toLowerCase());
+  typeof status === "string" &&
+  ["canceled", "cancelled"].includes(status.toLowerCase());
 
 const formatPaymentStatus = (status: string | null | undefined): string => {
   switch (status) {
@@ -199,7 +203,9 @@ const ProJobsPage = () => {
   const [loadingEscrow, setLoadingEscrow] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
-  const [applicationMessage, setApplicationMessage] = useState("Hello! I’d love to help with this job.");
+  const [applicationMessage, setApplicationMessage] = useState(
+    "Hello! I’d love to help with this job."
+  );
   const [rateType, setRateType] = useState<"flat" | "hourly">("flat");
   const [rateAmount, setRateAmount] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
@@ -253,14 +259,16 @@ const ProJobsPage = () => {
       const data = await response.json();
       if (Array.isArray(data.jobs)) {
         const jobList = data.jobs as EscrowJob[];
-        const sanitizedJobs = jobList.filter((raw) => !isCanceledStatus(raw.job_status));
+        const sanitizedJobs = jobList.filter(
+          (raw) => !isCanceledStatus(raw.job_status)
+        );
         setEscrowJobs(
           sanitizedJobs.map((raw) => ({
             ...raw,
             milestone_plan: parseEscrowSchedule(raw.milestone_plan),
             payments: raw.payments ?? [],
             provider_reviews: raw.provider_reviews ?? [],
-          })),
+          }))
         );
       } else {
         setEscrowJobs([]);
@@ -352,7 +360,9 @@ const ProJobsPage = () => {
             if (updatedJob.status !== "open") {
               return prev.filter((job) => job.id !== updatedJob.id);
             }
-            return prev.map((job) => (job.id === updatedJob.id ? updatedJob : job));
+            return prev.map((job) =>
+              job.id === updatedJob.id ? updatedJob : job
+            );
           });
         }
       )
@@ -380,7 +390,9 @@ const ProJobsPage = () => {
                 ? {
                     ...job,
                     ...updatedJob,
-                    milestone_plan: parseEscrowSchedule(updatedJob.milestone_plan),
+                    milestone_plan: parseEscrowSchedule(
+                      updatedJob.milestone_plan
+                    ),
                     payments: updatedJob.payments ?? job.payments,
                   }
                 : job
@@ -392,7 +404,9 @@ const ProJobsPage = () => {
                 ...next,
                 {
                   ...updatedJob,
-                  milestone_plan: parseEscrowSchedule(updatedJob.milestone_plan),
+                  milestone_plan: parseEscrowSchedule(
+                    updatedJob.milestone_plan
+                  ),
                   payments: updatedJob.payments ?? [],
                 },
               ];
@@ -428,25 +442,35 @@ const ProJobsPage = () => {
     return (jobId: string) => {
       const job = jobs.find((item) => item.id === jobId);
       if (!job) return false;
-      return job.job_applications?.some((application) => application.provider_id === currentUserId) ?? false;
+      return (
+        job.job_applications?.some(
+          (application) => application.provider_id === currentUserId
+        ) ?? false
+      );
     };
   }, [jobs, currentUserId]);
 
   const openJobCount = jobs.length;
-  const unreadNotifications = notifications.filter((notification) => !notification.read_at);
+  const unreadNotifications = notifications.filter(
+    (notification) => !notification.read_at
+  );
   const requiresOnboarding = escrowJobs.some(
-    (job) => job.job_status === "awaiting_provider_onboarding",
+    (job) => job.job_status === "awaiting_provider_onboarding"
   );
   const userEmail = user?.primaryEmailAddress?.emailAddress ?? null;
 
   const [stripeAccountMissing, setStripeAccountMissing] = useState(false);
   const [onboardingLoading, setOnboardingLoading] = useState(false);
   const [onboardingAutoAttempted, setOnboardingAutoAttempted] = useState(false);
-  const [releasingReserveId, setReleasingReserveId] = useState<string | null>(null);
+  const [releasingReserveId, setReleasingReserveId] = useState<string | null>(
+    null
+  );
 
   const startStripeOnboarding = useCallback(async () => {
     if (!userEmail) {
-      setError("Add an email address in your profile before setting up payouts.");
+      setError(
+        "Add an email address in your profile before setting up payouts."
+      );
       return;
     }
 
@@ -483,7 +507,11 @@ const ProJobsPage = () => {
       }
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "Unable to start Stripe onboarding.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to start Stripe onboarding."
+      );
     } finally {
       setOnboardingLoading(false);
     }
@@ -516,23 +544,27 @@ const ProJobsPage = () => {
               job_status: "completed",
               provider_reserve_cents: 0,
               reserve_releasable_at: null,
-              last_provider_transfer_id: (payload?.transferId as string | undefined) ?? job.last_provider_transfer_id ?? null,
-              provider_transfer_total_cents: (job.provider_transfer_total_cents ?? 0) + reserveCents,
+              last_provider_transfer_id:
+                (payload?.transferId as string | undefined) ??
+                job.last_provider_transfer_id ??
+                null,
+              provider_transfer_total_cents:
+                (job.provider_transfer_total_cents ?? 0) + reserveCents,
             };
-          }),
+          })
         );
       } catch (err) {
         console.error(err);
         setError(
           err instanceof Error
             ? err.message
-            : "We couldn’t release the reserve. Please try again later.",
+            : "We couldn’t release the reserve. Please try again later."
         );
       } finally {
         setReleasingReserveId(null);
       }
     },
-    [setEscrowJobs, setError],
+    [setEscrowJobs, setError]
   );
 
   useEffect(() => {
@@ -627,24 +659,37 @@ const ProJobsPage = () => {
         <section className="max-w-6xl mx-auto">
           <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-10">
             <div>
-              <h1 className="text-4xl font-bold text-blue-600 mb-2">Browse open jobs near you</h1>
+              <h1 className="text-4xl font-bold text-blue-600 mb-2">
+                Browse open jobs near you
+              </h1>
               <p className="text-base-content/70 max-w-2xl">
-                Scroll the community job board for tasks posted by neighbours across Canada. Anyone can apply—send a quick note, chat through the details, and get paid through ZapTasks when you&apos;re selected.
+                Scroll the community job board for tasks posted by neighbours
+                across Canada. Anyone can apply—send a quick note, chat through
+                the details, and get paid through ZapTasks when you&apos;re
+                selected.
               </p>
             </div>
             <div className="bg-white rounded-xl shadow border border-slate-200 p-4 flex flex-col gap-3 min-w-[220px]">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-blue-500" />
                 <div>
-                  <p className="text-xs uppercase text-base-content/50">Open jobs</p>
-                  <p className="text-2xl font-semibold">{loadingJobs ? "—" : openJobCount}</p>
+                  <p className="text-xs uppercase text-base-content/50">
+                    Open jobs
+                  </p>
+                  <p className="text-2xl font-semibold">
+                    {loadingJobs ? "—" : openJobCount}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <Bell className="w-5 h-5 text-amber-500" />
                 <div>
-                  <p className="text-xs uppercase text-base-content/50">Unread alerts</p>
-                  <p className="text-lg font-semibold">{loadingNotifications ? "—" : unreadNotifications.length}</p>
+                  <p className="text-xs uppercase text-base-content/50">
+                    Unread alerts
+                  </p>
+                  <p className="text-lg font-semibold">
+                    {loadingNotifications ? "—" : unreadNotifications.length}
+                  </p>
                 </div>
               </div>
             </div>
@@ -654,8 +699,13 @@ const ProJobsPage = () => {
             {(requiresOnboarding || stripeAccountMissing) && (
               <div className="alert alert-warning mb-6">
                 <div className="flex-1">
-                  <h3 className="font-bold text-sm">Action Required: Connect Bank Account</h3>
-                  <p className="text-xs">You must connect a Stripe account to receive payouts and get hired.</p>
+                  <h3 className="font-bold text-sm">
+                    Action Required: Connect Bank Account
+                  </h3>
+                  <p className="text-xs">
+                    You must connect a Stripe account to receive payouts and get
+                    hired.
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -677,24 +727,31 @@ const ProJobsPage = () => {
               <div>
                 <p className="font-semibold">Stay covered</p>
                 <p>
-                  ZapTasks connects you with homeowners, but you remain an independent contractor. Keep your insurance, licences, and safety gear up to date, and document site conditions in chat.
+                  ZapTasks connects you with homeowners, but you remain an
+                  independent contractor. Keep your insurance, licences, and
+                  safety gear up to date, and document site conditions in chat.
                 </p>
               </div>
             </div>
             {loadingEscrow ? (
               <div className="flex items-center gap-2 text-base-content/60 text-sm">
-                <span className="loading loading-spinner loading-xs"></span> Checking your payouts…
+                <span className="loading loading-spinner loading-xs"></span>{" "}
+                Checking your payouts…
               </div>
             ) : escrowJobs.length === 0 ? (
               <p className="text-base-content/60 text-sm">
-                When a homeowner chooses you, the booking and payment details will appear here.
+                When a homeowner chooses you, the booking and payment details
+                will appear here.
               </p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {escrowJobs.map((job) => {
                   const schedule = job.milestone_plan;
-                  const jobTitle = job.job_requests?.job_title ?? "ZapTasks job";
-                  const jobAddress = job.job_requests?.address ?? "Address shared after confirmation";
+                  const jobTitle =
+                    job.job_requests?.job_title ?? "ZapTasks job";
+                  const jobAddress =
+                    job.job_requests?.address ??
+                    "Address shared after confirmation";
                   const total = job.total_amount_cents;
                   const platformFee = job.platform_fee_cents;
                   const providerTakeHome = Math.max(total - platformFee, 0);
@@ -702,64 +759,100 @@ const ProJobsPage = () => {
                   const averageRating = reviewCount
                     ? (job.provider_reviews ?? []).reduce(
                         (sum, review) => sum + (review?.rating ?? 0),
-                        0,
+                        0
                       ) / reviewCount
                     : null;
-                  const escrowPayment = job.payments?.find((payment) => payment.payment_type === "escrow");
-                  const progressPayment = job.payments?.find((payment) => payment.payment_type === "progress");
-                  const completionPayment = job.payments?.find((payment) => payment.payment_type === "completion");
-                  const escrowFundedCents = escrowPayment && ["succeeded", "requires_capture", "processing"].includes(escrowPayment.status)
-                    ? escrowPayment.amount_cents
-                    : 0;
-                  const escrowFundedLabel = escrowFundedCents > 0 ? formatCurrency(escrowFundedCents) : "—";
+                  const escrowPayment = job.payments?.find(
+                    (payment) => payment.payment_type === "escrow"
+                  );
+                  const progressPayment = job.payments?.find(
+                    (payment) => payment.payment_type === "progress"
+                  );
+                  const completionPayment = job.payments?.find(
+                    (payment) => payment.payment_type === "completion"
+                  );
+                  const escrowFundedCents =
+                    escrowPayment &&
+                    ["succeeded", "requires_capture", "processing"].includes(
+                      escrowPayment.status
+                    )
+                      ? escrowPayment.amount_cents
+                      : 0;
+                  const escrowFundedLabel =
+                    escrowFundedCents > 0
+                      ? formatCurrency(escrowFundedCents)
+                      : "—";
                   const escrowStatusLabel = escrowPayment
                     ? formatPaymentStatus(escrowPayment.status)
                     : "Not funded yet";
                   const reserveCents = job.provider_reserve_cents ?? 0;
-                  const reserveReleaseAt = job.reserve_releasable_at ? new Date(job.reserve_releasable_at) : null;
-                  const reserveReady = reserveReleaseAt ? reserveReleaseAt.getTime() <= Date.now() : false;
+                  const reserveReleaseAt = job.reserve_releasable_at
+                    ? new Date(job.reserve_releasable_at)
+                    : null;
+                  const reserveReady = reserveReleaseAt
+                    ? reserveReleaseAt.getTime() <= Date.now()
+                    : false;
                   const reserveCountdown = reserveReleaseAt
                     ? formatDistanceToNow(reserveReleaseAt, { addSuffix: true })
                     : null;
                   const renderPaymentBlock = (
                     label: string,
                     payment: EscrowPaymentRecord | undefined,
-                    plannedCents: number,
+                    plannedCents: number
                   ) => {
                     const funded = payment && payment.status !== "canceled";
-                    const amountLabel = funded ? formatCurrency(payment?.amount_cents) : "—";
+                    const amountLabel = funded
+                      ? formatCurrency(payment?.amount_cents)
+                      : "—";
                     const statusLabel = funded
                       ? formatPaymentStatus(payment?.status)
                       : "Not funded yet";
-                    const plannedLabel = plannedCents > 0 ? formatCurrency(plannedCents) : null;
+                    const plannedLabel =
+                      plannedCents > 0 ? formatCurrency(plannedCents) : null;
 
                     return (
                       <div className="border border-slate-200 rounded-lg p-3">
                         <p className="font-semibold">{label}</p>
-                        <p className="text-lg font-semibold text-slate-900">{amountLabel}</p>
-                        <p className="text-xs text-slate-500 mt-1">{statusLabel}</p>
+                        <p className="text-lg font-semibold text-slate-900">
+                          {amountLabel}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1">
+                          {statusLabel}
+                        </p>
                         {!funded && plannedLabel && (
-                          <p className="text-xs text-slate-400 mt-1">Projected: {plannedLabel}</p>
+                          <p className="text-xs text-slate-400 mt-1">
+                            Projected: {plannedLabel}
+                          </p>
                         )}
                       </div>
                     );
                   };
 
                   return (
-                    <article key={job.id} className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
+                    <article
+                      key={job.id}
+                      className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4"
+                    >
                       <header className="space-y-1">
-                        <p className="text-xs uppercase tracking-wide text-blue-500">{jobStatusCopy[job.job_status] ?? job.job_status}</p>
-                        <h3 className="text-xl font-semibold text-slate-900">{jobTitle}</h3>
+                        <p className="text-xs uppercase tracking-wide text-blue-500">
+                          {jobStatusCopy[job.job_status] ?? job.job_status}
+                        </p>
+                        <h3 className="text-xl font-semibold text-slate-900">
+                          {jobTitle}
+                        </h3>
                         <p className="text-sm text-slate-600">{jobAddress}</p>
                         {reviewCount > 0 ? (
                           <div className="flex items-center gap-2 text-xs text-amber-600">
                             {renderStars(averageRating)}
                             <span>
-                              {averageRating?.toFixed(1)} ({reviewCount} review{reviewCount === 1 ? "" : "s"})
+                              {averageRating?.toFixed(1)} ({reviewCount} review
+                              {reviewCount === 1 ? "" : "s"})
                             </span>
                           </div>
                         ) : (
-                          <p className="text-xs text-slate-500">No homeowner reviews yet</p>
+                          <p className="text-xs text-slate-500">
+                            No homeowner reviews yet
+                          </p>
                         )}
                         <button
                           className="btn btn-xs btn-secondary mt-2"
@@ -779,21 +872,39 @@ const ProJobsPage = () => {
                       </header>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                         <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4">
-                          <p className="text-xs uppercase text-emerald-600">Projected payout</p>
-                          <p className="text-2xl font-semibold text-emerald-800">{formatCurrency(providerTakeHome)}</p>
-                          <p className="text-xs text-emerald-700 mt-1">After ZapTasks fee ({Math.round(job.platform_fee_rate * 100)}%)</p>
+                          <p className="text-xs uppercase text-emerald-600">
+                            Projected payout
+                          </p>
+                          <p className="text-2xl font-semibold text-emerald-800">
+                            {formatCurrency(providerTakeHome)}
+                          </p>
+                          <p className="text-xs text-emerald-700 mt-1">
+                            After ZapTasks fee (
+                            {Math.round(job.platform_fee_rate * 100)}%)
+                          </p>
                         </div>
                         <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-                          <p className="text-xs uppercase text-slate-600">Paid so far</p>
-                          <p className="text-2xl font-semibold text-slate-900">{escrowFundedLabel}</p>
-                          <p className="text-xs text-slate-500 mt-1">{escrowStatusLabel}</p>
+                          <p className="text-xs uppercase text-slate-600">
+                            Paid so far
+                          </p>
+                          <p className="text-2xl font-semibold text-slate-900">
+                            {escrowFundedLabel}
+                          </p>
+                          <p className="text-xs text-slate-500 mt-1">
+                            {escrowStatusLabel}
+                          </p>
                         </div>
                       </div>
                       {!job.provider_stripe_account_id && (
                         <div className="alert alert-warning text-sm">
                           <div>
-                            <p className="font-semibold">Connect payouts to receive funds</p>
-                            <p className="text-xs">You need to connect Stripe to accept jobs and receive payments from neighbours.</p>
+                            <p className="font-semibold">
+                              Connect payouts to receive funds
+                            </p>
+                            <p className="text-xs">
+                              You need to connect Stripe to accept jobs and
+                              receive payments from neighbours.
+                            </p>
                           </div>
                           <button
                             type="button"
@@ -801,17 +912,31 @@ const ProJobsPage = () => {
                             onClick={startStripeOnboarding}
                             disabled={onboardingLoading}
                           >
-                            {onboardingLoading ? "Connecting..." : "Finish setup"}
+                            {onboardingLoading
+                              ? "Connecting..."
+                              : "Finish setup"}
                           </button>
                         </div>
                       )}
                       {job.provider_stripe_account_id && schedule && (
                         <div className="space-y-3">
-                          <p className="text-xs uppercase text-slate-400 tracking-wide">Payment</p>
+                          <p className="text-xs uppercase text-slate-400 tracking-wide">
+                            Payment
+                          </p>
                           <div className="p-4 border border-blue-100 rounded-lg bg-blue-50">
-                            <p className="text-sm font-semibold">Full ${((schedule.amounts.escrowCents / 100).toFixed(2))} in escrow</p>
-                            <p className="text-xs text-blue-700">Status: {escrowStatusLabel}</p>
-                            <p className="text-xs">You&apos;ll receive ${((providerTakeHome / 100).toFixed(2))} after completion</p>
+                            <p className="text-sm font-semibold">
+                              Full $
+                              {(schedule.amounts.escrowCents / 100).toFixed(2)}{" "}
+                              in escrow
+                            </p>
+                            <p className="text-xs text-blue-700">
+                              Status: {escrowStatusLabel}
+                            </p>
+                            <p className="text-xs">
+                              You&apos;ll receive $
+                              {(providerTakeHome / 100).toFixed(2)} after
+                              completion
+                            </p>
                           </div>
                         </div>
                       )}
@@ -819,10 +944,17 @@ const ProJobsPage = () => {
                         <div className="border border-amber-200 bg-amber-50 text-amber-700 rounded-lg p-4 space-y-2">
                           <div className="flex items-center justify-between gap-3">
                             <div>
-                              <p className="text-sm font-semibold">Reserve hold</p>
+                              <p className="text-sm font-semibold">
+                                Reserve hold
+                              </p>
                               <p className="text-xs">
-                                {formatCurrency(reserveCents)} held until {reserveReleaseAt ? format(reserveReleaseAt, "MMM d, yyyy") : "processing"}
-                                {reserveReleaseAt ? ` (${reserveCountdown ?? "processing"})` : ""}
+                                {formatCurrency(reserveCents)} held until{" "}
+                                {reserveReleaseAt
+                                  ? format(reserveReleaseAt, "MMM d, yyyy")
+                                  : "processing"}
+                                {reserveReleaseAt
+                                  ? ` (${reserveCountdown ?? "processing"})`
+                                  : ""}
                               </p>
                             </div>
                             {reserveReady ? (
@@ -831,14 +963,20 @@ const ProJobsPage = () => {
                                 onClick={() => releaseReserve(job.id)}
                                 disabled={releasingReserveId === job.id}
                               >
-                                {releasingReserveId === job.id ? "Releasing..." : "Release reserve"}
+                                {releasingReserveId === job.id
+                                  ? "Releasing..."
+                                  : "Release reserve"}
                               </button>
                             ) : (
-                              <span className="text-xs font-medium">Hold active</span>
+                              <span className="text-xs font-medium">
+                                Hold active
+                              </span>
                             )}
                           </div>
                           <p className="text-xs">
-                            ZapTasks keeps a short-term reserve to cover refunds and disputes. Funds become eligible once the hold period expires.
+                            ZapTasks keeps a short-term reserve to cover refunds
+                            and disputes. Funds become eligible once the hold
+                            period expires.
                           </p>
                         </div>
                       )}
@@ -862,11 +1000,13 @@ const ProJobsPage = () => {
             </h2>
             {loadingNotifications ? (
               <div className="flex items-center gap-2 text-base-content/60 text-sm">
-                <span className="loading loading-spinner loading-xs"></span> Loading alerts…
+                <span className="loading loading-spinner loading-xs"></span>{" "}
+                Loading alerts…
               </div>
             ) : notifications.length === 0 ? (
               <p className="text-base-content/60 text-sm">
-                No notifications yet. Apply to jobs and we’ll keep you posted on homeowner decisions.
+                No notifications yet. Apply to jobs and we’ll keep you posted on
+                homeowner decisions.
               </p>
             ) : (
               <ul className="space-y-3">
@@ -882,7 +1022,10 @@ const ProJobsPage = () => {
                         {notification.type.replace(/_/g, " ")}
                       </p>
                       <p className="text-base-content/70 text-xs">
-                        {format(new Date(notification.created_at), "MMM d, yyyy h:mma")}
+                        {format(
+                          new Date(notification.created_at),
+                          "MMM d, yyyy h:mma"
+                        )}
                       </p>
                     </div>
                     {!notification.read_at && (
@@ -892,11 +1035,15 @@ const ProJobsPage = () => {
                           await fetch("/api/notifications", {
                             method: "PATCH",
                             headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ notificationId: notification.id }),
+                            body: JSON.stringify({
+                              notificationId: notification.id,
+                            }),
                           });
                           setNotifications((prev) =>
                             prev.map((item) =>
-                              item.id === notification.id ? { ...item, read_at: new Date().toISOString() } : item
+                              item.id === notification.id
+                                ? { ...item, read_at: new Date().toISOString() }
+                                : item
                             )
                           );
                         }}
@@ -919,7 +1066,8 @@ const ProJobsPage = () => {
               <CheckCircle className="w-14 h-14 mx-auto text-green-400 mb-4" />
               <h2 className="text-2xl font-semibold mb-2">All caught up</h2>
               <p className="text-base-content/70">
-                There are no open job requests right now. Check back soon—we’ll ping you when new work lands.
+                There are no open job requests right now. Check back soon—we’ll
+                ping you when new work lands.
               </p>
             </div>
           ) : (
@@ -928,7 +1076,8 @@ const ProJobsPage = () => {
                 {jobs.map((job) => {
                   const applied = hasApplied(job.id);
                   const isOwnJob = job.homeowner_id === currentUserId;
-                  const primaryPhoto = job.photo_urls?.[0] ?? "/images/job-card-placeholder.svg";
+                  const primaryPhoto =
+                    job.photo_urls?.[0] ?? "/images/job-card-placeholder.svg";
                   const serviceLabels = getServiceLabels(job.services);
                   const locationLabel = (() => {
                     if (!job.address) {
@@ -965,10 +1114,15 @@ const ProJobsPage = () => {
                         </div>
                         <div className="flex items-start justify-between gap-3 mb-3">
                           <div>
-                            <h3 className="text-xl font-semibold text-gray-900">{job.job_title}</h3>
+                            <h3 className="text-xl font-semibold text-gray-900">
+                              {job.job_title}
+                            </h3>
                             <div className="flex flex-wrap gap-2 mt-2 text-xs text-blue-700">
                               {serviceLabels.map((label) => (
-                                <span key={label} className="badge badge-outline">
+                                <span
+                                  key={label}
+                                  className="badge badge-outline"
+                                >
                                   {label}
                                 </span>
                               ))}
@@ -986,7 +1140,10 @@ const ProJobsPage = () => {
                             <Calendar className="w-4 h-4" />
                             <span>
                               {job.service_date
-                                ? format(new Date(job.service_date), "MMM d, yyyy")
+                                ? format(
+                                    new Date(job.service_date),
+                                    "MMM d, yyyy"
+                                  )
                                 : "Date flexible"}
                               {job.service_time ? ` • ${job.service_time}` : ""}
                             </span>
@@ -998,13 +1155,19 @@ const ProJobsPage = () => {
                           <div className="flex items-center gap-2">
                             <Clock className="w-4 h-4" />
                             <span>
-                              {job.hours ? `${job.hours} hour${job.hours > 1 ? "s" : ""}` : "Hours TBD"}
+                              {job.hours
+                                ? `${job.hours} hour${job.hours > 1 ? "s" : ""}`
+                                : "Hours TBD"}
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Users className="w-4 h-4" />
                             <span>
-                              {job.people ? `${job.people} helper${job.people > 1 ? "s" : ""} ideal` : "Solo or team"}
+                              {job.people
+                                ? `${job.people} helper${
+                                    job.people > 1 ? "s" : ""
+                                  } ideal`
+                                : "Solo or team"}
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
@@ -1013,10 +1176,10 @@ const ProJobsPage = () => {
                               {job.pricing_mode === "provider_quote"
                                 ? "Homeowner wants providers to quote"
                                 : job.budget_amount
-                                    ? job.budget_type === "hourly"
-                                      ? `$${job.budget_amount}/hr`
-                                      : `$${job.budget_amount} flat`
-                                    : "Budget open"}
+                                ? job.budget_type === "hourly"
+                                  ? `$${job.budget_amount}/hr`
+                                  : `$${job.budget_amount} flat`
+                                : "Budget open"}
                             </span>
                           </div>
                           {job.pricing_mode === "provider_quote" && (
@@ -1027,7 +1190,13 @@ const ProJobsPage = () => {
                           )}
                           <div className="flex items-center gap-2">
                             <MessageCircle className="w-4 h-4" />
-                            <span>{job.contact_preference === "phone" ? "Prefers phone chat" : job.contact_preference === "email" ? "Prefers email" : "Prefers ZapTasks chat"}</span>
+                            <span>
+                              {job.contact_preference === "phone"
+                                ? "Prefers phone chat"
+                                : job.contact_preference === "email"
+                                ? "Prefers email"
+                                : "Prefers ZapTasks chat"}
+                            </span>
                           </div>
                         </div>
                         {job.budget_notes && (
@@ -1049,8 +1218,8 @@ const ProJobsPage = () => {
                           {applied
                             ? "Application submitted"
                             : isOwnJob
-                              ? "This is your job"
-                              : "Apply to this job"}
+                            ? "This is your job"
+                            : "Apply to this job"}
                         </button>
                       </div>
                     </article>
@@ -1092,7 +1261,9 @@ const ProJobsPage = () => {
               {selectedJobIsOwn && (
                 <div className="alert alert-info shadow-sm text-sm">
                   <CheckCircle className="h-4 w-4" />
-                  <span>You posted this job. Only other providers can apply.</span>
+                  <span>
+                    You posted this job. Only other providers can apply.
+                  </span>
                 </div>
               )}
               <div>
@@ -1112,7 +1283,9 @@ const ProJobsPage = () => {
                   <select
                     className="select select-bordered w-full bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     value={rateType}
-                    onChange={(e) => setRateType(e.target.value as "flat" | "hourly")}
+                    onChange={(e) =>
+                      setRateType(e.target.value as "flat" | "hourly")
+                    }
                   >
                     <option value="flat">Flat project estimate</option>
                     <option value="hourly">Hourly estimate</option>
@@ -1133,7 +1306,11 @@ const ProJobsPage = () => {
             </div>
 
             <div className="flex justify-end gap-2">
-              <button className="btn" onClick={() => setSelectedJobId(null)} disabled={submitting}>
+              <button
+                className="btn"
+                onClick={() => setSelectedJobId(null)}
+                disabled={submitting}
+              >
                 Cancel
               </button>
               <button
@@ -1141,7 +1318,11 @@ const ProJobsPage = () => {
                 onClick={submitApplication}
                 disabled={submitting || selectedJobIsOwn}
               >
-                {submitting ? "Submitting..." : selectedJobIsOwn ? "You posted this job" : "Send application"}
+                {submitting
+                  ? "Submitting..."
+                  : selectedJobIsOwn
+                  ? "You posted this job"
+                  : "Send application"}
               </button>
             </div>
           </div>

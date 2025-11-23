@@ -24,7 +24,7 @@ export default async function RootLayout({
           <title>ZapTasks - Home Services Marketplace</title>
           <meta
             name="description"
-            content="Connect homeowners with trusted local providers for cleaning, handyman, yard work, and more. "
+            content="Connect homeowners with local helpers for cleaning, handyman, yard work, and more."
           />
           <meta name="viewport" content="width=device-width, initial-scale=1" />
           <meta

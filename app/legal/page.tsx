@@ -24,7 +24,7 @@ export default function LegalPage() {
           <p className="text-sm text-slate-600">
             ZapTasks Inc. (&quot;ZapTasks&quot;, &quot;we&quot;, &quot;us&quot;)
             operates a Canadian marketplace connecting homeowners with
-            independent service providers.
+            independent helpers.
           </p>
           <h3 className="text-lg font-semibold text-slate-900">
             1. Acceptance
@@ -99,7 +99,7 @@ export default function LegalPage() {
           </p>
           <h3 className="text-lg font-semibold text-slate-900">3. Sharing</h3>
           <p className="text-sm text-slate-600">
-            We share relevant information with providers/homeowners involved in
+            We share relevant information with helpers/homeowners involved in
             a booking, payment processors, analytics tools, and law enforcement
             if required.
           </p>
