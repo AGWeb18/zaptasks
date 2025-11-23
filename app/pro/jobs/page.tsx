@@ -16,11 +16,17 @@ import {
   Sparkles,
   XCircle,
   Star,
+  Shield,
+  ChevronRight,
+  AlertTriangle,
+  HelpCircle,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { createClient } from "@/app/utils/supabase/client";
 import { getServiceLabels } from "@/app/lib/services/catalog";
 import ChatModal from "@/app/components/ChatModal";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type EscrowTier = "small" | "medium" | "large";
 
@@ -215,6 +221,7 @@ const ProJobsPage = () => {
   } | null>(null);
 
   const currentUserId = user?.id;
+  const router = useRouter();
 
   const fetchJobs = async () => {
     try {
@@ -652,6 +659,14 @@ const ProJobsPage = () => {
   const selectedJob = jobs.find((job) => job.id === selectedJobId);
   const selectedJobIsOwn = selectedJob?.homeowner_id === currentUserId;
 
+  // Banner: link to onboard page
+  useEffect(() => {
+    if (requiresOnboarding && !onboardingAutoAttempted) {
+      router.push("/pro/onboard");
+      setOnboardingAutoAttempted(true);
+    }
+  }, [requiresOnboarding, onboardingAutoAttempted, router]);
+
   return (
     <div className="bg-slate-100 min-h-screen">
       <Navbar />
@@ -697,25 +712,20 @@ const ProJobsPage = () => {
 
           <section className="mb-12">
             {(requiresOnboarding || stripeAccountMissing) && (
-              <div className="alert alert-warning mb-6">
-                <div className="flex-1">
-                  <h3 className="font-bold text-sm">
-                    Action Required: Connect Bank Account
-                  </h3>
-                  <p className="text-xs">
-                    You must connect a Stripe account to receive payouts and get
-                    hired.
-                  </p>
+              <Link
+                href="/pro/onboard"
+                className="alert alert-warning mb-6 no-underline"
+              >
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                  <div>
+                    <h3 className="font-bold">Connect Bank Account</h3>
+                    <p className="text-sm mb-0">
+                      Required to receive payouts when hired.
+                    </p>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-primary text-white"
-                  onClick={startStripeOnboarding}
-                  disabled={onboardingLoading}
-                >
-                  {onboardingLoading ? "Connecting..." : "Connect now"}
-                </button>
-              </div>
+              </Link>
             )}
 
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
