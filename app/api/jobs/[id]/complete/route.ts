@@ -5,6 +5,7 @@ import { createClientWithUser } from "@/app/utils/supabase/server";
 import {
   buildEscrowSchedule,
   createJobPaymentIntent,
+  captureJobPaymentIntent,
   stripe,
 } from "@/app/lib/payments/stripeConnect";
 import type {
@@ -122,7 +123,7 @@ export async function POST(req: NextRequest, context: CompleteJobParams) {
           customerId: job.stripe_customer_id,
           providerStripeAccountId: job.provider_stripe_account_id,
           paymentType: "completion",
-          captureMethod: "automatic",
+          captureMethod: "manual",
         });
 
         const { error: insertPaymentError } = await supabase.from("payments").insert({
@@ -151,6 +152,33 @@ export async function POST(req: NextRequest, context: CompleteJobParams) {
 
     if (unsettled.length > 0) {
       return NextResponse.json({ requiresPaymentActions: true, unsettled }, { status: 409 });
+    }
+
+    // Capture any manually-authorized escrow payment intents
+    for (const payment of payments) {
+      if (payment.stripe_payment_intent_id) {
+        const intent = await stripe.paymentIntents.retrieve(payment.stripe_payment_intent_id);
+        
+        // If payment is in requires_capture state, capture it now
+        if (intent.status === "requires_capture") {
+          try {
+            await captureJobPaymentIntent(payment.stripe_payment_intent_id);
+            await supabase.from("payments").update({
+              status: "succeeded",
+              captured_at: new Date().toISOString(),
+            }).eq("id", payment.id);
+          } catch (captureError) {
+            console.error(
+              `Failed to capture payment ${payment.stripe_payment_intent_id}:`,
+              captureError
+            );
+            return NextResponse.json(
+              { error: "Failed to capture payment. Please try again." },
+              { status: 500 }
+            );
+          }
+        }
+      }
     }
 
     await supabase

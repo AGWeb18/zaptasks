@@ -98,7 +98,7 @@ export async function POST(req: NextRequest, context: MilestoneParams) {
       customerId: job.stripe_customer_id,
       providerStripeAccountId: job.provider_stripe_account_id,
       paymentType: "progress",
-      captureMethod: "automatic",
+      captureMethod: "manual",
       metadata: { milestoneId: milestone.id },
     });
 

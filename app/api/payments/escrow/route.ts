@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
 
     let amountCents = schedule.amounts.escrowCents;
     let platformFeeCents = schedule.amounts.platformFeeEscrowCents;
-    let captureMethod: "manual" | "automatic" = "automatic";
+    let captureMethod: "manual" | "automatic" = "manual";
     let metadata: Record<string, string> = {};
 
     if (paymentType === "progress") {
@@ -105,13 +105,14 @@ export async function POST(req: NextRequest) {
 
       amountCents = milestone.amount_cents ?? schedule.amounts.progressCents;
       platformFeeCents = schedule.amounts.platformFeeProgressCents;
+      captureMethod = "manual";
       metadata = { milestoneId: milestone.id };
     }
 
     if (paymentType === "completion") {
       amountCents = schedule.amounts.completionCents;
       platformFeeCents = schedule.amounts.platformFeeCompletionCents;
-      captureMethod = "automatic";
+      captureMethod = "manual";
     }
 
     if (!amountCents || amountCents <= 0) {
