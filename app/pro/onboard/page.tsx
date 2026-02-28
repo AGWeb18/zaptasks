@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import Navbar from "@/app/components/NavBar";
