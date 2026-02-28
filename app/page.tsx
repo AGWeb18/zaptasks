@@ -69,18 +69,24 @@ const bookingSteps = [
   {
     icon: <CheckCircle className="w-6 h-6 text-blue-600" />,
     title: "Post your job",
-    copy: "Share what you need done, set your budget, and reach nearby neighbours in under 60 seconds.",
+    copy: "Tell us what you need, your budget, and your timing in a simple form built for first-time users.",
   },
   {
     icon: <MessageSquare className="w-6 h-6 text-blue-600" />,
     title: "Compare offers",
-    copy: "Nearby neighbours and helpers apply with their availability. Chat in-app, review ratings, and pick the offer that fits.",
+    copy: "Nearby helpers apply with availability. Review ratings, ask questions, and choose who feels right.",
   },
   {
     icon: <CreditCard className="w-6 h-6 text-blue-600" />,
     title: "Secure & finish",
-    copy: "Lock in the booking with secure payments via Stripe Connect. Funds are released to the helper as you confirm completion.",
+    copy: "Pay securely through ZapTasks and release payment after the task is complete.",
   },
+];
+
+const conciergeHighlights = [
+  "Large, plain-language booking flow for non-tech users",
+  "Simple support options for seniors and busy families",
+  "Book the same trusted helper again in one tap",
 ];
 
 const LandingPage: React.FC = () => {
@@ -101,9 +107,9 @@ const LandingPage: React.FC = () => {
               </span>
             </h1>
             <p className="mt-6 text-xl text-slate-600 max-w-2xl">
-              Post your task, get offers from neighbours, chat securely, pay
-              only when satisfied. No scams, no hassle – just Canadian
-              communities helping each other.
+              Post your task in minutes, compare local helpers, and pay
+              securely after the job is done. Designed for everyday people,
+              including first-time and non-tech users.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-4">
               <Link
@@ -132,6 +138,31 @@ const LandingPage: React.FC = () => {
               width="100%"
               height="400px"
             />
+          </div>
+        </section>
+
+        <section className="mb-16">
+          <div className="bg-emerald-50 border border-emerald-100 rounded-3xl p-8 md:p-12">
+            <div className="max-w-3xl">
+              <h2 className="text-2xl md:text-3xl font-bold text-emerald-900">
+                Built for real neighbours, not just power users
+              </h2>
+              <p className="mt-3 text-emerald-900/80">
+                ZapTasks is being built to feel simple and welcoming. The goal
+                is to help you book trusted local help quickly, even if you are
+                not comfortable with apps.
+              </p>
+            </div>
+            <ul className="mt-6 grid gap-3 md:grid-cols-3">
+              {conciergeHighlights.map((item) => (
+                <li
+                  key={item}
+                  className="rounded-2xl bg-white border border-emerald-100 p-4 text-sm text-slate-700"
+                >
+                  {item}
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
 
@@ -248,15 +279,16 @@ const LandingPage: React.FC = () => {
               </h3>
               <ul className="mt-4 space-y-3 text-sm text-blue-900/80">
                 <li>
-                  • Secure Stripe payments handle deposits, progress payments,
-                  and completion releases effortlessly.
+                  • Secure Stripe payments protect both sides with one
+                  transparent flow.
                 </li>
                 <li>
-                  • Transparent 10% platform fee keeps payouts, community
-                  support running.
+                  • Transparent 10% platform fee keeps pricing easy to
+                  understand.
                 </li>
                 <li>
-                  • Dispute desk with community-friendly resolution playbooks.
+                  • Reviews, completion tracking, and dispute support build
+                  trust in the community.
                 </li>
               </ul>
             </div>
@@ -266,8 +298,8 @@ const LandingPage: React.FC = () => {
                   Flat 10% marketplace fee
                 </p>
                 <p className="text-xs text-blue-900/70 mt-2">
-                  Every job supports secure payments with one transparent 10%
-                  ZapTasks fee (8% for eligible large projects).
+                  Every completed job includes one transparent 10% ZapTasks fee
+                  and clear payout details for helpers.
                 </p>
               </div>
               <Link
