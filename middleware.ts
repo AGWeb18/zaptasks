@@ -4,16 +4,28 @@ import {
 } from '@clerk/nextjs/server';
 
 const isProtectedRoute = createRouteMatcher([
+  // Pages
   '/booking(.*)',
+  '/manage-booking(.*)',
+  '/pro/onboard(.*)',
+  '/admin(.*)',
+  // API routes that mutate data or contain PII
   '/api/create-customer',
-  // '/forum(.*)',
+  '/api/check-customer',
+  '/api/job-requests(.*)',
+  '/api/job-applications(.*)',
+  '/api/jobs(.*)',
+  '/api/payments(.*)',
+  '/api/disputes(.*)',
+  '/api/notifications(.*)',
+  '/api/stripe-connect-onboard(.*)',
+  '/api/get-invoice(.*)',
+  '/api/get-unpaid-remainder-invoices(.*)',
+  '/api/setup-remaining-payment(.*)',
 ]);
-
 
 export default clerkMiddleware((auth, req) => {
   if (isProtectedRoute(req)) auth().protect();
-  
-
 });
 
 export const config = {

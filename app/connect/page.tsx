@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Navbar from "@/app/components/NavBar";
+import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 
 interface StripeAccountStatus {
   id: string;
@@ -31,8 +33,13 @@ const currencyFormatter = (amountCents: number | null | undefined, currency?: st
   }).format(amountCents / 100);
 };
 
-// Demo page showing how to onboard, create products, and share a storefront.
+// ⚠️ DEVELOPMENT/TESTING PAGE ONLY
+// This page is for testing Stripe Connect account creation and product management.
+// Consider removing or restricting access before public launch.
+
 export default function ConnectDemoPage() {
+  const { isLoaded, isSignedIn } = useUser();
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [selectedAccountId, setSelectedAccountId] = useState("");
   const [accountStatus, setAccountStatus] = useState<StripeAccountStatus | null>(null);
@@ -84,6 +91,32 @@ export default function ConnectDemoPage() {
       setProductLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.replace("/sign-in");
+    }
+  }, [isLoaded, isSignedIn, router]);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const accountIdFromQuery = url.searchParams.get("accountId");
+    if (accountIdFromQuery) {
+      setSelectedAccountId(accountIdFromQuery);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!selectedAccountId) return;
+    void fetchAccountStatus(selectedAccountId);
+    void fetchProducts(selectedAccountId);
+  }, [selectedAccountId, fetchAccountStatus, fetchProducts]);
+
+  const storeHref = useMemo(() =>
+    selectedAccountId ? `/connect/${selectedAccountId}` : null,
+  [selectedAccountId]);
+
+  if (!isLoaded || !isSignedIn) return null;
 
   const createAccount = async () => {
     setErrors(null);
@@ -156,24 +189,6 @@ export default function ConnectDemoPage() {
       setErrors(error instanceof Error ? error.message : "Failed to create product");
     }
   };
-
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    const accountIdFromQuery = url.searchParams.get("accountId");
-    if (accountIdFromQuery) {
-      setSelectedAccountId(accountIdFromQuery);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!selectedAccountId) return;
-    void fetchAccountStatus(selectedAccountId);
-    void fetchProducts(selectedAccountId);
-  }, [selectedAccountId, fetchAccountStatus, fetchProducts]);
-
-  const storeHref = useMemo(() =>
-    selectedAccountId ? `/connect/${selectedAccountId}` : null,
-  [selectedAccountId]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50/60 to-white text-slate-800">

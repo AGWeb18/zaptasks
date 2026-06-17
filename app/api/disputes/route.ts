@@ -5,8 +5,9 @@ import { createClientWithUser } from "@/app/utils/supabase/server";
 
 function isAuthorizedAdmin(userId: string | null | undefined): boolean {
   if (!userId) return false;
-  const adminList = process.env.ZAPTASKS_ADMIN_IDS?.split(",").map((id) => id.trim());
-  return !adminList || adminList.length === 0 || adminList.includes(userId);
+  const adminList = process.env.ZAPTASKS_ADMIN_IDS?.split(",").map((id) => id.trim()).filter(Boolean);
+  if (!adminList || adminList.length === 0) return false;
+  return adminList.includes(userId);
 }
 
 export async function GET(req: NextRequest) {

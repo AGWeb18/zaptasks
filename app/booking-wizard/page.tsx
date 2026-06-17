@@ -7,6 +7,7 @@ import { addDays, format } from "date-fns";
 import {
   ArrowRight,
   ArrowLeft,
+  Check,
   Calendar,
   MapPin,
   DollarSign,
@@ -32,6 +33,7 @@ const JobPostingWizard = () => {
   const supabase = useMemo(() => createSupabaseClient(), []);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
+  // Form state
   const [step, setStep] = useState<Step>(1);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -58,11 +60,11 @@ const JobPostingWizard = () => {
       case 1:
         return title.trim().length > 5 && description.trim().length > 20;
       case 2:
-        return true;
+        return true; // Photos optional
       case 3:
         return flexible || date.length > 0;
       case 4:
-        return true;
+        return true; // Address optional
       case 5:
         return (
           budgetType === "quote" ||
@@ -132,6 +134,7 @@ const JobPostingWizard = () => {
     setError(null);
 
     try {
+      // Upload photos
       let photoUrls: string[] = [];
       if (photos.length > 0) {
         const uploads = await Promise.all(
@@ -153,6 +156,7 @@ const JobPostingWizard = () => {
         photoUrls = uploads;
       }
 
+      // Determine service tags from title/description
       const inferredTags: string[] = [];
       const text = `${title} ${description}`.toLowerCase();
       if (text.includes("snow") || text.includes("shovel"))
@@ -199,6 +203,7 @@ const JobPostingWizard = () => {
         throw new Error(errMsg || "Failed to post job");
       }
 
+      // Success! Redirect to success page
       router.push("/manage-booking?posted=true");
     } catch (err) {
       console.error(err);
@@ -450,14 +455,11 @@ const JobPostingWizard = () => {
                   <AddressAutocomplete
                     onPlaceSelected={(details) => {
                       setAddress(details.formatted_address ?? "");
-                      const placeLat = details.geometry?.location?.lat?.();
-                      const placeLng = details.geometry?.location?.lng?.();
-                      if (
-                        typeof placeLat === "number" &&
-                        typeof placeLng === "number"
-                      ) {
-                        setLat(Number(placeLat.toFixed(3)));
-                        setLng(Number(placeLng.toFixed(3)));
+                      const lat = details.geometry?.location?.lat?.();
+                      const lng = details.geometry?.location?.lng?.();
+                      if (typeof lat === "number" && typeof lng === "number") {
+                        setLat(Number(lat.toFixed(3)));
+                        setLng(Number(lng.toFixed(3)));
                       }
                     }}
                     apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""}
@@ -472,8 +474,8 @@ const JobPostingWizard = () => {
 
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
                   <p className="text-sm text-blue-900">
-                    Adding your neighbourhood helps local helpers find your job
-                    faster
+                    💡 Adding your neighborhood helps local helpers find your
+                    job faster
                   </p>
                 </div>
               </div>
@@ -552,7 +554,7 @@ const JobPostingWizard = () => {
                           {budgetStyle === "hourly" ? "per hour" : ""}
                         </p>
                         <p className="text-sm text-emerald-700 mt-1">
-                          Helper keeps 90% — platform fee is 10%
+                          + 10% platform fee paid on completion
                         </p>
                       </div>
                     )}
@@ -578,7 +580,7 @@ const JobPostingWizard = () => {
                   Review your job
                 </h1>
                 <p className="text-lg text-slate-600">
-                  Here&apos;s what helpers will see
+                  Here&apos;2s what helpers will see
                 </p>
               </div>
 
@@ -632,14 +634,14 @@ const JobPostingWizard = () => {
 
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-900">
                   By posting, you agree to ZapTasks Terms. Payment is secure
-                  through Stripe. Helpers are independent contractors — review
+                  through Stripe. Helpers are independent contractors—review
                   their profiles before hiring.
                 </div>
               </div>
             </div>
           )}
 
-          {/* Navigation */}
+          {/* Navigation Buttons */}
           <div className="flex items-center justify-between pt-8 border-t border-slate-200 mt-8">
             <button
               type="button"

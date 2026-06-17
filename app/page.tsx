@@ -3,318 +3,343 @@
 import React from "react";
 import Link from "next/link";
 import {
-  CheckCircle,
-  CreditCard,
-  MessageSquare,
-  ShieldCheck,
   Sparkles,
   DollarSign,
+  CheckCircle,
+  MapPin,
+  Clock,
+  Wallet,
 } from "lucide-react";
 import LottieWrapper from "./components/LottieWrapper";
 import heroAnimation from "./animations/HeroAnimation.json";
-import yardworkAnimation from "./animations/YardWork.json";
-import handymanAnimation from "./animations/Handyman.json";
-import paintingAnimation from "./animations/Painting.json";
-import bookingAnimation from "./animations/Booking.json";
-import cleaningAnimation from "./animations/cleaningAnimation.json";
 import Navbar from "./components/NavBar";
-import ServiceSearchBar from "./components/ServiceSearchBar";
 import SiteFooter from "./components/SiteFooter";
 
-import helpingHandsAnimation from "./animations/HelpingHands.json";
-
-const services = [
-  {
-    id: "grocery",
-    icon: (
-      <LottieWrapper
-        animationData={helpingHandsAnimation}
-        width="100%"
-        height="100px"
-      />
-    ),
-    name: "Senior Support",
-    description:
-      "Extra help for seniors—from grocery runs to moving heavy items—provided by caring neighbours.",
-  },
-  {
-    id: "handyman",
-    icon: (
-      <LottieWrapper
-        animationData={handymanAnimation}
-        width="100%"
-        height="100px"
-      />
-    ),
-    name: "Landlord & Home Repairs",
-    description:
-      "Quick fixes for rentals or your own home. Furniture assembly, minor repairs, and maintenance tasks.",
-  },
-  {
-    id: "outdoor",
-    icon: (
-      <LottieWrapper
-        animationData={yardworkAnimation}
-        width="100%"
-        height="100px"
-      />
-    ),
-    name: "Yard Work & Seasonal",
-    description:
-      "Snow shovelling, leaf raking, and garden cleanup. Keep your property safe and tidy in every season.",
-  },
-];
-
-const bookingSteps = [
-  {
-    icon: <CheckCircle className="w-6 h-6 text-blue-600" />,
-    title: "Post your job",
-    copy: "Tell us what you need, your budget, and your timing in a simple form built for first-time users.",
-  },
-  {
-    icon: <MessageSquare className="w-6 h-6 text-blue-600" />,
-    title: "Compare offers",
-    copy: "Nearby helpers apply with availability. Review ratings, ask questions, and choose who feels right.",
-  },
-  {
-    icon: <CreditCard className="w-6 h-6 text-blue-600" />,
-    title: "Secure & finish",
-    copy: "Pay securely through ZapTasks and release payment after the task is complete.",
-  },
-];
-
-const conciergeHighlights = [
-  "Large, plain-language booking flow for non-tech users",
-  "Simple support options for seniors and busy families",
-  "Book the same trusted helper again in one tap",
-];
-
-const LandingPage: React.FC = () => {
+const HomePage: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50/60 to-white text-slate-800">
+    <div className="min-h-screen bg-white">
       <Navbar />
-      <main className="container mx-auto px-4 py-12">
-        <section className="flex flex-col-reverse lg:flex-row items-center gap-12 mb-16">
-          <div className="w-full lg:w-1/2">
-            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-700 shadow-sm mb-4">
-              🇨🇦 Early Canadians Helping Neighbours
-            </span>
-            <h1 className="mt-4 text-5xl md:text-7xl font-black text-slate-900 leading-tight mb-6">
-              Local Help
-              <br className="hidden md:block" />
-              <span className="bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent">
-                in Minutes
+
+      <main className="container mx-auto px-4">
+        {/* Hero — Earners First */}
+        <section className="min-h-[85vh] flex flex-col justify-center items-center text-center py-20">
+          <div className="max-w-5xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 text-emerald-700 text-sm font-semibold mb-6">
+              <MapPin className="w-4 h-4" />
+              Your neighbourhood is hiring
+            </div>
+
+            <h1 className="text-6xl md:text-7xl font-black text-slate-900 leading-[1.1] mb-6">
+              Get Paid Helping
+              <br />
+              <span className="bg-gradient-to-r from-emerald-500 to-blue-600 bg-clip-text text-transparent">
+                Your Neighbours
               </span>
             </h1>
-            <p className="mt-6 text-xl text-slate-600 max-w-2xl">
-              Post your task in minutes, compare local helpers, and pay
-              securely after the job is done. Designed for everyday people,
-              including first-time and non-tech users.
+
+            <p className="text-2xl text-slate-600 mb-6 max-w-2xl mx-auto leading-relaxed">
+              Browse local jobs, set your own hours, keep 90% of every job.
             </p>
-            <div className="mt-8 flex flex-col sm:flex-row gap-4">
+
+            <div className="flex flex-wrap justify-center gap-6 text-sm font-medium text-slate-500 mb-12">
+              <span className="flex items-center gap-1.5">
+                <Clock className="w-4 h-4 text-emerald-500" />
+                Your schedule
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Wallet className="w-4 h-4 text-emerald-500" />
+                Your rates
+              </span>
+              <span className="flex items-center gap-1.5">
+                <CheckCircle className="w-4 h-4 text-emerald-500" />
+                No boss
+              </span>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
               <Link
-                href="/booking"
-                className="btn btn-primary btn-lg text-white shadow-xl hover:shadow-2xl px-8 py-4 text-lg font-semibold flex items-center gap-3"
-              >
-                <Sparkles className="w-6 h-6" />
-                Post Job Free
-              </Link>
-              <Link
-                href="/pro/jobs"
-                className="btn btn-outline btn-lg border-2 border-blue-200 hover:border-blue-500 hover:bg-blue-50 px-8 py-4 text-lg font-semibold flex items-center gap-3"
+                href="/pro/onboard"
+                className="inline-flex items-center justify-center gap-3 px-8 py-5 bg-emerald-600 hover:bg-emerald-700 text-white text-lg font-bold rounded-2xl shadow-xl hover:shadow-2xl transition-all hover:-translate-y-0.5"
               >
                 <DollarSign className="w-6 h-6" />
-                Earn Helping
+                Start Earning Today
+              </Link>
+              <Link
+                href="/booking"
+                className="inline-flex items-center justify-center gap-3 px-8 py-5 bg-white hover:bg-slate-50 text-slate-900 text-lg font-bold rounded-2xl border-2 border-slate-200 hover:border-slate-300 transition-all"
+              >
+                <Sparkles className="w-6 h-6" />
+                Post a Job Free
               </Link>
             </div>
-            <p className="mt-3 text-xs text-slate-500">
-              Every hire earns a public review, so you can build a shortlist of
-              neighbours you trust for future projects.
-            </p>
           </div>
-          <div className="w-full lg:w-1/2 flex justify-center">
+
+          <div className="w-full max-w-2xl">
             <LottieWrapper
               animationData={heroAnimation}
               width="100%"
-              height="400px"
+              height="300px"
             />
           </div>
         </section>
 
-        <section className="mb-16">
-          <div className="bg-emerald-50 border border-emerald-100 rounded-3xl p-8 md:p-12">
-            <div className="max-w-3xl">
-              <h2 className="text-2xl md:text-3xl font-bold text-emerald-900">
-                Built for real neighbours, not just power users
+        {/* How It Works — For Helpers */}
+        <section className="py-20 border-t border-slate-100">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl font-bold text-slate-900 mb-4">
+                Start earning in minutes
               </h2>
-              <p className="mt-3 text-emerald-900/80">
-                ZapTasks is being built to feel simple and welcoming. The goal
-                is to help you book trusted local help quickly, even if you are
-                not comfortable with apps.
+              <p className="text-xl text-slate-600">
+                For people who want to earn on their own terms
               </p>
             </div>
-            <ul className="mt-6 grid gap-3 md:grid-cols-3">
-              {conciergeHighlights.map((item) => (
-                <li
-                  key={item}
-                  className="rounded-2xl bg-white border border-emerald-100 p-4 text-sm text-slate-700"
-                >
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
 
-        <section className="mb-16">
-          <div className="max-w-2xl mx-auto text-center mb-10">
-            <h2 className="text-3xl font-bold text-slate-900">
-              Popular tasks neighbours are helping with
-            </h2>
-            <p className="mt-3 text-sm text-slate-600">
-              From coastal cottages to downtown condos across Canada, ZapTasks
-              connects you with friendly neighbours for everyday help.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {services.map((service, index) => (
-              <div
-                key={service.id}
-                className={`bg-white rounded-2xl shadow-md border border-slate-100 p-6 flex flex-col items-center text-center hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group ${
-                  index === 0 ? "ring-2 ring-emerald-200/50" : ""
-                }`}
-              >
-                {index === 0 && (
-                  <span className="absolute -top-3 bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-semibold mb-2">
-                    Most Popular
+            <div className="grid md:grid-cols-3 gap-12 mb-20">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <span className="text-3xl font-black text-emerald-600">
+                    1
                   </span>
-                )}
-                <div className="w-24 h-24 group-hover:scale-110 transition-transform mb-4">
-                  {service.icon}
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                  {service.name}
+                <h3 className="text-xl font-bold text-slate-900 mb-3">
+                  Sign Up & Add Your Bank
                 </h3>
-                <p className="text-sm text-slate-600">{service.description}</p>
+                <p className="text-slate-600 leading-relaxed">
+                  Create your account and connect your bank once. Payouts go
+                  straight to you after every job.
+                </p>
               </div>
-            ))}
+
+              <div className="text-center">
+                <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <span className="text-3xl font-black text-emerald-600">
+                    2
+                  </span>
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-3">
+                  Browse & Apply
+                </h3>
+                <p className="text-slate-600 leading-relaxed">
+                  See jobs posted nearby. Apply to the ones you want. No minimum
+                  hours, no quotas.
+                </p>
+              </div>
+
+              <div className="text-center">
+                <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <span className="text-3xl font-black text-emerald-600">
+                    3
+                  </span>
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-3">
+                  Do the Work, Get Paid
+                </h3>
+                <p className="text-slate-600 leading-relaxed">
+                  Complete the job, the homeowner confirms, and payment lands in
+                  your bank. Simple.
+                </p>
+              </div>
+            </div>
+
+            <div className="text-center mb-20">
+              <Link
+                href="/pro/onboard"
+                className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-lg hover:shadow-xl transition-all"
+              >
+                <DollarSign className="w-5 h-5" />
+                Become a Helper
+              </Link>
+            </div>
+
+            {/* For Job Posters */}
+            <div className="border-t border-slate-200 pt-20">
+              <div className="text-center mb-16">
+                <h2 className="text-4xl font-bold text-slate-900 mb-4">
+                  Need something done?
+                </h2>
+                <p className="text-xl text-slate-600">
+                  Post your job, get offers from real neighbours
+                </p>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-12">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                    <span className="text-3xl font-black text-blue-600">1</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900 mb-3">
+                    Post Your Job
+                  </h3>
+                  <p className="text-slate-600 leading-relaxed">
+                    Describe what you need. Add photos if helpful. Takes under 2
+                    minutes.
+                  </p>
+                </div>
+
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                    <span className="text-3xl font-black text-blue-600">2</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900 mb-3">
+                    Pick Your Helper
+                  </h3>
+                  <p className="text-slate-600 leading-relaxed">
+                    Local helpers apply with their prices. Read their reviews and
+                    chat before deciding.
+                  </p>
+                </div>
+
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                    <span className="text-3xl font-black text-blue-600">3</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900 mb-3">
+                    Pay When Satisfied
+                  </h3>
+                  <p className="text-slate-600 leading-relaxed">
+                    Your payment is held securely. Released to the helper only
+                    when you confirm it&apos;s done.
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-center mt-12">
+                <Link
+                  href="/booking"
+                  className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg hover:shadow-xl transition-all"
+                >
+                  <Sparkles className="w-5 h-5" />
+                  Post a Job Free
+                </Link>
+              </div>
+            </div>
           </div>
         </section>
 
-        <section id="how-it-works" className="mb-16">
-          <h3
-            id="how-it-works-title"
-            className="text-3xl font-bold mb-8 text-center"
-          >
-            <a href="#how-it-works-title" className="anchor-link">
-              How the Marketplace Works
-            </a>
-          </h3>
-          <div className="flex flex-col md:flex-row items-center justify-between gap-10">
-            <div className="md:w-1/2">
-              <ol className="space-y-6">
-                {bookingSteps.map((step, index) => (
-                  <li
-                    key={step.title}
-                    className="flex items-start gap-4 bg-white rounded-xl shadow-sm p-5 border border-slate-100"
-                  >
-                    <span className="flex items-center justify-center rounded-full bg-blue-50 w-12 h-12 flex-shrink-0">
-                      {step.icon}
-                    </span>
-                    <div>
-                      <p className="font-semibold text-slate-900">
-                        Step {index + 1}: {step.title}
-                      </p>
-                      <p className="text-sm text-slate-600 mt-1">{step.copy}</p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </div>
-            <div className="md:w-1/2 flex justify-center">
-              <LottieWrapper
-                animationData={bookingAnimation}
-                width="100%"
-                height="400px"
-              />
+        {/* Popular Categories */}
+        <section className="py-20 bg-gradient-to-b from-white to-slate-50 -mx-4 px-4">
+          <div className="max-w-5xl mx-auto">
+            <h2 className="text-4xl font-bold text-center text-slate-900 mb-4">
+              Popular jobs right now
+            </h2>
+            <p className="text-center text-slate-600 mb-12">
+              A few categories neighbours are posting
+            </p>
+
+            <div className="grid md:grid-cols-3 gap-6">
+              {[
+                {
+                  emoji: "❄️",
+                  name: "Snow Removal",
+                  desc: "Driveway & walkway shoveling",
+                },
+                {
+                  emoji: "🏠",
+                  name: "Home Repairs",
+                  desc: "Quick fixes & handyman work",
+                },
+                {
+                  emoji: "🧹",
+                  name: "Cleaning Help",
+                  desc: "Deep clean & organizing",
+                },
+                {
+                  emoji: "🌿",
+                  name: "Yard Work",
+                  desc: "Lawn care, raking, gardening",
+                },
+                {
+                  emoji: "🎨",
+                  name: "Painting",
+                  desc: "Interior & exterior touch-ups",
+                },
+                {
+                  emoji: "🛒",
+                  name: "Senior Support",
+                  desc: "Errands, grocery runs & more",
+                },
+              ].map((cat) => (
+                <div
+                  key={cat.name}
+                  className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow"
+                >
+                  <div className="text-4xl mb-3">{cat.emoji}</div>
+                  <h3 className="text-lg font-bold text-slate-900 mb-2">
+                    {cat.name}
+                  </h3>
+                  <p className="text-sm text-slate-600">{cat.desc}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
 
-        <section className="mb-16 py-12 bg-gradient-to-r from-emerald-50 to-blue-50 rounded-3xl">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl font-bold text-slate-900 mb-4">
-              Be one of our first neighbours
+        {/* Trust & Safety */}
+        <section className="py-20">
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-slate-50 rounded-3xl p-12 text-center border border-slate-200">
+              <h2 className="text-3xl font-bold text-slate-900 mb-6">
+                Safe for everyone
+              </h2>
+              <div className="grid md:grid-cols-3 gap-8 text-slate-700">
+                <div>
+                  <div className="text-3xl mb-3">🛡️</div>
+                  <h3 className="font-semibold mb-2">Secure Payments</h3>
+                  <p className="text-sm">
+                    Funds held until the job is confirmed complete
+                  </p>
+                </div>
+                <div>
+                  <div className="text-3xl mb-3">⭐</div>
+                  <h3 className="font-semibold mb-2">Rated Helpers</h3>
+                  <p className="text-sm">
+                    Every job earns a review — good work builds reputation
+                  </p>
+                </div>
+                <div>
+                  <div className="text-3xl mb-3">💬</div>
+                  <h3 className="font-semibold mb-2">In-App Chat</h3>
+                  <p className="text-sm">
+                    All communication tracked and kept in one place
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Final CTA */}
+        <section className="py-20 text-center">
+          <div className="max-w-2xl mx-auto">
+            <h2 className="text-4xl font-bold text-slate-900 mb-6">
+              Ready to start earning?
             </h2>
             <p className="text-xl text-slate-600 mb-8">
-              Join early Canadian communities getting fast, reliable local help.
-              Your feedback shapes ZapTasks.
+              Your neighbours are already looking for help.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
-                href="/booking"
-                className="btn btn-primary btn-lg text-white shadow-lg"
+                href="/pro/onboard"
+                className="inline-flex items-center justify-center gap-3 px-10 py-6 bg-emerald-600 hover:bg-emerald-700 text-white text-xl font-bold rounded-2xl shadow-xl hover:shadow-2xl transition-all hover:-translate-y-0.5"
               >
-                Post First Job Free
-              </Link>
-              <Link
-                href="/pro/jobs"
-                className="btn btn-outline btn-lg border-2 border-emerald-200 hover:border-emerald-500"
-              >
+                <DollarSign className="w-6 h-6" />
                 Start Earning Today
               </Link>
-            </div>
-            <p className="mt-6 text-sm text-slate-500 italic">
-              &quot;Helped my mom with yard work &ndash; fast &amp; easy!&quot;
-              &ndash; Early user
-            </p>
-          </div>
-        </section>
-
-        <section className="mb-16">
-          <div className="bg-blue-50 border border-blue-100 rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8">
-            <div className="md:w-2/3">
-              <h3 className="text-2xl font-semibold text-blue-900">
-                Marketplace trust for Canadian communities
-              </h3>
-              <ul className="mt-4 space-y-3 text-sm text-blue-900/80">
-                <li>
-                  • Secure Stripe payments protect both sides with one
-                  transparent flow.
-                </li>
-                <li>
-                  • Transparent 10% platform fee keeps pricing easy to
-                  understand.
-                </li>
-                <li>
-                  • Reviews, completion tracking, and dispute support build
-                  trust in the community.
-                </li>
-              </ul>
-            </div>
-            <div className="md:w-1/3 space-y-3">
-              <div className="bg-white border border-blue-200 rounded-2xl p-4 text-center shadow-sm">
-                <p className="text-lg font-semibold text-blue-900">
-                  Flat 10% marketplace fee
-                </p>
-                <p className="text-xs text-blue-900/70 mt-2">
-                  Every completed job includes one transparent 10% ZapTasks fee
-                  and clear payout details for helpers.
-                </p>
-              </div>
               <Link
-                href="/faq"
-                className="btn btn-outline w-full border-blue-300"
+                href="/booking"
+                className="inline-flex items-center justify-center gap-3 px-8 py-6 bg-white hover:bg-slate-50 text-slate-900 text-lg font-bold rounded-2xl border-2 border-slate-200 hover:border-slate-300 transition-all"
               >
-                See Trust & Safety FAQ
+                Post a Job
               </Link>
             </div>
           </div>
         </section>
       </main>
+
       <SiteFooter />
     </div>
   );
 };
 
-export default LandingPage;
+export default HomePage;

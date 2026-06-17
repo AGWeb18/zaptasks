@@ -1,40 +1,57 @@
-# Deployment Guide for ZapTasks
+# Deployment Guide for ZapTasks (Updated)
 
 This guide outlines the steps to get ZapTasks production-ready.
 
 ## 1. Database Setup (Supabase)
 
-Run the following SQL scripts in your Supabase SQL Editor in this order:
+Follow `/supabase/SUPABASE-SETUP.md` for full steps:
 
-1.  `database.sql` (Core tables)
-2.  `provider_reviews.sql` (Review system tables)
-3.  `chat.sql` (Chat system tables)
+- Create project
+- Run scripts in order: `database.sql`, `provider_reviews.sql`, `chat.sql`, `rls-policies.sql`
 
-## 2. Environment Variables
+## 2. Environment Variables (.env.local + Vercel/Netlify)
 
 Set the following environment variables in your deployment platform (e.g., Vercel) and `.env.local` for local development.
 
 ### Core
-- `NEXT_PUBLIC_BASE_URL`: The full URL of your site (e.g., `https://zaptasks.com`). Used for Stripe redirects.
+
+- `NEXT_PUBLIC_BASE_URL=https://yourdomain.com`: The full URL of your site (e.g., `https://zaptasks.com`). Used for Stripe and Clerk redirects.
+
+### Clerk (Auth)
+
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...`: Your Clerk Publishable Key.
+- `CLERK_SECRET_KEY=sk_...`: Your Clerk Secret Key.
 
 ### Supabase
-- `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase project URL.
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase Anon Key.
+
+- `NEXT_PUBLIC_SUPABASE_URL=...`: Your Supabase project URL.
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY=...`: Your Supabase Anon Key.
 
 ### Stripe (Payments)
-- `STRIPE_SECRET_KEY`: Your Stripe Secret Key (`sk_...`).
-- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`: Your Stripe Publishable Key (`pk_...`).
+
+- `STRIPE_SECRET_KEY=sk_...`: Your Stripe Secret Key (`sk_...`).
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_...`: Your Stripe Publishable Key (`pk_...`).
+- `STRIPE_WEBHOOK_SECRET=whsec_...`: Your Stripe Webhook Secret (for webhooks).
 
 ### Google Maps (Location)
-- `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`: For address autocomplete.
+
+- `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=...`: For address autocomplete.
 
 ### Admin & Support
-- `ZAPTASKS_ADMIN_IDS`: Comma-separated list of Clerk User IDs who can access the Admin Dashboard (e.g., `user_123,user_456`).
+
+- `ZAPTASKS_ADMIN_IDS=user_123,user_456`: Comma-separated list of Clerk User IDs who can access the Admin Dashboard (e.g., `user_123,user_456`).
 - `NEXT_PUBLIC_INTERCOM_APP_ID`: (Optional) If you use Intercom for support chat.
 
-## 3. Post-Deployment Checks
+## 3. Deploy
 
-1.  **Provider Onboarding**: Log in as a provider, go to "Find Local Jobs" (`/pro/jobs`), and verify the "Connect Bank Account" banner appears.
-2.  **Job Flow**: Post a job as a homeowner, apply as a provider, chat via the "Chat" button, and award the job.
-3.  **Payments**: Verify that payments are processed using Stripe Elements (Secure Payment).
-4.  **Admin**: Access `/admin` with an authorized user ID to view and resolve disputes.
+- Push to GitHub
+- Connect Vercel/Netlify → auto-deploys on push
+
+## 4. Post-Deployment Tests
+
+1.  **Helper Onboarding**: Log in as a provider, go to "Find Local Jobs" (`/pro/jobs`), and verify the "Connect Bank Account" banner appears.
+2.  **Full Flow**: Post a job as a homeowner, apply as a provider, award the job, and complete the escrow payment (full amount upfront) → payout (90% to helper).
+3.  **Admin**: Access `/admin` with an authorized user ID to view and resolve disputes.
+4.  **Mobile**: Test Apple Pay and Stripe Elements on iOS.
+
+✅ Simple escrow (100% upfront, 10% fee). Launch-ready!

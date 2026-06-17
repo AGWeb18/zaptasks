@@ -1,8 +1,257 @@
--- Row Level Security policies for Supabase tables
--- This file enables RLS and defines access controls for core marketplace tables.
+-- ============================================================================
+-- ZapTasks Database Setup Script
+-- ============================================================================
+-- This script creates all tables, indexes, RLS policies, and triggers
+-- for the ZapTasks marketplace.
+--
+-- Run this script in your Supabase SQL Editor to set up the database.
+-- ============================================================================
 
--- Ensure the pgcrypto extension is available when running locally
+-- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
+
+-- ============================================================================
+-- HELPER FUNCTIONS
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.current_user_id()
+RETURNS TEXT
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT COALESCE(auth.jwt() ->> 'sub', '')
+$$;
+
+-- ============================================================================
+-- CORE TABLES
+-- ============================================================================
+
+-- Providers (helpers who offer services)
+CREATE TABLE IF NOT EXISTS providers (
+  user_id TEXT PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  stripe_account_id TEXT,
+  services JSONB DEFAULT '[]'::JSONB,
+  location TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now())
+);
+
+-- Platform admins
+CREATE TABLE IF NOT EXISTS platform_admins (
+  user_id TEXT PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now())
+);
+
+-- Job requests (posted by homeowners)
+CREATE TABLE IF NOT EXISTS job_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  homeowner_id TEXT,
+  homeowner_name TEXT,
+  homeowner_email TEXT,
+  job_title TEXT NOT NULL,
+  services TEXT[] NOT NULL,
+  description TEXT,
+  service_date DATE,
+  service_time TEXT,
+  hours INTEGER,
+  people INTEGER,
+  bring_equipment BOOLEAN DEFAULT FALSE,
+  address TEXT,
+  latitude DOUBLE PRECISION,
+  longitude DOUBLE PRECISION,
+  budget_type TEXT,
+  budget_amount NUMERIC,
+  budget_notes TEXT,
+  contact_preference TEXT,
+  selected_provider_id TEXT,
+  selected_provider_name TEXT,
+  selected_application_id UUID,
+  agreed_total_amount NUMERIC,
+  deposit_amount NUMERIC,
+  remainder_amount NUMERIC,
+  deposit_invoice_id TEXT,
+  deposit_invoice_url TEXT,
+  remainder_invoice_id TEXT,
+  remainder_invoice_url TEXT,
+  status TEXT DEFAULT 'open',
+  photo_urls TEXT[],
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now())
+);
+
+-- Job applications (providers applying to jobs)
+CREATE TABLE IF NOT EXISTS job_applications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  job_request_id UUID REFERENCES job_requests(id) ON DELETE CASCADE,
+  provider_id TEXT,
+  provider_name TEXT,
+  provider_email TEXT,
+  message TEXT,
+  proposed_rate NUMERIC,
+  proposed_rate_type TEXT,
+  status TEXT DEFAULT 'pending',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now())
+);
+
+-- Notifications
+CREATE TABLE IF NOT EXISTS notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id TEXT,
+  audience TEXT,
+  type TEXT,
+  payload JSONB,
+  read_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now())
+);
+
+-- ============================================================================
+-- PAYMENT & ESCROW TABLES
+-- ============================================================================
+
+-- Jobs (active jobs after application accepted)
+CREATE TABLE IF NOT EXISTS jobs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  job_request_id UUID REFERENCES job_requests(id) ON DELETE SET NULL,
+  homeowner_id TEXT NOT NULL,
+  provider_id TEXT NOT NULL,
+  stripe_customer_id TEXT,
+  provider_stripe_account_id TEXT,
+  total_amount_cents INTEGER NOT NULL,
+  escrow_amount_cents INTEGER NOT NULL,
+  escrow_percentage INTEGER NOT NULL,
+  platform_fee_cents INTEGER NOT NULL,
+  platform_fee_rate NUMERIC NOT NULL,
+  milestone_plan JSONB,
+  job_status TEXT NOT NULL DEFAULT 'pending',
+  completion_date TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now()),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now())
+);
+
+-- Job milestones (for large multi-payment jobs)
+CREATE TABLE IF NOT EXISTS job_milestones (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  job_id UUID REFERENCES jobs(id) ON DELETE CASCADE,
+  label TEXT NOT NULL,
+  percentage INTEGER,
+  amount_cents INTEGER,
+  status TEXT NOT NULL DEFAULT 'pending',
+  due_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now()),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now())
+);
+
+-- Payments
+CREATE TABLE IF NOT EXISTS payments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  job_id UUID REFERENCES jobs(id) ON DELETE CASCADE,
+  stripe_payment_intent_id TEXT,
+  amount_cents INTEGER NOT NULL,
+  platform_fee_cents INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  payment_type TEXT NOT NULL,
+  captured_at TIMESTAMP WITH TIME ZONE,
+  refunded_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now()),
+  UNIQUE(stripe_payment_intent_id)
+);
+
+-- Disputes
+CREATE TABLE IF NOT EXISTS disputes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  job_id UUID REFERENCES jobs(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'open',
+  reason TEXT,
+  evidence JSONB,
+  resolution TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now()),
+  resolved_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Payment logs (audit trail)
+CREATE TABLE IF NOT EXISTS payment_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  job_id UUID REFERENCES jobs(id) ON DELETE CASCADE,
+  payment_id UUID REFERENCES payments(id) ON DELETE SET NULL,
+  action TEXT NOT NULL,
+  payload JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now())
+);
+
+-- ============================================================================
+-- REVIEWS & COMMUNICATION TABLES
+-- ============================================================================
+
+-- Provider reviews (submitted by homeowners after job completion)
+CREATE TABLE IF NOT EXISTS provider_reviews (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  job_id UUID REFERENCES jobs(id) ON DELETE CASCADE,
+  homeowner_id TEXT NOT NULL,
+  provider_id TEXT NOT NULL,
+  rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+  review_type TEXT,
+  comment TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now()),
+  UNIQUE(job_id, homeowner_id)
+);
+
+-- Conversations (between two users)
+CREATE TABLE IF NOT EXISTS conversations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user1 TEXT NOT NULL,
+  user2 TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now()),
+  UNIQUE(user1, user2)
+);
+
+-- Messages (in conversations)
+CREATE TABLE IF NOT EXISTS messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE,
+  sender TEXT NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now())
+);
+
+-- ============================================================================
+-- INDEXES
+-- ============================================================================
+
+CREATE INDEX IF NOT EXISTS jobs_homeowner_idx ON jobs(homeowner_id);
+CREATE INDEX IF NOT EXISTS jobs_provider_idx ON jobs(provider_id);
+CREATE INDEX IF NOT EXISTS payments_job_idx ON payments(job_id);
+CREATE INDEX IF NOT EXISTS disputes_job_idx ON disputes(job_id);
+CREATE INDEX IF NOT EXISTS idx_conversations_users ON conversations (user1, user2);
+CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages (conversation_id);
+CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages (sender);
+CREATE INDEX IF NOT EXISTS idx_messages_created ON messages (created_at DESC);
+
+-- ============================================================================
+-- TRIGGERS
+-- ============================================================================
+
+-- Normalize conversation users (always store in consistent order)
+CREATE OR REPLACE FUNCTION normalize_conversation_users()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.user1 > NEW.user2 THEN
+    DECLARE
+      temp TEXT := NEW.user1;
+    BEGIN
+      NEW.user1 := NEW.user2;
+      NEW.user2 := temp;
+    END;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trig_normalize_conversation_users ON conversations;
+CREATE TRIGGER trig_normalize_conversation_users
+  BEFORE INSERT ON conversations
+  FOR EACH ROW EXECUTE FUNCTION normalize_conversation_users();
+
+-- ============================================================================
+-- ROW LEVEL SECURITY (RLS) POLICIES
+-- ============================================================================
 
 -- === job_requests ==========================================================
 ALTER TABLE public.job_requests ENABLE ROW LEVEL SECURITY;
@@ -445,7 +694,7 @@ CREATE POLICY "admins_manage_payment_logs"
     )
   );
 
--- === provider_reviews =============================================================
+-- === provider_reviews ======================================================
 ALTER TABLE public.provider_reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.provider_reviews FORCE ROW LEVEL SECURITY;
 
@@ -470,6 +719,12 @@ CREATE POLICY "providers_view_own_reviews"
   FOR SELECT
   USING (public.current_user_id() = provider_id);
 
+DROP POLICY IF EXISTS "anyone_view_reviews" ON public.provider_reviews;
+CREATE POLICY "anyone_view_reviews"
+  ON public.provider_reviews
+  FOR SELECT
+  USING (true);
+
 DROP POLICY IF EXISTS "admins_manage_reviews" ON public.provider_reviews;
 CREATE POLICY "admins_manage_reviews"
   ON public.provider_reviews
@@ -481,7 +736,7 @@ CREATE POLICY "admins_manage_reviews"
     EXISTS (SELECT 1 FROM public.platform_admins WHERE user_id = public.current_user_id())
   );
 
--- === conversations ================================================================
+-- === conversations =========================================================
 ALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.conversations FORCE ROW LEVEL SECURITY;
 
@@ -504,7 +759,7 @@ CREATE POLICY "participants_manage_conversations"
     public.current_user_id() IN (user1, user2)
   );
 
--- === messages =====================================================================
+-- === messages ==============================================================
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages FORCE ROW LEVEL SECURITY;
 
@@ -532,3 +787,38 @@ CREATE POLICY "senders_insert_messages"
     )
     AND public.current_user_id() = sender
   );
+
+-- ============================================================================
+-- STORAGE BUCKETS (for job photos)
+-- ============================================================================
+
+-- Note: Run these commands in Supabase Dashboard > Storage
+-- or via the Storage API:
+--
+-- 1. Create bucket 'job-photos' with public access
+-- 2. Set RLS policies:
+--    - Allow authenticated users to upload
+--    - Allow public read access
+--
+-- Example RLS policies for storage.objects:
+--
+-- CREATE POLICY "Authenticated users can upload job photos"
+--   ON storage.objects FOR INSERT
+--   TO authenticated
+--   WITH CHECK (bucket_id = 'job-photos');
+--
+-- CREATE POLICY "Anyone can view job photos"
+--   ON storage.objects FOR SELECT
+--   TO public
+--   USING (bucket_id = 'job-photos');
+
+-- ============================================================================
+-- SETUP COMPLETE
+-- ============================================================================
+--
+-- Next steps:
+-- 1. Add your user ID to platform_admins table for admin access
+-- 2. Configure storage buckets in Supabase Dashboard
+-- 3. Test the RLS policies by creating test data
+--
+-- ============================================================================

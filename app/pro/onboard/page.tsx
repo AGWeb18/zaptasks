@@ -48,7 +48,7 @@ export default function PayoutOnboarding() {
       setError(
         err instanceof Error
           ? err.message
-          : "Unable to connect. Please try again."
+          : "Unable to connect. Please try again.",
       );
     } finally {
       setIsLoading(false);
