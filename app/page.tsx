@@ -260,16 +260,17 @@ const HomePage: React.FC = () => {
                   desc: "Errands, grocery runs & more",
                 },
               ].map((cat) => (
-                <div
+                <Link
                   key={cat.name}
-                  className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow"
+                  href="/pro/jobs"
+                  className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md hover:border-blue-200 hover:-translate-y-0.5 transition-all group"
                 >
                   <div className="text-4xl mb-3">{cat.emoji}</div>
-                  <h3 className="text-lg font-bold text-slate-900 mb-2">
+                  <h3 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">
                     {cat.name}
                   </h3>
                   <p className="text-sm text-slate-600">{cat.desc}</p>
-                </div>
+                </Link>
               ))}
             </div>
           </div>

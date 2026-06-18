@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useUser, SignInButton } from "@clerk/nextjs";
 import Navbar from "@/app/components/NavBar";
 import {
   MapPin,
@@ -302,6 +302,10 @@ const ProJobsPage = () => {
       fetchJobs();
       fetchNotifications();
       fetchMyEscrowJobs();
+    } else if (isLoaded && !isSignedIn) {
+      setLoadingJobs(false);
+      setLoadingNotifications(false);
+      setLoadingEscrow(false);
     }
   }, [isLoaded, isSignedIn]);
 
@@ -759,24 +763,25 @@ const ProJobsPage = () => {
             </div>
           </header>
 
-          <section className="mb-12">
-            {(requiresOnboarding || stripeAccountMissing) && (
-              <Link
-                href="/pro/onboard"
-                className="alert alert-warning mb-6 no-underline"
-              >
-                <div className="flex items-center gap-3">
-                  <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-bold">Connect Bank Account</h3>
-                    <p className="text-sm mb-0">
-                      Required to receive payouts when hired.
-                    </p>
-                  </div>
+          {(requiresOnboarding || stripeAccountMissing) && (
+            <Link
+              href="/pro/onboard"
+              className="alert alert-warning mb-6 no-underline"
+            >
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                <div>
+                  <h3 className="font-bold">Connect Bank Account</h3>
+                  <p className="text-sm mb-0">
+                    Required to receive payouts when hired.
+                  </p>
                 </div>
-              </Link>
-            )}
+              </div>
+            </Link>
+          )}
 
+          {isSignedIn && (loadingEscrow || escrowJobs.length > 0) && (
+          <section className="mb-12">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
               <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-blue-500" /> Your Booked Jobs
@@ -1045,6 +1050,7 @@ const ProJobsPage = () => {
               </div>
             )}
           </section>
+          )}
 
           {error && (
             <div className="alert alert-error shadow mb-6">
@@ -1053,6 +1059,7 @@ const ProJobsPage = () => {
             </div>
           )}
 
+          {isSignedIn && (loadingNotifications || notifications.length > 0) && (
           <section className="mb-12">
             <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
               <Bell className="w-4 h-4" /> Notifications
@@ -1115,6 +1122,7 @@ const ProJobsPage = () => {
               </ul>
             )}
           </section>
+          )}
 
           {/* Filter bar */}
           <div className="mb-6 space-y-3">
@@ -1161,6 +1169,21 @@ const ProJobsPage = () => {
             <div className="flex justify-center py-20">
               <span className="loading loading-spinner loading-lg text-primary"></span>
             </div>
+          ) : !isSignedIn ? (
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-14 text-center">
+              <div className="text-6xl mb-5">🔑</div>
+              <h2 className="text-xl font-semibold text-slate-800 mb-2">
+                Sign in to browse jobs
+              </h2>
+              <p className="text-slate-500 text-sm max-w-sm mx-auto mb-6">
+                Create a free account or sign in to see open jobs posted by neighbours and start applying.
+              </p>
+              <SignInButton mode="modal">
+                <button className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors">
+                  Sign In to Browse
+                </button>
+              </SignInButton>
+            </div>
           ) : filteredJobs.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-14 text-center">
               <div className="text-6xl mb-5">🏡</div>
@@ -1176,8 +1199,7 @@ const ProJobsPage = () => {
               </p>
             </div>
           ) : (
-            <div className="max-h-[75vh] overflow-y-auto pr-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 pb-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 pb-2">
                 {filteredJobs.map((job) => {
                   const applied = hasApplied(job.id);
                   const isOwnJob = job.homeowner_id === currentUserId;
@@ -1283,7 +1305,6 @@ const ProJobsPage = () => {
                     </article>
                   );
                 })}
-              </div>
             </div>
           )}
         </section>

@@ -351,6 +351,10 @@ const ManageJobsPage = () => {
     id: string;
     name: string;
   } | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   const renderStars = (value: number | null | undefined) => {
     if (!value || value <= 0) return null;
@@ -485,12 +489,12 @@ const ManageJobsPage = () => {
     setExpandedJob((prev) => (prev === jobId ? null : jobId));
   };
 
-  const handleDeleteJob = async (jobId: string) => {
-    if (!window.confirm("Delete this job request? This cannot be undone.")) {
-      return;
-    }
-
-    try {
+  const handleDeleteJob = (jobId: string) => {
+    setConfirmModal({
+      message: "Delete this job request? This cannot be undone.",
+      onConfirm: async () => {
+        setConfirmModal(null);
+        try {
       setUpdatingJobId(jobId);
       setError(null);
 
@@ -520,18 +524,20 @@ const ManageJobsPage = () => {
         }
         return next;
       });
-      setExpandedJob((prev) => (prev === jobId ? null : prev));
-      setInfoMessage("Job removed. It will no longer appear to helpers.");
-    } catch (err) {
-      console.error(err);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "We couldn’t delete that job. Please try again."
-      );
-    } finally {
-      setUpdatingJobId(null);
-    }
+          setExpandedJob((prev) => (prev === jobId ? null : prev));
+          setInfoMessage("Job removed. It will no longer appear to helpers.");
+        } catch (err) {
+          console.error(err);
+          setError(
+            err instanceof Error
+              ? err.message
+              : "We couldn’t delete that job. Please try again."
+          );
+        } finally {
+          setUpdatingJobId(null);
+        }
+      },
+    });
   };
 
   const awardApplication = async (
@@ -667,16 +673,8 @@ const ManageJobsPage = () => {
     }
   };
 
-  const handleMarkComplete = async (job: EscrowJob) => {
+  const doMarkComplete = async (job: EscrowJob) => {
     try {
-      if (typeof window !== "undefined") {
-        const confirmed = window.confirm(
-          "Please confirm the job is complete and the work looks good. This will release payment to your helper."
-        );
-        if (!confirmed) {
-          return;
-        }
-      }
       setUpdatingJobId(job.job_request_id ?? job.id);
       setError(null);
 
@@ -768,6 +766,17 @@ const ManageJobsPage = () => {
     } finally {
       setUpdatingJobId(null);
     }
+  };
+
+  const handleMarkComplete = (job: EscrowJob) => {
+    setConfirmModal({
+      message:
+        "Please confirm the job is complete and the work looks good. This will release payment to your helper.",
+      onConfirm: () => {
+        setConfirmModal(null);
+        void doMarkComplete(job);
+      },
+    });
   };
 
   const finalizeCompletion = async (jobId: string, paymentIntentId: string) => {
@@ -1822,6 +1831,31 @@ const ManageJobsPage = () => {
                 {updatingJobId === disputeJobId
                   ? "Submitting..."
                   : "Submit dispute"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm modal (replaces window.confirm) */}
+      {confirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <p className="text-slate-800 text-base leading-relaxed mb-6">
+              {confirmModal.message}
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                className="px-4 py-2 text-sm font-semibold text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                onClick={() => setConfirmModal(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                onClick={confirmModal.onConfirm}
+              >
+                Confirm
               </button>
             </div>
           </div>
