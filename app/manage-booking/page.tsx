@@ -312,6 +312,22 @@ const prettyStatus: Record<string, string> = {
   disputed: "Disputed",
 };
 
+const SERVICE_CATEGORY_STYLES: Record<string, { bg: string; emoji: string; label: string }> = {
+  "yard-care":        { bg: "bg-emerald-500", emoji: "🌿", label: "Yard & Outdoor" },
+  "property-cleanup": { bg: "bg-emerald-500", emoji: "🌿", label: "Yard & Outdoor" },
+  "home-fixes":       { bg: "bg-orange-500", emoji: "🔧", label: "Home Fixes" },
+  "handyman-jobs":    { bg: "bg-orange-500", emoji: "🔧", label: "Home Fixes" },
+  "grocery-runs":     { bg: "bg-sky-500",    emoji: "🛒", label: "Grocery Runs" },
+};
+const DEFAULT_CATEGORY_STYLE = { bg: "bg-slate-500", emoji: "⚡", label: "General" };
+
+function getCategoryStyle(services: string[]) {
+  for (const svc of services) {
+    if (SERVICE_CATEGORY_STYLES[svc]) return SERVICE_CATEGORY_STYLES[svc];
+  }
+  return DEFAULT_CATEGORY_STYLE;
+}
+
 const ManageJobsPage = () => {
   const { isLoaded, isSignedIn, user } = useUser();
   const [jobRequests, setJobRequests] = useState<JobRequest[]>([]);
@@ -1137,37 +1153,44 @@ const ManageJobsPage = () => {
                             ? `$${(plannedRemainingCents / 100).toFixed(2)}`
                             : "—";
 
+                        const catStyle = getCategoryStyle(job.services);
+
                         return (
                           <article
                             key={job.id}
-                            className="card bg-white shadow-md border border-slate-200"
+                            className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
                           >
-                            <div className="card-body">
+                            {/* Category band */}
+                            <div className={`${catStyle.bg} px-5 py-3 flex items-center justify-between`}>
+                              <span className="flex items-center gap-2 text-white text-xs font-semibold uppercase tracking-wide">
+                                <span>{catStyle.emoji}</span>
+                                {catStyle.label}
+                              </span>
+                              <span className="bg-white/25 text-white text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wide">
+                                {prettyStatus[job.status] ?? job.status}
+                              </span>
+                            </div>
+                            <div className="p-6">
                               <header className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                                <div>
-                                  <div className="flex items-center gap-3 mb-2">
-                                    <h3 className="text-2xl font-semibold text-gray-900">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                                    <h3 className="text-xl font-bold text-slate-900 leading-snug">
                                       {job.job_title}
                                     </h3>
-                                    <span
-                                      className={`badge ${badgeClass} text-xs uppercase tracking-wide`}
-                                    >
-                                      {prettyStatus[job.status] ?? job.status}
-                                    </span>
                                   </div>
-                                  <div className="flex flex-wrap gap-2 text-sm text-blue-700 mb-3">
+                                  <div className="flex flex-wrap gap-1.5 mb-3">
                                     {getServiceLabels(job.services).map(
                                       (label) => (
                                         <span
                                           key={label}
-                                          className="badge badge-outline"
+                                          className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200"
                                         >
                                           {label}
                                         </span>
                                       )
                                     )}
                                   </div>
-                                  <p className="text-base-content/70 leading-relaxed mb-4">
+                                  <p className={`text-sm text-slate-500 leading-relaxed mb-4 ${!isExpanded ? "line-clamp-2" : ""}`}>
                                     {job.description}
                                   </p>
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-base-content/80">
@@ -1714,7 +1737,7 @@ const ManageJobsPage = () => {
                 Share any context (optional)
               </span>
               <textarea
-                className="textarea textarea-bordered h-24"
+                className="textarea textarea-bordered h-24 bg-white text-slate-900"
                 value={reviewModal.comment}
                 onChange={(event) =>
                   setReviewModal((prev) =>
@@ -1776,7 +1799,7 @@ const ManageJobsPage = () => {
               </p>
             </header>
             <textarea
-              className="textarea textarea-bordered w-full h-32"
+              className="textarea textarea-bordered w-full h-32 bg-white text-slate-900"
               placeholder="Share what happened, when, and any detail that helps."
               value={disputeReason}
               onChange={(event) => setDisputeReason(event.target.value)}

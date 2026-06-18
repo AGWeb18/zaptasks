@@ -271,7 +271,7 @@ const JobPostingWizard = () => {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="e.g., Snow shoveling for my driveway"
-                    className="input input-lg input-bordered w-full text-xl"
+                    className="input input-lg input-bordered w-full text-xl bg-white text-slate-900"
                     autoFocus
                   />
                 </div>
@@ -284,7 +284,7 @@ const JobPostingWizard = () => {
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="What needs to be done? Any special requirements?"
-                    className="textarea textarea-bordered w-full h-40 text-lg"
+                    className="textarea textarea-bordered w-full h-40 text-lg bg-white text-slate-900"
                     rows={5}
                   />
                   <p className="text-sm text-slate-500 mt-2">
@@ -421,7 +421,7 @@ const JobPostingWizard = () => {
                       value={date}
                       onChange={(e) => setDate(e.target.value)}
                       min={minDate}
-                      className="input input-lg input-bordered w-full"
+                      className="input input-lg input-bordered w-full bg-white text-slate-900"
                     />
                   </div>
                 )}
@@ -529,7 +529,7 @@ const JobPostingWizard = () => {
                           value={budgetAmount}
                           onChange={(e) => setBudgetAmount(e.target.value)}
                           placeholder="100"
-                          className="input input-lg input-bordered w-full"
+                          className="input input-lg input-bordered w-full bg-white text-slate-900"
                           min="1"
                           step="1"
                         />
@@ -539,7 +539,7 @@ const JobPostingWizard = () => {
                         onChange={(e) =>
                           setBudgetStyle(e.target.value as "flat" | "hourly")
                         }
-                        className="select select-lg select-bordered"
+                        className="select select-lg select-bordered bg-white text-slate-900"
                       >
                         <option value="flat">Flat Rate</option>
                         <option value="hourly">Per Hour</option>
