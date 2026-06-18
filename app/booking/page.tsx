@@ -181,22 +181,23 @@ const JobPostingWizard = () => {
       if (inferredTags.length === 0) inferredTags.push("General help");
 
       const payload = {
-        homeowner_id: user.id,
-        homeowner_name: user.fullName || user.username || "ZapTasks User",
-        homeowner_email: user.primaryEmailAddress?.emailAddress || "",
-        job_title: title,
+        homeownerId: user.id,
+        homeownerName: user.fullName || user.username || "ZapTasks User",
+        homeownerEmail: user.primaryEmailAddress?.emailAddress || "",
+        jobTitle: title,
         services: inferredTags,
         description,
-        service_date: flexible ? null : date,
+        date: flexible ? null : date,
         address: address || null,
         latitude: lat,
         longitude: lng,
-        budget_type: budgetType === "quote" ? null : budgetStyle,
-        budget_amount: budgetType === "quote" ? null : parseFloat(budgetAmount),
-        pricing_mode:
+        budget: {
+          type: budgetType === "quote" ? null : budgetStyle,
+          amount: budgetType === "quote" ? null : parseFloat(budgetAmount),
+        },
+        pricingMode:
           budgetType === "quote" ? "provider_quote" : "client_budget",
-        photo_urls: photoUrls,
-        status: "open",
+        photoUrls: photoUrls,
       };
 
       const response = await fetch("/api/job-requests", {
