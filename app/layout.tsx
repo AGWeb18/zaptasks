@@ -1,5 +1,8 @@
 import { ClerkProvider } from "@clerk/nextjs";
+import { Inter } from "next/font/google";
 import "./globals.css";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +22,7 @@ export default async function RootLayout({
 
   return (
     <ClerkProvider>
-      <html lang="en" data-theme="light">
+      <html lang="en" data-theme="light" className={inter.variable}>
         <head>
           <title>ZapTasks - Home Services Marketplace</title>
           <meta
@@ -69,7 +72,7 @@ export default async function RootLayout({
             </Script>
           ) : null}
         </head>
-        <body className="font-sans bg-slate-50 text-slate-900">
+        <body className="font-sans antialiased bg-slate-50 text-slate-900">
           <ChatWidget />
           <NewsletterModal />
           <main>{children}</main>

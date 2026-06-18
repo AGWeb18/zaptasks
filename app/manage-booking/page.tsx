@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useUser } from "@clerk/nextjs";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import Navbar from "@/app/components/NavBar";
 import {
   Calendar,
@@ -330,6 +332,8 @@ function getCategoryStyle(services: string[]) {
 
 const ManageJobsPage = () => {
   const { isLoaded, isSignedIn, user } = useUser();
+  const searchParams = useSearchParams();
+  const justPosted = searchParams.get("posted") === "true";
   const [jobRequests, setJobRequests] = useState<JobRequest[]>([]);
   const [expandedJob, setExpandedJob] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -983,6 +987,18 @@ const ManageJobsPage = () => {
             </p>
           </header>
 
+          {justPosted && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-6 flex items-start gap-3">
+              <CheckCircle className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-emerald-800">Job posted successfully!</p>
+                <p className="text-sm text-emerald-700 mt-0.5">
+                  Helpers in your area will start applying soon. You&apos;ll see their messages here.
+                </p>
+              </div>
+            </div>
+          )}
+
           {latestNotificationMessage && (
             <div className="alert alert-info shadow mb-6">
               <Sparkles className="h-5 w-5" />
@@ -1015,15 +1031,20 @@ const ManageJobsPage = () => {
               <span className="loading loading-spinner loading-lg text-primary"></span>
             </div>
           ) : jobRequests.length === 0 ? (
-            <div className="bg-white rounded-lg shadow p-10 text-center">
-              <Inbox className="w-14 h-14 mx-auto text-blue-400 mb-4" />
-              <h2 className="text-2xl font-semibold mb-2">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center">
+              <Inbox className="w-14 h-14 mx-auto text-blue-300 mb-4" />
+              <h2 className="text-2xl font-semibold text-slate-800 mb-2">
                 No job requests yet
               </h2>
-              <p className="text-base-content/70">
-                Post your first job request to start receiving applications from
-                trusted local pros.
+              <p className="text-slate-500 mb-6 max-w-sm mx-auto">
+                Post your first job and start receiving applications from local helpers.
               </p>
+              <Link
+                href="/booking"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors"
+              >
+                Post a Job Free
+              </Link>
             </div>
           ) : (
             <div className="space-y-12">

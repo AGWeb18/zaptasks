@@ -218,6 +218,15 @@ const JobPostingWizard = () => {
     );
   }
 
+  const STEP_LABELS: Record<Step, string> = {
+    1: "Job Details",
+    2: "Photos",
+    3: "When",
+    4: "Where",
+    5: "Budget",
+    6: "Review & Post",
+  };
+
   const progress = (step / 6) * 100;
 
   return (
@@ -226,20 +235,42 @@ const JobPostingWizard = () => {
 
       {/* Progress Bar */}
       <div className="sticky top-0 z-40 bg-white border-b border-slate-200">
-        <div className="container mx-auto px-4 py-4 max-w-3xl">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-700">
-              Step {step} of 6
-            </span>
-            <span className="text-sm text-slate-500">
-              {Math.round(progress)}% complete
+        <div className="container mx-auto px-4 py-3 max-w-3xl">
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-blue-600">
+                Step {step} of 6
+              </span>
+              <span className="text-slate-300">·</span>
+              <span className="text-sm font-semibold text-slate-800">
+                {STEP_LABELS[step]}
+              </span>
+            </div>
+            <span className="text-xs text-slate-400">
+              {Math.round(progress)}%
             </span>
           </div>
-          <div className="w-full bg-slate-200 rounded-full h-2">
+          <div className="w-full bg-slate-100 rounded-full h-1.5">
             <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
+          </div>
+          {/* Step dots */}
+          <div className="flex justify-between mt-2">
+            {([1, 2, 3, 4, 5, 6] as Step[]).map((s) => (
+              <div key={s} className="flex flex-col items-center gap-0.5">
+                <div
+                  className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                    s < step
+                      ? "bg-blue-600"
+                      : s === step
+                      ? "bg-blue-600 ring-2 ring-blue-200"
+                      : "bg-slate-200"
+                  }`}
+                />
+              </div>
+            ))}
           </div>
         </div>
       </div>
