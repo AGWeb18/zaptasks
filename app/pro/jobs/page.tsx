@@ -1,29 +1,23 @@
 "use client";
 
-import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import Navbar from "@/app/components/NavBar";
 import {
-  Calendar,
   MapPin,
   Users,
-  Clock,
-  DollarSign,
   MessageCircle,
   CheckCircle,
   Bell,
   Sparkles,
   XCircle,
   Star,
-  Shield,
   ChevronRight,
   AlertTriangle,
-  HelpCircle,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { createClient } from "@/app/utils/supabase/client";
-import { getServiceLabels } from "@/app/lib/services/catalog";
+import { getServiceLabels, listServiceOptions } from "@/app/lib/services/catalog";
 import ChatModal from "@/app/components/ChatModal";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -170,6 +164,22 @@ const jobStatusCopy: Record<string, string> = {
   disputed: "Disputed",
   refunded: "Refunded",
 };
+
+const SERVICE_CATEGORY_STYLES: Record<string, { bg: string; emoji: string; label: string }> = {
+  "yard-care":        { bg: "bg-emerald-500", emoji: "🌿", label: "Yard & Outdoor" },
+  "property-cleanup": { bg: "bg-emerald-500", emoji: "🌿", label: "Yard & Outdoor" },
+  "home-fixes":       { bg: "bg-orange-500", emoji: "🔧", label: "Home Fixes" },
+  "handyman-jobs":    { bg: "bg-orange-500", emoji: "🔧", label: "Home Fixes" },
+  "grocery-runs":     { bg: "bg-sky-500",    emoji: "🛒", label: "Grocery Runs" },
+};
+const DEFAULT_CATEGORY_STYLE = { bg: "bg-slate-500", emoji: "⚡", label: "General" };
+
+function getCategoryStyle(services: string[]) {
+  for (const svc of services) {
+    if (SERVICE_CATEGORY_STYLES[svc]) return SERVICE_CATEGORY_STYLES[svc];
+  }
+  return DEFAULT_CATEGORY_STYLE;
+}
 
 const isCanceledStatus = (status?: string | null): boolean =>
   typeof status === "string" &&
@@ -469,9 +479,9 @@ const ProJobsPage = () => {
   const [stripeAccountMissing, setStripeAccountMissing] = useState(false);
   const [onboardingLoading, setOnboardingLoading] = useState(false);
   const [onboardingAutoAttempted, setOnboardingAutoAttempted] = useState(false);
-  const [releasingReserveId, setReleasingReserveId] = useState<string | null>(
-    null
-  );
+  const [releasingReserveId, setReleasingReserveId] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string>("all");
+  const [sortOrder, setSortOrder] = useState<"newest" | "highest_budget" | "fewest_bids">("newest");
 
   const startStripeOnboarding = useCallback(async () => {
     if (!userEmail) {
@@ -658,6 +668,45 @@ const ProJobsPage = () => {
 
   const selectedJob = jobs.find((job) => job.id === selectedJobId);
   const selectedJobIsOwn = selectedJob?.homeowner_id === currentUserId;
+
+  const isJustPosted = (createdAt: string) =>
+    Date.now() - new Date(createdAt).getTime() < 2 * 60 * 60 * 1000;
+
+  const isHighDemand = (job: OpenJobRequest) =>
+    (job.job_applications?.length ?? 0) >= 5;
+
+  const serviceOptions = listServiceOptions();
+
+  const filteredJobs = useMemo(() => {
+    let result = [...jobs];
+
+    if (activeCategory !== "all") {
+      result = result.filter((job) =>
+        job.services.some(
+          (svc) =>
+            svc === activeCategory ||
+            SERVICE_CATEGORY_STYLES[svc]?.label === SERVICE_CATEGORY_STYLES[activeCategory]?.label
+        )
+      );
+    }
+
+    switch (sortOrder) {
+      case "highest_budget":
+        result.sort((a, b) => (b.budget_amount ?? 0) - (a.budget_amount ?? 0));
+        break;
+      case "fewest_bids":
+        result.sort(
+          (a, b) => (a.job_applications?.length ?? 0) - (b.job_applications?.length ?? 0)
+        );
+        break;
+      default:
+        result.sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+    }
+
+    return result;
+  }, [jobs, activeCategory, sortOrder]);
 
   // Banner: link to onboard page
   useEffect(() => {
@@ -1067,157 +1116,150 @@ const ProJobsPage = () => {
             )}
           </section>
 
+          {/* Filter bar */}
+          <div className="mb-6 space-y-3">
+            <div className="flex flex-wrap gap-2">
+              <button
+                className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors border ${
+                  activeCategory === "all"
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-white border-slate-200 text-slate-700 hover:border-blue-400"
+                }`}
+                onClick={() => setActiveCategory("all")}
+              >
+                All jobs
+              </button>
+              {serviceOptions.map((opt) => (
+                <button
+                  key={opt.id}
+                  className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors border ${
+                    activeCategory === opt.id
+                      ? "bg-blue-600 text-white border-blue-600"
+                      : "bg-white border-slate-200 text-slate-700 hover:border-blue-400"
+                  }`}
+                  onClick={() => setActiveCategory(opt.id)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-slate-500 font-medium">Sort:</span>
+              <select
+                className="select select-sm select-bordered bg-white text-slate-700 text-sm"
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as typeof sortOrder)}
+              >
+                <option value="newest">Newest first</option>
+                <option value="highest_budget">Highest budget</option>
+                <option value="fewest_bids">Fewest bids</option>
+              </select>
+            </div>
+          </div>
+
           {loadingJobs ? (
             <div className="flex justify-center py-20">
               <span className="loading loading-spinner loading-lg text-primary"></span>
             </div>
-          ) : jobs.length === 0 ? (
-            <div className="bg-white rounded-lg shadow p-10 text-center">
-              <CheckCircle className="w-14 h-14 mx-auto text-green-400 mb-4" />
-              <h2 className="text-2xl font-semibold mb-2">All caught up</h2>
-              <p className="text-base-content/70">
-                There are no open job requests right now. Check back soon—we’ll
-                ping you when new work lands.
+          ) : filteredJobs.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-14 text-center">
+              <div className="text-6xl mb-5">🏡</div>
+              <h2 className="text-xl font-semibold text-slate-800 mb-2">
+                {jobs.length === 0
+                  ? "No jobs in your area right now"
+                  : "No jobs match this filter"}
+              </h2>
+              <p className="text-slate-500 text-sm max-w-sm mx-auto">
+                {jobs.length === 0
+                  ? "We’ll notify you when new jobs are posted nearby. Make sure your notifications are turned on."
+                  : "Try a different category or check back soon — new jobs are posted daily."}
               </p>
             </div>
           ) : (
             <div className="max-h-[75vh] overflow-y-auto pr-1">
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 pb-2">
-                {jobs.map((job) => {
+                {filteredJobs.map((job) => {
                   const applied = hasApplied(job.id);
                   const isOwnJob = job.homeowner_id === currentUserId;
-                  const primaryPhoto =
-                    job.photo_urls?.[0] ?? "/images/job-card-placeholder.svg";
-                  const serviceLabels = getServiceLabels(job.services);
+                  const catStyle = getCategoryStyle(job.services);
+                  const bidCount = job.job_applications?.length ?? 0;
+                  const justPosted = isJustPosted(job.created_at);
+                  const highDemand = isHighDemand(job);
                   const locationLabel = (() => {
-                    if (!job.address) {
-                      return "Exact address shared after award";
-                    }
-
-                    const parts = job.address
-                      .split(",")
-                      .map((part) => part.trim())
-                      .filter(Boolean);
-
-                    if (parts.length <= 1) {
-                      return "Exact address shared after award";
-                    }
-
-                    const regionalHint = parts.slice(1).join(", ");
-                    return `Near ${regionalHint}`;
+                    if (!job.address) return "Location shared after hire";
+                    const parts = job.address.split(",").map((p) => p.trim()).filter(Boolean);
+                    if (parts.length <= 1) return "Location shared after hire";
+                    return parts.slice(1).join(", ");
                   })();
+                  const budgetLabel = (() => {
+                    if (job.pricing_mode === "provider_quote") return "Open to quotes";
+                    if (!job.budget_amount) return "Budget open";
+                    return job.budget_type === "hourly"
+                      ? `$${job.budget_amount}/hr CAD`
+                      : `$${job.budget_amount} CAD`;
+                  })();
+
                   return (
                     <article
                       key={job.id}
-                      className="bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col h-full"
+                      className={`bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col overflow-hidden ${
+                        applied || isOwnJob ? "opacity-60" : ""
+                      }`}
                     >
-                      <div className="flex-1 flex flex-col p-6">
-                        <div className="relative w-full h-40 rounded-xl overflow-hidden mb-4 bg-slate-200">
-                          <Image
-                            src={primaryPhoto}
-                            alt={`${job.job_title} photo`}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 1024px) 50vw, 33vw"
-                            unoptimized={primaryPhoto.startsWith("/images/")}
-                          />
-                        </div>
-                        <div className="flex items-start justify-between gap-3 mb-3">
-                          <div>
-                            <h3 className="text-xl font-semibold text-gray-900">
-                              {job.job_title}
-                            </h3>
-                            <div className="flex flex-wrap gap-2 mt-2 text-xs text-blue-700">
-                              {serviceLabels.map((label) => (
-                                <span
-                                  key={label}
-                                  className="badge badge-outline"
-                                >
-                                  {label}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                          <span className="text-xs text-slate-500">
-                            Posted {format(new Date(job.created_at), "MMM d")}
-                          </span>
-                        </div>
-                        <p className="text-sm text-base-content/70 leading-relaxed mb-4">
-                          {job.description}
-                        </p>
-                        <div className="space-y-2 text-sm text-base-content/80">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4" />
-                            <span>
-                              {job.service_date
-                                ? format(
-                                    new Date(job.service_date),
-                                    "MMM d, yyyy"
-                                  )
-                                : "Date flexible"}
-                              {job.service_time ? ` • ${job.service_time}` : ""}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <MapPin className="w-4 h-4" />
-                            <span>{locationLabel}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-4 h-4" />
-                            <span>
-                              {job.hours
-                                ? `${job.hours} hour${job.hours > 1 ? "s" : ""}`
-                                : "Hours TBD"}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Users className="w-4 h-4" />
-                            <span>
-                              {job.people
-                                ? `${job.people} helper${
-                                    job.people > 1 ? "s" : ""
-                                  } ideal`
-                                : "Solo or team"}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <DollarSign className="w-4 h-4" />
-                            <span>
-                              {job.pricing_mode === "provider_quote"
-                                ? "Homeowner wants providers to quote"
-                                : job.budget_amount
-                                ? job.budget_type === "hourly"
-                                  ? `$${job.budget_amount}/hr`
-                                  : `$${job.budget_amount} flat`
-                                : "Budget open"}
-                            </span>
-                          </div>
-                          {job.pricing_mode === "provider_quote" && (
-                            <div className="flex items-center gap-2 text-xs text-slate-500">
-                              <MessageCircle className="w-3 h-3" />
-                              <span>Suggest a fair price when you apply.</span>
-                            </div>
-                          )}
-                          <div className="flex items-center gap-2">
-                            <MessageCircle className="w-4 h-4" />
-                            <span>
-                              {job.contact_preference === "phone"
-                                ? "Prefers phone chat"
-                                : job.contact_preference === "email"
-                                ? "Prefers email"
-                                : "Prefers ZapTasks chat"}
-                            </span>
-                          </div>
-                        </div>
-                        {job.budget_notes && (
-                          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-base-content/70 mt-4">
-                            Homeowner notes: {job.budget_notes}
+                      {/* Colored category band */}
+                      <div className={`${catStyle.bg} px-4 py-3 flex items-center justify-between`}>
+                        <span className="flex items-center gap-2 text-white text-xs font-semibold uppercase tracking-wide">
+                          <span>{catStyle.emoji}</span>
+                          {catStyle.label}
+                        </span>
+                        <span className="bg-white/25 text-white text-xs font-bold px-2.5 py-1 rounded-full">
+                          {budgetLabel}
+                        </span>
+                      </div>
+
+                      {/* Card body */}
+                      <div className="flex-1 flex flex-col px-5 pt-4 pb-1">
+                        {/* Status badges */}
+                        {(justPosted || highDemand) && (
+                          <div className="flex gap-2 mb-2">
+                            {justPosted && (
+                              <span className="flex items-center gap-1 bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block" />
+                                Just posted
+                              </span>
+                            )}
+                            {highDemand && (
+                              <span className="bg-rose-100 text-rose-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                                🔥 High demand
+                              </span>
+                            )}
                           </div>
                         )}
+
+                        <h3 className="text-base font-bold text-slate-900 leading-snug mb-1">
+                          {job.job_title}
+                        </h3>
+                        <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed mb-4">
+                          {job.description}
+                        </p>
+
+                        {/* Location + bids row */}
+                        <div className="flex items-center justify-between mt-auto pb-4 text-xs text-slate-500">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                            <span className="truncate">{locationLabel}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-shrink-0 ml-3">
+                            <Users className="w-3.5 h-3.5 text-slate-400" />
+                            <span>{bidCount} {bidCount === 1 ? "bid" : "bids"}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="p-6 pt-0">
+
+                      {/* CTA */}
+                      <div className="px-5 pb-5">
                         <button
-                          className="btn btn-primary btn-block"
+                          className="btn btn-primary btn-sm btn-block gap-1.5"
                           onClick={() => {
                             if (isOwnJob) return;
                             setSelectedJobId(job.id);
@@ -1225,11 +1267,17 @@ const ProJobsPage = () => {
                           }}
                           disabled={applied || submitting || isOwnJob}
                         >
-                          {applied
-                            ? "Application submitted"
-                            : isOwnJob
-                            ? "This is your job"
-                            : "Apply to this job"}
+                          {applied ? (
+                            <>
+                              <CheckCircle className="w-4 h-4" /> Applied
+                            </>
+                          ) : isOwnJob ? (
+                            "Your job"
+                          ) : (
+                            <>
+                              Apply Now <ChevronRight className="w-4 h-4" />
+                            </>
+                          )}
                         </button>
                       </div>
                     </article>
