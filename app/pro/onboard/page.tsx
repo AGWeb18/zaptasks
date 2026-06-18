@@ -5,12 +5,12 @@ import { useUser } from "@clerk/nextjs";
 import Navbar from "@/app/components/NavBar";
 import {
   Shield,
-  Lock,
   ChevronRight,
   CheckCircle,
   HelpCircle,
-  Building,
+  Banknote,
   AlertTriangle,
+  User,
 } from "lucide-react";
 
 export default function PayoutOnboarding() {
@@ -72,13 +72,43 @@ export default function PayoutOnboarding() {
           </div>
           <div className="p-8 md:p-12">
             <div className="mb-8">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-sm font-semibold mb-4">
+                <User className="w-4 h-4" />
+                For individuals — no business required
+              </div>
               <h1 className="text-3xl font-bold text-slate-900 mb-4">
-                Get paid securely
+                Set up your payouts
               </h1>
               <p className="text-slate-600 text-lg leading-relaxed">
-                To receive payments for your jobs, we need to connect your bank
-                account. We partner with <strong>Stripe</strong> to handle all
-                financial data securely.
+                To get paid for jobs, connect your bank account through{" "}
+                <strong>Stripe</strong>. You&apos;re signing up as an
+                individual — the same way you&apos;d open a personal bank
+                account. No business name or company needed.
+              </p>
+            </div>
+
+            {/* What Stripe will ask */}
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 mb-6">
+              <p className="text-sm font-semibold text-slate-700 mb-3">
+                Stripe will ask for:
+              </p>
+              <ul className="space-y-2">
+                {[
+                  "Your legal name",
+                  "Date of birth",
+                  "Home address",
+                  "Last 4 digits of your SIN (Social Insurance Number)",
+                  "A bank account or debit card for deposits",
+                ].map((item) => (
+                  <li key={item} className="flex items-center gap-2.5 text-sm text-slate-600">
+                    <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-slate-400 mt-3 border-t border-slate-200 pt-3">
+                If you see a &ldquo;website&rdquo; field, it will be
+                pre-filled with zaptasks.com — just leave it as is.
               </p>
             </div>
 
@@ -92,23 +122,21 @@ export default function PayoutOnboarding() {
                     Bank-Grade Security
                   </h3>
                   <p className="text-sm text-slate-500 mt-1">
-                    Your banking data is encrypted and never stored on our
-                    servers.
+                    Your data is encrypted and never stored on our servers.
                   </p>
                 </div>
               </div>
 
               <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100">
                 <div className="bg-blue-100 text-blue-600 p-2 rounded-lg">
-                  <Building className="w-6 h-6" />
+                  <Banknote className="w-6 h-6" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-slate-900">
                     Direct Deposit
                   </h3>
                   <p className="text-sm text-slate-500 mt-1">
-                    Funds are routed directly to your account. No holding
-                    periods.
+                    Funds go straight to your personal account after each job.
                   </p>
                 </div>
               </div>
@@ -118,8 +146,8 @@ export default function PayoutOnboarding() {
               <div>
                 <h3 className="text-xl font-bold mb-2">Ready to connect?</h3>
                 <p className="text-slate-300 text-sm mb-4 md:mb-0">
-                  You will be redirected to Stripe&apos;s secure portal to
-                  verify your identity.
+                  Takes about 3 minutes. You&apos;ll be redirected to
+                  Stripe&apos;s secure portal.
                 </p>
               </div>
 
@@ -127,7 +155,7 @@ export default function PayoutOnboarding() {
                 onClick={handleConnectStripe}
                 disabled={isLoading}
                 className={`
-                  whitespace-nowrap px-6 py-3 rounded-lg font-semibold text-slate-900 
+                  whitespace-nowrap px-6 py-3 rounded-lg font-semibold text-slate-900
                   transition-all duration-200 flex items-center gap-2
                   ${
                     isLoading
@@ -164,15 +192,46 @@ export default function PayoutOnboarding() {
             <div className="space-y-4">
               <details className="group cursor-pointer">
                 <summary className="flex justify-between items-center font-medium text-slate-700 list-none">
-                  <span>Why do I need to provide my SIN/SSN?</span>
+                  <span>I&apos;m not a business owner — is that okay?</span>
+                  <span className="transition group-open:rotate-180">
+                    <ChevronRight className="w-4 h-4" />
+                  </span>
+                </summary>
+                <p className="text-slate-600 text-sm mt-2 pl-4 border-l-2 border-slate-200">
+                  Completely fine. ZapTasks is designed for individual helpers
+                  — handymen, students, neighbours, anyone. You sign up as a
+                  person, not a company. Stripe handles payments for
+                  individuals all the time.
+                </p>
+              </details>
+
+              <details className="group cursor-pointer">
+                <summary className="flex justify-between items-center font-medium text-slate-700 list-none">
+                  <span>Why do I need to provide my SIN?</span>
                   <span className="transition group-open:rotate-180">
                     <ChevronRight className="w-4 h-4" />
                   </span>
                 </summary>
                 <p className="text-slate-600 text-sm mt-2 pl-4 border-l-2 border-slate-200">
                   Payment processors are required by law (KYC/AML regulations)
-                  to verify the identity of anyone receiving money to prevent
-                  fraud and money laundering.
+                  to verify the identity of anyone receiving money. Stripe
+                  only needs the last 4 digits for most people — the same
+                  check a bank runs when you open an account.
+                </p>
+              </details>
+
+              <details className="group cursor-pointer">
+                <summary className="flex justify-between items-center font-medium text-slate-700 list-none">
+                  <span>I see a &ldquo;website&rdquo; or &ldquo;business&rdquo; field — what do I enter?</span>
+                  <span className="transition group-open:rotate-180">
+                    <ChevronRight className="w-4 h-4" />
+                  </span>
+                </summary>
+                <p className="text-slate-600 text-sm mt-2 pl-4 border-l-2 border-slate-200">
+                  Leave it as <strong>zaptasks.com</strong> — it should
+                  already be filled in. That&apos;s the platform you&apos;re
+                  working through, and Stripe accepts it for marketplace
+                  workers. You don&apos;t need your own website.
                 </p>
               </details>
 
