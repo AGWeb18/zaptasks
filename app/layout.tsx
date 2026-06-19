@@ -45,6 +45,12 @@ export default async function RootLayout({
           />
           <meta property="og:image" content="/icon.png" />
           <link rel="icon" href="/favicon.ico" />
+          {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && (
+            <Script
+              src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
+              strategy="beforeInteractive"
+            />
+          )}
           <Script
             src="https://www.googletagmanager.com/gtag/js?id=G-K9GLWHQEGZ"
             strategy="afterInteractive"

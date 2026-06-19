@@ -606,8 +606,12 @@ const ProJobsPage = () => {
     startStripeOnboarding,
   ]);
 
-  const resetApplicationForm = () => {
-    setApplicationMessage("Hello! I’d love to help with this job.");
+  const resetApplicationForm = (jobTitle?: string) => {
+    setApplicationMessage(
+      jobTitle
+        ? `Hi! I’d love to help with "${jobTitle}".\n\n`
+        : "Hi! I’d love to help with this job.\n\n"
+    );
     setRateType("flat");
     setRateAmount("");
   };
@@ -712,13 +716,7 @@ const ProJobsPage = () => {
     return result;
   }, [jobs, activeCategory, sortOrder]);
 
-  // Banner: link to onboard page
-  useEffect(() => {
-    if (requiresOnboarding && !onboardingAutoAttempted) {
-      router.push("/pro/onboard");
-      setOnboardingAutoAttempted(true);
-    }
-  }, [requiresOnboarding, onboardingAutoAttempted, router]);
+  // Onboarding handled via banner — no auto-redirect
 
   return (
     <div className="bg-slate-100 min-h-screen">
@@ -778,6 +776,66 @@ const ProJobsPage = () => {
                 </div>
               </div>
             </Link>
+          )}
+
+          {isSignedIn && (loadingNotifications || notifications.length > 0) && (
+          <section className="mb-8">
+            <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <Bell className="w-4 h-4" /> Notifications
+              {unreadNotifications.length > 0 && (
+                <span className="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                  {unreadNotifications.length} new
+                </span>
+              )}
+            </h2>
+            {loadingNotifications ? (
+              <div className="flex items-center gap-2 text-base-content/60 text-sm">
+                <span className="loading loading-spinner loading-xs"></span>{" "}
+                Loading alerts…
+              </div>
+            ) : (
+              <ul className="space-y-2">
+                {notifications.slice(0, 5).map((notification) => (
+                  <li
+                    key={notification.id}
+                    className={`bg-white border border-slate-200 rounded-lg px-4 py-3 text-sm flex justify-between items-start ${
+                      notification.read_at ? "opacity-60" : ""
+                    }`}
+                  >
+                    <div>
+                      <p className="font-semibold capitalize mb-0.5">
+                        {notification.type.replace(/_/g, " ")}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {format(new Date(notification.created_at), "MMM d, h:mma")}
+                      </p>
+                    </div>
+                    {!notification.read_at && (
+                      <button
+                        className="btn btn-ghost btn-xs text-slate-500"
+                        onClick={async () => {
+                          await fetch("/api/notifications", {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ notificationId: notification.id }),
+                          });
+                          setNotifications((prev) =>
+                            prev.map((item) =>
+                              item.id === notification.id
+                                ? { ...item, read_at: new Date().toISOString() }
+                                : item
+                            )
+                          );
+                        }}
+                      >
+                        Mark read
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
           )}
 
           {isSignedIn && (loadingEscrow || escrowJobs.length > 0) && (
@@ -1059,70 +1117,6 @@ const ProJobsPage = () => {
             </div>
           )}
 
-          {isSignedIn && (loadingNotifications || notifications.length > 0) && (
-          <section className="mb-12">
-            <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-              <Bell className="w-4 h-4" /> Notifications
-            </h2>
-            {loadingNotifications ? (
-              <div className="flex items-center gap-2 text-base-content/60 text-sm">
-                <span className="loading loading-spinner loading-xs"></span>{" "}
-                Loading alerts…
-              </div>
-            ) : notifications.length === 0 ? (
-              <p className="text-base-content/60 text-sm">
-                No notifications yet. Apply to jobs and we’ll keep you posted on
-                homeowner decisions.
-              </p>
-            ) : (
-              <ul className="space-y-3">
-                {notifications.map((notification) => (
-                  <li
-                    key={notification.id}
-                    className={`bg-white border border-slate-200 rounded-lg px-4 py-3 text-sm flex justify-between items-start ${
-                      notification.read_at ? "opacity-75" : ""
-                    }`}
-                  >
-                    <div>
-                      <p className="font-semibold capitalize mb-1">
-                        {notification.type.replace(/_/g, " ")}
-                      </p>
-                      <p className="text-base-content/70 text-xs">
-                        {format(
-                          new Date(notification.created_at),
-                          "MMM d, yyyy h:mma"
-                        )}
-                      </p>
-                    </div>
-                    {!notification.read_at && (
-                      <button
-                        className="btn btn-ghost btn-xs"
-                        onClick={async () => {
-                          await fetch("/api/notifications", {
-                            method: "PATCH",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              notificationId: notification.id,
-                            }),
-                          });
-                          setNotifications((prev) =>
-                            prev.map((item) =>
-                              item.id === notification.id
-                                ? { ...item, read_at: new Date().toISOString() }
-                                : item
-                            )
-                          );
-                        }}
-                      >
-                        Mark read
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-          )}
 
           {/* Filter bar */}
           <div className="mb-6 space-y-3">
@@ -1266,15 +1260,20 @@ const ProJobsPage = () => {
                         </p>
 
                         {/* Location + bids row */}
-                        <div className="flex items-center justify-between mt-auto pb-4 text-xs text-slate-500">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                            <span className="truncate">{locationLabel}</span>
+                        <div className="flex flex-col gap-1.5 mt-auto pb-4 text-xs text-slate-500">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                              <span className="truncate">{locationLabel}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-shrink-0 ml-3">
+                              <Users className="w-3.5 h-3.5 text-slate-400" />
+                              <span>{bidCount} {bidCount === 1 ? "bid" : "bids"}</span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1.5 flex-shrink-0 ml-3">
-                            <Users className="w-3.5 h-3.5 text-slate-400" />
-                            <span>{bidCount} {bidCount === 1 ? "bid" : "bids"}</span>
-                          </div>
+                          <span className="text-slate-400">
+                            {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
+                          </span>
                         </div>
                       </div>
 
@@ -1285,7 +1284,7 @@ const ProJobsPage = () => {
                           onClick={() => {
                             if (isOwnJob) return;
                             setSelectedJobId(job.id);
-                            resetApplicationForm();
+                            resetApplicationForm(job.job_title);
                           }}
                           disabled={applied || submitting || isOwnJob}
                         >

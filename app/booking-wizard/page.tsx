@@ -462,7 +462,6 @@ const JobPostingWizard = () => {
                         setLng(Number(lng.toFixed(3)));
                       }
                     }}
-                    apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""}
                   />
                   {address && (
                     <p className="mt-3 text-sm text-slate-600">

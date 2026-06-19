@@ -410,6 +410,15 @@ const ManageJobsPage = () => {
 
       setJobRequests(filteredRequests);
 
+      // Auto-expand the first open job that has applicants
+      setExpandedJob((prev) => {
+        if (prev !== null) return prev;
+        const firstWithApplicants = filteredRequests.find(
+          (r) => r.status === "open" && (r.job_applications?.length ?? 0) > 0
+        );
+        return firstWithApplicants?.id ?? null;
+      });
+
       const requestMap: Record<string, EscrowJob> = {};
       const jobIdMap: Record<string, EscrowJob> = {};
 
@@ -1207,6 +1216,11 @@ const ManageJobsPage = () => {
                                     <h3 className="text-xl font-bold text-slate-900 leading-snug">
                                       {job.job_title}
                                     </h3>
+                                    {applications.length > 0 && job.status === "open" && (
+                                      <span className="bg-blue-600 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">
+                                        {applications.length} {applications.length === 1 ? "applicant" : "applicants"}
+                                      </span>
+                                    )}
                                   </div>
                                   <div className="flex flex-wrap gap-1.5 mb-3">
                                     {getServiceLabels(job.services).map(
@@ -1467,16 +1481,25 @@ const ManageJobsPage = () => {
                                     ))}
                                   <button
                                     onClick={() => handleToggleJob(job.id)}
-                                    className="btn btn-sm btn-outline"
+                                    className={`btn btn-sm ${
+                                      !isExpanded && applications.length > 0 && job.status === "open"
+                                        ? "btn-primary text-white"
+                                        : "btn-outline"
+                                    }`}
                                   >
                                     {isExpanded ? (
                                       <>
                                         Hide details
                                         <ChevronUp className="w-4 h-4" />
                                       </>
+                                    ) : applications.length > 0 && job.status === "open" ? (
+                                      <>
+                                        Review {applications.length} {applications.length === 1 ? "applicant" : "applicants"}
+                                        <ChevronDown className="w-4 h-4" />
+                                      </>
                                     ) : (
                                       <>
-                                        View details & applicants
+                                        View details
                                         <ChevronDown className="w-4 h-4" />
                                       </>
                                     )}

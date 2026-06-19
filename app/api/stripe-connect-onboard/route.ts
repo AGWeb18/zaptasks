@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
         },
         capabilities: {
           transfers: { requested: true },
+          card_payments: { requested: true },
         },
         controller: {
           fees: {

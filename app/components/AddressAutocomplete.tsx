@@ -3,16 +3,13 @@ import Autocomplete from "react-google-autocomplete";
 
 interface AddressAutocompleteProps {
   onPlaceSelected: (place: google.maps.places.PlaceResult) => void;
-  apiKey: string;
 }
 
 const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   onPlaceSelected,
-  apiKey,
 }) => {
   return (
     <Autocomplete
-      apiKey={apiKey}
       options={{
         componentRestrictions: { country: "ca" },
         fields: ["address_components", "geometry", "formatted_address"],
