@@ -12,6 +12,7 @@ import type {
   JobMilestoneRecord,
   JobPaymentRecord,
 } from "@/app/api/jobs/types";
+import { sendJobCompletedEmails } from "@/app/lib/email/senders";
 
 type CompleteJobParams = {
   params: Promise<{ id: string }>;
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest, context: CompleteJobParams) {
 
     const { data: job, error: jobError } = await supabase
       .from("jobs")
-      .select("*, job_requests(id), payments(*), job_milestones(*)")
+      .select("*, job_requests(id, homeowner_email, homeowner_name, job_title, selected_application_id), payments(*), job_milestones(*)")
       .eq("id", jobId)
       .single();
 
@@ -85,7 +86,8 @@ export async function POST(req: NextRequest, context: CompleteJobParams) {
       }
 
       const result = await refreshPaymentStatus(payment);
-      if (result.status !== "succeeded") {
+      // requires_capture means the authorization is approved — it will be captured in the loop below
+      if (result.status !== "succeeded" && result.status !== "requires_capture") {
         unsettled.push({
           type: type ?? "unknown",
           paymentIntentId: payment.stripe_payment_intent_id,
@@ -222,6 +224,32 @@ export async function POST(req: NextRequest, context: CompleteJobParams) {
         })),
       },
     });
+
+    // Look up provider email from the awarded application
+    const jobRequest = job.job_requests as {
+      id: string;
+      homeowner_email: string | null;
+      homeowner_name: string | null;
+      job_title: string;
+      selected_application_id: string | null;
+    } | null;
+
+    if (jobRequest?.selected_application_id) {
+      const { data: providerApp } = await supabase
+        .from("job_applications")
+        .select("provider_email, provider_name")
+        .eq("id", jobRequest.selected_application_id)
+        .maybeSingle();
+
+      await sendJobCompletedEmails({
+        homeownerEmail: jobRequest.homeowner_email,
+        homeownerName: jobRequest.homeowner_name ?? "Homeowner",
+        providerEmail: providerApp?.provider_email,
+        providerName: providerApp?.provider_name ?? "Provider",
+        jobTitle: jobRequest.job_title,
+        totalAmountCents: job.total_amount_cents,
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

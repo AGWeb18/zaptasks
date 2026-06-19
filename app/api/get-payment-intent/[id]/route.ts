@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getAuth } from "@clerk/nextjs/server";
 import { stripe } from "@/app/lib/payments/stripeConnect";
 import type Stripe from "stripe";
 
@@ -23,7 +24,10 @@ function selectDefaultPaymentIntent(
   return paymentIntentPayment?.payment.payment_intent;
 }
 
-export async function GET(_: Request, context: GetPaymentIntentRouteContext) {
+export async function GET(req: NextRequest, context: GetPaymentIntentRouteContext) {
+  const { userId } = getAuth(req);
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   try {
     const params = (await context.params) ?? {};
     const invoiceId = params.id;

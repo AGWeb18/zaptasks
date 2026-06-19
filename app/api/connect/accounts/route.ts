@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuth } from "@clerk/nextjs/server";
+
 import { stripe } from "@/app/lib/payments/stripeConnect";
 
 // POST /api/connect/accounts
 // Creates a new connected account using Stripe's controller-based onboarding model.
 export async function POST(req: NextRequest) {
+  const { userId } = getAuth(req);
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   try {
     const body = await req.json().catch(() => ({}));
     const email = typeof body?.email === "string" ? body.email.trim() : undefined;

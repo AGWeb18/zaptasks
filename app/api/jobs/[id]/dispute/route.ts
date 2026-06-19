@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 
 import { createClientWithUser } from "@/app/utils/supabase/server";
+import { sendDisputeOpenedEmail } from "@/app/lib/email/senders";
 
 type DisputeParams = {
   params: Promise<{ id: string }>;
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest, context: DisputeParams) {
 
     const { data: job, error: jobError } = await supabase
       .from("jobs")
-      .select("*, job_requests(id, homeowner_id, provider_id)")
+      .select("*, job_requests(id, homeowner_id, homeowner_name, homeowner_email, job_title)")
       .eq("id", jobId)
       .single();
 
@@ -84,6 +85,23 @@ export async function POST(req: NextRequest, context: DisputeParams) {
         reason: body.reason,
       },
     });
+
+    const adminEmail = process.env.ZAPTASKS_ADMIN_EMAIL;
+    if (adminEmail) {
+      const jr = job.job_requests as {
+        homeowner_name: string | null;
+        homeowner_email: string | null;
+        job_title: string;
+      } | null;
+
+      await sendDisputeOpenedEmail({
+        adminEmail,
+        jobTitle: jr?.job_title ?? "Unknown Job",
+        homeownerName: jr?.homeowner_name ?? "Homeowner",
+        reason: body.reason,
+        jobId,
+      });
+    }
 
     return NextResponse.json({ success: true, dispute });
   } catch (error) {

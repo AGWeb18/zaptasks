@@ -9,6 +9,7 @@ import {
   stripe,
 } from "@/app/lib/payments/stripeConnect";
 import type { JobPaymentRecord } from "@/app/api/jobs/types";
+import { sendJobAwardedEmails } from "@/app/lib/email/senders";
 
 type PostJobPayload = {
   jobRequestId: string;
@@ -211,6 +212,16 @@ export async function POST(req: NextRequest) {
 
     const totalAmountCents = Math.round(Number(derivedAmount) * 100);
 
+    const { data: existingJob } = await supabase
+      .from("jobs")
+      .select("id")
+      .eq("job_request_id", body.jobRequestId)
+      .maybeSingle();
+
+    if (existingJob) {
+      return NextResponse.json({ error: "This job has already been awarded" }, { status: 409 });
+    }
+
     const customerId = await getOrCreateCustomer({
       email: jobRequest.homeowner_email,
       name: jobRequest.homeowner_name,
@@ -348,6 +359,17 @@ export async function POST(req: NextRequest) {
         },
       },
     ]);
+
+    await sendJobAwardedEmails({
+      providerEmail: selectedApplication.provider_email,
+      providerName: selectedApplication.provider_name ?? "Provider",
+      homeownerEmail: jobRequest.homeowner_email,
+      homeownerName: jobRequest.homeowner_name ?? "Homeowner",
+      jobTitle: jobRequest.job_title,
+      totalAmountCents,
+      escrowAmountCents: schedule.amounts.escrowCents,
+      needsOnboarding: providerNeedsOnboarding,
+    });
 
     return NextResponse.json({
       job: insertedJob,

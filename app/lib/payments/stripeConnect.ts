@@ -153,7 +153,7 @@ export async function createJobPaymentIntent({
       platformFeeCents: String(applicationFeeCents),
     },
     transfer_group: jobId,
-  });
+  }, { idempotencyKey: `pi-${jobId}-${paymentType}` });
 
   return paymentIntent;
 }
@@ -188,7 +188,9 @@ export async function refundJobPaymentIntent({
   return getStripe().refunds.create({
     payment_intent: paymentIntentId,
     amount: amountCents,
-  });
+    reverse_transfer: true,
+    refund_application_fee: true,
+  }, { idempotencyKey: `re-${paymentIntentId}-${amountCents ?? "full"}` });
 }
 
 export function calculateProviderShare(amountCents: number, platformFeeCents: number): number {
@@ -251,7 +253,7 @@ export async function createProviderTransfer({
       jobId,
       reason,
     },
-  });
+  }, { idempotencyKey: `tr-${jobId}-${reason}` });
 }
 
 export async function getOrCreateCustomer({
@@ -275,7 +277,7 @@ export async function getOrCreateCustomer({
   const customer = await getStripe().customers.create({
     email: trimmedEmail,
     name: name ?? undefined,
-  });
+  }, { idempotencyKey: `cu-${trimmedEmail}` });
 
   return customer.id;
 }

@@ -3,6 +3,7 @@ import Stripe from "stripe";
 
 import { stripe } from "@/app/lib/payments/stripeConnect";
 import { createServiceRoleClient } from "@/app/utils/supabase/server";
+import { sendPaymentSecuredEmails } from "@/app/lib/email/senders";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -64,7 +65,9 @@ async function handlePaymentIntentEvent(event: Stripe.Event) {
     },
   });
 
-  if (intent.status === "succeeded") {
+  const isPaymentReady = intent.status === "succeeded" || intent.status === "requires_capture";
+
+  if (isPaymentReady) {
     let nextStatus: string | null = null;
 
     switch (paymentRecord.payment_type) {
@@ -73,7 +76,7 @@ async function handlePaymentIntentEvent(event: Stripe.Event) {
         nextStatus = "in_progress";
         break;
       case "completion":
-        nextStatus = "awaiting_completion_confirmation";
+        nextStatus = intent.status === "succeeded" ? "awaiting_completion_confirmation" : null;
         break;
       default:
         nextStatus = null;
@@ -88,6 +91,42 @@ async function handlePaymentIntentEvent(event: Stripe.Event) {
 
       if (jobStatusError) {
         console.warn("Stripe webhook: failed to update job status", jobStatusError);
+      }
+    }
+
+    // Email both parties when escrow or progress payment is secured (authorized or captured)
+    if (isPaymentReady && (paymentRecord.payment_type === "escrow" || paymentRecord.payment_type === "progress")) {
+      const { data: jobDetail } = await supabase
+        .from("jobs")
+        .select("total_amount_cents, job_request_id")
+        .eq("id", paymentRecord.job_id)
+        .single();
+
+      if (jobDetail?.job_request_id) {
+        const [{ data: jobRequest }, { data: providerApp }] = await Promise.all([
+          supabase
+            .from("job_requests")
+            .select("homeowner_email, homeowner_name, job_title, selected_application_id")
+            .eq("id", jobDetail.job_request_id)
+            .single(),
+          supabase
+            .from("job_applications")
+            .select("provider_email, provider_name")
+            .eq("job_request_id", jobDetail.job_request_id)
+            .eq("status", "awarded")
+            .maybeSingle(),
+        ]);
+
+        if (jobRequest) {
+          await sendPaymentSecuredEmails({
+            homeownerEmail: jobRequest.homeowner_email,
+            homeownerName: jobRequest.homeowner_name ?? "Homeowner",
+            providerEmail: providerApp?.provider_email,
+            providerName: providerApp?.provider_name ?? "Provider",
+            jobTitle: jobRequest.job_title,
+            amountCents: intent.amount ?? 0,
+          });
+        }
       }
     }
   }
@@ -122,6 +161,7 @@ export async function POST(req: NextRequest) {
   try {
     switch (event.type) {
       case "payment_intent.succeeded":
+      case "payment_intent.amount_capturable_updated":
       case "payment_intent.payment_failed":
       case "payment_intent.canceled":
       case "payment_intent.processing":

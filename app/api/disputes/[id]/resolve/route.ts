@@ -8,6 +8,7 @@ import {
   stripe,
 } from "@/app/lib/payments/stripeConnect";
 import type { JobPaymentRecord } from "@/app/api/jobs/types";
+import { sendDisputeResolvedEmails } from "@/app/lib/email/senders";
 
 type ResolveParams = {
   params: Promise<{ id: string }>;
@@ -52,7 +53,7 @@ export async function PATCH(req: NextRequest, context: ResolveParams) {
 
     const { data: dispute, error: disputeError } = await supabase
       .from("disputes")
-      .select("*, jobs(*, payments(*))")
+      .select("*, jobs(*, payments(*), job_requests(homeowner_email, homeowner_name, job_title, selected_application_id))")
       .eq("id", disputeId)
       .single();
 
@@ -179,6 +180,30 @@ export async function PATCH(req: NextRequest, context: ResolveParams) {
         partialRefundCents: body.partialRefundCents ?? null,
       },
     });
+
+    const jobRequest = job.job_requests as {
+      homeowner_email: string | null;
+      homeowner_name: string | null;
+      job_title: string;
+      selected_application_id: string | null;
+    } | null;
+
+    if (jobRequest) {
+      const { data: providerApp } = await supabase
+        .from("job_applications")
+        .select("provider_email, provider_name")
+        .eq("id", jobRequest.selected_application_id ?? "")
+        .maybeSingle();
+
+      await sendDisputeResolvedEmails({
+        homeownerEmail: jobRequest.homeowner_email,
+        homeownerName: jobRequest.homeowner_name ?? "Homeowner",
+        providerEmail: providerApp?.provider_email,
+        providerName: providerApp?.provider_name ?? "Provider",
+        jobTitle: jobRequest.job_title,
+        resolution: body.resolution,
+      });
+    }
 
     return NextResponse.json({ success: true, paymentResults });
   } catch (error) {

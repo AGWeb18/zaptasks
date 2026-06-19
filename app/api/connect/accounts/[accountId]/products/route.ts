@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuth } from "@clerk/nextjs/server";
+
 import { stripe } from "@/app/lib/payments/stripeConnect";
 
 // GET /api/connect/accounts/:accountId/products
@@ -8,6 +10,9 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ accountId: string }> }
 ) {
+  const { userId } = getAuth(req);
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { accountId } = await params;
 
   if (!accountId) {
@@ -34,6 +39,9 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ accountId: string }> }
 ) {
+  const { userId } = getAuth(req);
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { accountId } = await params;
 
   if (!accountId) {
