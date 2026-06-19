@@ -6,7 +6,7 @@ import { JobCompleted } from "./templates/JobCompleted";
 import { DisputeOpened } from "./templates/DisputeOpened";
 import { DisputeResolved } from "./templates/DisputeResolved";
 
-const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://zaptasks.ca";
+const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://zaptasks.com";
 
 export async function sendJobAwardedEmails({
   providerEmail,
