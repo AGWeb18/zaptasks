@@ -51,18 +51,6 @@ export default async function RootLayout({
               strategy="beforeInteractive"
             />
           )}
-          <Script
-            src="https://www.googletagmanager.com/gtag/js?id=G-K9GLWHQEGZ"
-            strategy="afterInteractive"
-          />
-          <Script id="google-analytics" strategy="afterInteractive">
-            {`
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-K9GLWHQEGZ');
-  `}
-          </Script>
           {hotjarId ? (
             <Script id="hotjar" strategy="afterInteractive">
               {`
@@ -81,7 +69,7 @@ export default async function RootLayout({
         <body className="font-sans antialiased bg-slate-50 text-slate-900">
           <ChatWidget />
           <NewsletterModal />
-          <main>{children}</main>
+          {children}
           <GoogleAnalytics gaId="G-K9GLWHQEGZ" />
           <Analytics />
         </body>

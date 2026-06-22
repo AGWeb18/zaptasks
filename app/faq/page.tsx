@@ -1,4 +1,4 @@
-import { useState } from "react";
+"use client";
 import {
   Accordion,
   AccordionContent,
@@ -13,37 +13,37 @@ const faqs = [
   {
     question: "How does payment work?",
     answer:
-      "Pay 100% upfront into escrow via Stripe (Apple Pay supported). Funds held securely until you mark complete. ZapTasks deducts 10% fee, releases 90% to helper same-day.",
+      "You pay the full job amount upfront, which is held securely in escrow through Stripe. Funds are only released to your helper once you mark the job as complete. ZapTasks deducts a 10% platform fee and releases the remainder to the helper — typically within 1–2 business days.",
   },
   {
-    question: "What is the 10% fee for?",
+    question: "What is the 10% platform fee for?",
     answer:
-      "Covers Stripe processing (~3%), platform operations, dispute mediation, and community support. Transparent & fixed – no tiers.",
+      "The fee covers Stripe payment processing (roughly 3%), platform operations, secure escrow management, and dispute mediation. It's a flat, transparent rate with no hidden tiers or surprises.",
   },
   {
-    question: "How do you connect helpers?",
+    question: "How do I find a helper?",
     answer:
-      "Anyone signs up. Helpers connect Stripe for payouts. Ratings/reviews build trust. Chat before booking. No formal vetting – community accountability.",
+      "Post your job and local helpers will apply. You can review their profiles and ratings, message them through the platform before accepting, and choose who you're most comfortable with. Once you accept an application, the job is locked in.",
   },
   {
-    question: "What if there's a dispute?",
+    question: "What happens if there's a dispute?",
     answer:
-      "Pause payout, contact support via chat/email. We review chat logs/photos. Most resolve homeowner/helper agreement.",
+      "Contact our support team within 24 hours of the issue — we'll pause any remaining payouts while we review the situation. Submit photos, chat transcripts, and any receipts you have. We aim to mediate and reach a resolution within 48 hours. Outcomes may include a partial refund, rework, or payout release depending on the evidence.",
   },
   {
-    question: "Can I cancel?",
+    question: "Can I cancel a job?",
     answer:
-      "Yes, before start: full refund. After start: escrow partial release based on work done. Helpers get 24h notice policy.",
+      "If you cancel before the helper starts work, you'll receive a full refund. Once work has begun, any escrow release will be proportional to the work completed. Helpers also have a 24-hour notice policy — please communicate early if plans change.",
   },
   {
-    question: "Is my data private?",
+    question: "Is my personal information kept private?",
     answer:
-      "Only you see your jobs/chat/payments. Addresses private until award. Clerk GDPR-compliant auth.",
+      "Only you can see your jobs, messages, and payment history. Your exact address is kept private and only shared with a helper after you've accepted their application. Authentication is handled by Clerk, which is fully GDPR-compliant.",
   },
   {
-    question: "How do helpers get paid?",
+    question: "How and when do helpers get paid?",
     answer:
-      "Stripe Connect: Direct bank deposit 1-2 days post-completion (CAD). Helpers see earnings minus 10% fee.",
+      "Helpers receive payment through Stripe Connect, deposited directly to their bank account in Canadian Dollars (CAD). Payouts typically arrive 1–2 business days after you mark the job complete. Helpers see their net earnings after the 10% platform fee.",
   },
 ];
 
@@ -60,8 +60,8 @@ export default function FAQPage() {
             Frequently Asked Questions
           </h1>
           <p className="mt-3 text-slate-600 max-w-2xl mx-auto">
-            Quick answers on payments, helpers, privacy, and how ZapTasks keeps
-            things fair for Canadian neighbours.
+            Answers to common questions about payments, helpers, privacy, and
+            how ZapTasks keeps things fair for Canadian neighbours.
           </p>
         </div>
 
@@ -82,10 +82,10 @@ export default function FAQPage() {
 
         <div className="mt-12 text-center">
           <p className="text-slate-500 mb-4">Still have questions?</p>
-          <button className="btn btn-primary">
+          <a href="mailto:myzaptasks@gmail.com" className="btn btn-primary">
             <MessageCircle className="w-5 h-5 mr-2" />
             Contact Support
-          </button>
+          </a>
         </div>
       </main>
       <SiteFooter />

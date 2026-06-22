@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
 
     const { data: providerRecord, error: providerLookupError } = await supabase
       .from("providers")
-      .select("id, stripe_account_id, user_id")
+      .select("user_id, stripe_account_id")
       .eq("user_id", selectedApplication.provider_id)
       .maybeSingle();
 

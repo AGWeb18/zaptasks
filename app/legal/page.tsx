@@ -49,19 +49,17 @@ export default function LegalPage() {
           </h3>
           <p className="text-sm text-slate-600">
             All transactions are in Canadian Dollars (CAD). ZapTasks collects a
-            10% platform fee on completed jobs (8% for large licensed trades)
-            from the total transaction. Fees are deducted automatically from
-            payouts.
+            flat 10% platform fee on every completed job, deducted automatically
+            from the payout to the helper.
           </p>
           <h3 className="text-lg font-semibold text-slate-900">
-            4. Payment Milestones
+            4. Escrow & Payment Release
           </h3>
           <p className="text-sm text-slate-600">
-            Payment schedules depend on job size: under $100 is paid 100%
-            upfront to secure the booking. Jobs $100–$500 use a 50% deposit with
-            the balance on completion. Projects over $500 rely on 30%/30%/40%
-            milestones. ZapTasks may pause payouts during disputes until
-            resolution.
+            The full job amount is collected upfront and held in secure escrow
+            via Stripe. Funds are only released to the helper once the
+            homeowner marks the job as complete. ZapTasks may pause payouts
+            during active disputes until resolution is reached.
           </p>
           <h3 className="text-lg font-semibold text-slate-900">
             5. Liability Disclaimer
@@ -107,7 +105,7 @@ export default function LegalPage() {
           <p className="text-sm text-slate-600">
             We use HTTPS, role-based access, audit logging, and Stripe Connect
             to protect sensitive data. Notify us immediately at
-            privacy@zaptasks.com if you suspect unauthorized access.
+            myzaptasks@gmail.com if you suspect unauthorized access.
           </p>
         </section>
 

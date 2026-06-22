@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     const { data: providerRecord } = await supabase
       .from("providers")
-      .select("id, stripe_account_id, name")
+      .select("user_id, stripe_account_id")
       .eq("user_id", userId)
       .maybeSingle();
 
@@ -84,14 +84,11 @@ export async function POST(req: NextRequest) {
 
       accountId = account.id;
 
-      if (providerRecord?.id) {
+      if (providerRecord?.user_id) {
         const { error: updateError } = await supabase
           .from("providers")
-          .update({
-            stripe_account_id: accountId,
-            name: providerRecord.name ?? providerName,
-          })
-          .eq("id", providerRecord.id);
+          .update({ stripe_account_id: accountId })
+          .eq("user_id", userId);
 
         if (updateError) {
           console.warn("Failed to update provider with Stripe account id", updateError);
@@ -99,22 +96,13 @@ export async function POST(req: NextRequest) {
       } else {
         const { error: insertError } = await supabase
           .from("providers")
-          .insert({ user_id: userId, name: providerName, stripe_account_id: accountId })
-          .select("id")
+          .insert({ user_id: userId, stripe_account_id: accountId })
+          .select("user_id")
           .single();
 
         if (insertError) {
           console.warn("Failed to insert provider record for onboarding", insertError);
         }
-      }
-    } else if (providerRecord && !providerRecord.name) {
-      const { error: backfillNameError } = await supabase
-        .from("providers")
-        .update({ name: providerName })
-        .eq("id", providerRecord.id);
-
-      if (backfillNameError) {
-        console.warn("Failed to backfill provider name", backfillNameError);
       }
     }
 
