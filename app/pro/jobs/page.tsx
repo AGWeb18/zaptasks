@@ -5,7 +5,6 @@ import { useUser, SignInButton } from "@clerk/nextjs";
 import Navbar from "@/app/components/NavBar";
 import {
   MapPin,
-  Users,
   MessageCircle,
   CheckCircle,
   Bell,
@@ -485,7 +484,7 @@ const ProJobsPage = () => {
   const [onboardingAutoAttempted, setOnboardingAutoAttempted] = useState(false);
   const [releasingReserveId, setReleasingReserveId] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>("all");
-  const [sortOrder, setSortOrder] = useState<"newest" | "highest_budget" | "fewest_bids">("newest");
+  const [sortOrder, setSortOrder] = useState<"newest" | "highest_budget">("newest");
 
   const startStripeOnboarding = useCallback(async () => {
     if (!userEmail) {
@@ -680,9 +679,6 @@ const ProJobsPage = () => {
   const isJustPosted = (createdAt: string) =>
     Date.now() - new Date(createdAt).getTime() < 2 * 60 * 60 * 1000;
 
-  const isHighDemand = (job: OpenJobRequest) =>
-    (job.job_applications?.length ?? 0) >= 5;
-
   const serviceOptions = listServiceOptions();
 
   const filteredJobs = useMemo(() => {
@@ -701,11 +697,6 @@ const ProJobsPage = () => {
     switch (sortOrder) {
       case "highest_budget":
         result.sort((a, b) => (b.budget_amount ?? 0) - (a.budget_amount ?? 0));
-        break;
-      case "fewest_bids":
-        result.sort(
-          (a, b) => (a.job_applications?.length ?? 0) - (b.job_applications?.length ?? 0)
-        );
         break;
       default:
         result.sort(
@@ -1154,7 +1145,6 @@ const ProJobsPage = () => {
               >
                 <option value="newest">Newest first</option>
                 <option value="highest_budget">Highest budget</option>
-                <option value="fewest_bids">Fewest bids</option>
               </select>
             </div>
           </div>
@@ -1198,9 +1188,7 @@ const ProJobsPage = () => {
                   const applied = hasApplied(job.id);
                   const isOwnJob = job.homeowner_id === currentUserId;
                   const catStyle = getCategoryStyle(job.services);
-                  const bidCount = job.job_applications?.length ?? 0;
                   const justPosted = isJustPosted(job.created_at);
-                  const highDemand = isHighDemand(job);
                   const locationLabel = (() => {
                     if (!job.address) return "Location shared after hire";
                     const parts = job.address.split(",").map((p) => p.trim()).filter(Boolean);
@@ -1236,19 +1224,12 @@ const ProJobsPage = () => {
                       {/* Card body */}
                       <div className="flex-1 flex flex-col px-5 pt-4 pb-1">
                         {/* Status badges */}
-                        {(justPosted || highDemand) && (
+                        {justPosted && (
                           <div className="flex gap-2 mb-2">
-                            {justPosted && (
-                              <span className="flex items-center gap-1 bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block" />
-                                Just posted
-                              </span>
-                            )}
-                            {highDemand && (
-                              <span className="bg-rose-100 text-rose-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-                                🔥 High demand
-                              </span>
-                            )}
+                            <span className="flex items-center gap-1 bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block" />
+                              Just posted
+                            </span>
                           </div>
                         )}
 
@@ -1259,17 +1240,11 @@ const ProJobsPage = () => {
                           {job.description}
                         </p>
 
-                        {/* Location + bids row */}
+                        {/* Location + time row */}
                         <div className="flex flex-col gap-1.5 mt-auto pb-4 text-xs text-slate-500">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                              <span className="truncate">{locationLabel}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 flex-shrink-0 ml-3">
-                              <Users className="w-3.5 h-3.5 text-slate-400" />
-                              <span>{bidCount} {bidCount === 1 ? "bid" : "bids"}</span>
-                            </div>
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                            <span className="truncate">{locationLabel}</span>
                           </div>
                           <span className="text-slate-400">
                             {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}

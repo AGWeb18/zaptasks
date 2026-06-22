@@ -204,16 +204,14 @@ function InvoiceDetails({ invoiceData }: { invoiceData: InvoiceData }) {
         </h3>
         <ul className="list-disc list-inside">
           <li>
-            Our team will contact you to confirm the details of your booking.
+            Your helper will be in touch through the ZapTasks chat to confirm the details.
           </li>
           <li>
             The remaining balance of {remainingAmount.toFixed(2)}{" "}
-            {invoiceData.currency.toUpperCase()} will be due after the service
-            is completed.
+            {invoiceData.currency.toUpperCase()} will be released to your helper after you mark the job complete.
           </li>
           <li>
-            If you need to make any changes or have any questions, please
-            contact our customer support.
+            Questions? Email us at <a href="mailto:hello@keystoneaipartners.com" className="link">hello@keystoneaipartners.com</a>.
           </li>
         </ul>
       </div>

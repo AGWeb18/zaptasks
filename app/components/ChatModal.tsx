@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
-import { createClient } from "../utils/supabase/client";
 import { useUser } from "@clerk/nextjs";
+import { useSupabaseClient } from "../utils/supabase/useClient";
 
 interface ChatModalProps {
   helperId: string;  // was providerId
@@ -11,10 +11,10 @@ interface ChatModalProps {
 
 export default function ChatModal({ helperId, helperName, onClose }: ChatModalProps) {
   const { user } = useUser();
+  const supabase = useSupabaseClient();
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const supabase = createClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Find or create conversation and fetch messages
@@ -25,7 +25,7 @@ export default function ChatModal({ helperId, helperName, onClose }: ChatModalPr
       let { data: conv, error } = await supabase
         .from("conversations")
         .select("id")
-        .or(`(user1.eq.${user.id}&user2.eq.${helperId}),(user1.eq.${helperId}&user2.eq.${user.id})`)
+        .or(`and(user1.eq.${user.id},user2.eq.${helperId}),and(user1.eq.${helperId},user2.eq.${user.id})`)
         .limit(1);
       let conversation_id = conv && conv.length > 0 ? conv[0].id : null;
       if (!conversation_id) {

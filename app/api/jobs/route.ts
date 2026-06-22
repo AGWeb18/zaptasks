@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 
-import { createClient, createClientWithUser } from "@/app/utils/supabase/server";
+import { createClient, createClientWithUser, createServiceRoleClient } from "@/app/utils/supabase/server";
 import {
   buildEscrowSchedule,
   createJobPaymentIntent,
@@ -325,7 +325,8 @@ export async function POST(req: NextRequest) {
       .eq("job_request_id", jobRequest.id)
       .neq("id", selectedApplication.id);
 
-    await supabase.from("notifications").insert([
+    const notifClient = createServiceRoleClient();
+    await notifClient.from("notifications").insert([
       providerNeedsOnboarding
         ? {
             user_id: selectedApplication.provider_id,

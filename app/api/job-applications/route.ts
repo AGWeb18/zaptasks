@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
-import { createClient, createClientWithUser } from "@/app/utils/supabase/server";
+import { createClient, createClientWithUser, createServiceRoleClient } from "@/app/utils/supabase/server";
 
 export async function POST(req: NextRequest) {
   const { userId } = getAuth(req);
@@ -62,7 +62,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Failed to submit application." }, { status: 500 });
     }
 
-    await supabase.from("notifications").insert([
+    const notifClient = createServiceRoleClient();
+    await notifClient.from("notifications").insert([
       {
         user_id: jobRequest.homeowner_id,
         type: "job_application_received",

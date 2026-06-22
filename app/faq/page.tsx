@@ -82,7 +82,7 @@ export default function FAQPage() {
 
         <div className="mt-12 text-center">
           <p className="text-slate-500 mb-4">Still have questions?</p>
-          <a href="mailto:myzaptasks@gmail.com" className="btn btn-primary">
+          <a href="mailto:hello@keystoneaipartners.com" className="btn btn-primary">
             <MessageCircle className="w-5 h-5 mr-2" />
             Contact Support
           </a>

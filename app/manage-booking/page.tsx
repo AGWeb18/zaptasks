@@ -22,7 +22,7 @@ import {
   Star,
 } from "lucide-react";
 import { format } from "date-fns";
-import { createClient } from "@/app/utils/supabase/client";
+import { useSupabaseClient } from "@/app/utils/supabase/useClient";
 import { getServiceLabels } from "@/app/lib/services/catalog";
 import {
   Elements,
@@ -332,6 +332,7 @@ function getCategoryStyle(services: string[]) {
 
 const ManageJobsPage = () => {
   const { isLoaded, isSignedIn, user } = useUser();
+  const authenticatedSupabase = useSupabaseClient();
   const searchParams = useSearchParams();
   const justPosted = searchParams.get("posted") === "true";
   const [jobRequests, setJobRequests] = useState<JobRequest[]>([]);
@@ -468,8 +469,7 @@ const ManageJobsPage = () => {
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn || !user?.id) return;
-    const supabase = createClient();
-    const channel = supabase
+    const channel = authenticatedSupabase
       .channel(`notifications-homeowner-${user.id}`)
       .on(
         "postgres_changes",
@@ -494,9 +494,9 @@ const ManageJobsPage = () => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      authenticatedSupabase.removeChannel(channel);
     };
-  }, [isLoaded, isSignedIn, user?.id, fetchJobs]);
+  }, [isLoaded, isSignedIn, user?.id, fetchJobs, authenticatedSupabase]);
 
   const handleToggleJob = (jobId: string) => {
     setExpandedJob((prev) => (prev === jobId ? null : jobId));
