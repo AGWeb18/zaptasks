@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { createClient } from "@/app/utils/supabase/client";
 import Navbar from "@/app/components/NavBar";
 import {
   Star,
@@ -18,24 +17,19 @@ import Link from "next/link";
 
 interface ProviderProfile {
   user_id: string;
-  stripe_account_id: string | null;
+  verified: boolean;
   services: string[];
   location: string | null;
-  created_at: string;
+  memberSince: string | null;
 }
 
 interface ProviderReview {
   id: string;
   rating: number;
-  review_type: string | null;
+  reviewType: string | null;
   comment: string | null;
-  created_at: string;
-  homeowner_id: string;
-  jobs: {
-    job_requests: {
-      job_title: string;
-    } | null;
-  } | null;
+  createdAt: string;
+  jobTitle: string | null;
 }
 
 interface ProviderStats {
@@ -62,65 +56,56 @@ const ProviderProfilePage = () => {
   useEffect(() => {
     const loadProviderProfile = async () => {
       try {
-        const supabase = createClient();
+        // Reputation comes from a public, service-role endpoint. The underlying
+        // provider_reviews / jobs tables are RLS-locked to the reviewing
+        // homeowner and the provider, so a direct client query here would
+        // silently return empty for prospective homeowners.
+        const response = await fetch(
+          `/api/providers/${providerId}/reputation`
+        );
 
-        // Fetch provider profile
-        const { data: profileData, error: profileError } = await supabase
-          .from("providers")
-          .select("*")
-          .eq("user_id", providerId)
-          .single();
-
-        if (profileError) {
-          console.error("Error loading provider profile:", profileError);
+        if (!response.ok) {
           setError("Provider not found");
           setLoading(false);
           return;
         }
 
-        setProfile(profileData);
+        const data = await response.json();
 
-        // Fetch reviews with job details
-        const { data: reviewsData, error: reviewsError } = await supabase
-          .from("provider_reviews")
-          .select(
-            `
-            *,
-            jobs!inner(
-              job_requests(job_title)
+        setProfile({
+          user_id: providerId,
+          verified: Boolean(data.verified),
+          services: Array.isArray(data.services) ? data.services : [],
+          location: data.location ?? null,
+          memberSince: data.memberSince ?? null,
+        });
+
+        const reviewsList: ProviderReview[] = Array.isArray(data.reviews)
+          ? data.reviews.map(
+              (review: {
+                id: string;
+                rating: number;
+                reviewType: string | null;
+                comment: string | null;
+                createdAt: string;
+                jobTitle: string | null;
+              }) => ({
+                id: review.id,
+                rating: review.rating,
+                reviewType: review.reviewType ?? null,
+                comment: review.comment ?? null,
+                createdAt: review.createdAt,
+                jobTitle: review.jobTitle ?? null,
+              })
             )
-          `,
-          )
-          .eq("provider_id", providerId)
-          .order("created_at", { ascending: false });
-
-        const reviewsList = reviewsData || [];
-
-        if (reviewsError) {
-          console.error("Error loading reviews:", reviewsError);
-        } else {
-          setReviews(reviewsList);
-        }
-
-        // Fetch stats
-        const { data: jobsData, error: jobsError } = await supabase
-          .from("jobs")
-          .select("id, job_status")
-          .eq("provider_id", providerId)
-          .eq("job_status", "completed");
-
-        const totalJobs = jobsData?.length || 0;
-        const totalReviews = reviewsList.length;
-        const averageRating =
-          totalReviews > 0
-            ? reviewsList.reduce((sum, r) => sum + (r.rating || 0), 0) /
-              totalReviews
-            : 0;
+          : [];
+        setReviews(reviewsList);
 
         setStats({
-          totalJobs,
-          averageRating,
-          totalReviews,
+          totalJobs: data.completedJobs ?? 0,
+          averageRating:
+            typeof data.averageRating === "number" ? data.averageRating : 0,
+          totalReviews: data.reviewCount ?? 0,
         });
 
         setLoading(false);
@@ -255,20 +240,22 @@ const ProviderProfilePage = () => {
                 </div>
               </div>
 
-              {profile.stripe_account_id && (
+              {profile.verified && (
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-sm font-medium mb-4">
                   <Shield className="h-4 w-4" />
-                  Verified Payment Account
+                  ID verified via Stripe
                 </div>
               )}
 
-              <div className="flex items-center gap-2 text-slate-600">
-                <Calendar className="h-4 w-4" />
-                <span>
-                  Member since{" "}
-                  {format(new Date(profile.created_at), "MMMM yyyy")}
-                </span>
-              </div>
+              {profile.memberSince && (
+                <div className="flex items-center gap-2 text-slate-600">
+                  <Calendar className="h-4 w-4" />
+                  <span>
+                    Member since{" "}
+                    {format(new Date(profile.memberSince), "MMMM yyyy")}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Stats */}
@@ -345,17 +332,17 @@ const ProviderProfilePage = () => {
                     <div>
                       <div className="flex items-center gap-3 mb-2">
                         {renderStars(review.rating)}
-                        {review.review_type &&
-                          getReviewTypeBadge(review.review_type)}
+                        {review.reviewType &&
+                          getReviewTypeBadge(review.reviewType)}
                       </div>
-                      {review.jobs?.job_requests?.job_title && (
+                      {review.jobTitle && (
                         <p className="text-sm text-slate-600">
-                          Job: {review.jobs.job_requests.job_title}
+                          Job: {review.jobTitle}
                         </p>
                       )}
                     </div>
                     <div className="text-sm text-slate-500">
-                      {format(new Date(review.created_at), "MMM d, yyyy")}
+                      {format(new Date(review.createdAt), "MMM d, yyyy")}
                     </div>
                   </div>
 

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { createClient } from "@/app/utils/supabase/client";
+import { useSupabaseClient } from "@/app/utils/supabase/useClient";
 import { getServiceLabels, listServiceOptions } from "@/app/lib/services/catalog";
 import ChatModal from "@/app/components/ChatModal";
 import Link from "next/link";
@@ -210,6 +211,7 @@ const formatPaymentStatus = (status: string | null | undefined): string => {
 
 const ProJobsPage = () => {
   const { isLoaded, isSignedIn, user } = useUser();
+  const authenticatedSupabase = useSupabaseClient();
   const [jobs, setJobs] = useState<OpenJobRequest[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [escrowJobs, setEscrowJobs] = useState<EscrowJob[]>([]);
@@ -331,7 +333,7 @@ const ProJobsPage = () => {
   useEffect(() => {
     if (!isLoaded || !isSignedIn || !user?.id) return;
 
-    const supabase = createClient();
+    const supabase = authenticatedSupabase;
     const notificationsChannel = supabase
       .channel(`notifications-provider-${user.id}`)
       .on(
@@ -455,7 +457,7 @@ const ProJobsPage = () => {
       supabase.removeChannel(jobsChannel);
       supabase.removeChannel(escrowChannel);
     };
-  }, [isLoaded, isSignedIn, user?.id]);
+  }, [isLoaded, isSignedIn, user?.id, authenticatedSupabase]);
 
   const hasApplied = useMemo(() => {
     if (!currentUserId) return () => false;

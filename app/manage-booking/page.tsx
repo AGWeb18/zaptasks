@@ -32,6 +32,7 @@ import {
 } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import ChatModal from "@/app/components/ChatModal";
+import ProviderTrustStrip from "@/app/components/ProviderTrustStrip";
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -1378,6 +1379,13 @@ const ManageJobsPage = () => {
                                           {awardedApplication.provider_name ??
                                             "Selected pro"}
                                         </p>
+                                        {awardedApplication.provider_id && (
+                                          <ProviderTrustStrip
+                                            providerId={
+                                              awardedApplication.provider_id
+                                            }
+                                          />
+                                        )}
                                         {renderCurrency(
                                           job.agreed_total_amount
                                         ) && (
@@ -1592,6 +1600,15 @@ const ManageJobsPage = () => {
                                                   </span>
                                                 )}
                                               </div>
+                                              {application.provider_id && (
+                                                <div className="mb-2">
+                                                  <ProviderTrustStrip
+                                                    providerId={
+                                                      application.provider_id
+                                                    }
+                                                  />
+                                                </div>
+                                              )}
                                               <p className="text-xs text-base-content/60 mb-2">
                                                 Applied on{" "}
                                                 {format(
