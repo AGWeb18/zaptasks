@@ -25,6 +25,8 @@ const isProtectedRoute = createRouteMatcher([
   '/api/get-invoice(.*)',
   '/api/get-unpaid-remainder-invoices(.*)',
   '/api/setup-remaining-payment(.*)',
+  '/api/places-autocomplete(.*)',
+  '/api/reverse-geocode(.*)',
 ]);
 
 export default clerkMiddleware((auth, req) => {

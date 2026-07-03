@@ -9,7 +9,6 @@ export const dynamic = "force-dynamic";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import Script from "next/script";
 import ChatWidget from "./components/ChatWidget";
-import NewsletterModal from "./components/NewsletterModal";
 import { Analytics } from "@vercel/analytics/next";
 
 export default async function RootLayout({
@@ -68,7 +67,6 @@ export default async function RootLayout({
         </head>
         <body className="font-sans antialiased bg-slate-50 text-slate-900">
           <ChatWidget />
-          <NewsletterModal />
           {children}
           <GoogleAnalytics gaId="G-K9GLWHQEGZ" />
           <Analytics />

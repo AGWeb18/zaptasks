@@ -6,6 +6,7 @@ import {
   buildEscrowSchedule,
   createJobPaymentIntent,
   getOrCreateCustomer,
+  retrieveJobPaymentIntent,
   stripe,
 } from "@/app/lib/payments/stripeConnect";
 import type { JobPaymentRecord } from "@/app/api/jobs/types";
@@ -56,6 +57,7 @@ export async function GET(req: NextRequest) {
 
     for (const job of jobs) {
       if (!Array.isArray(job.payments)) continue;
+      if (!job.provider_stripe_account_id) continue;
 
       const payments = job.payments as JobPaymentRecord[];
 
@@ -63,8 +65,9 @@ export async function GET(req: NextRequest) {
         if (!payment?.stripe_payment_intent_id) continue;
 
         try {
-          const paymentIntent = await stripe.paymentIntents.retrieve(
+          const paymentIntent = await retrieveJobPaymentIntent(
             payment.stripe_payment_intent_id,
+            job.provider_stripe_account_id,
           );
 
           if (paymentIntent.status !== payment.status) {
@@ -270,7 +273,6 @@ export async function POST(req: NextRequest) {
         jobId: insertedJob.id,
         amountCents: escrowAmount,
         platformFeeCents: schedule.amounts.platformFeeEscrowCents,
-        customerId,
         providerStripeAccountId,
         paymentType: "escrow",
         captureMethod: "manual",
@@ -382,6 +384,7 @@ export async function POST(req: NextRequest) {
             status: escrowPaymentIntentResult.status,
           }
         : null,
+      stripeAccountId: providerStripeAccountId,
       requiresProviderOnboarding: providerNeedsOnboarding,
     });
   } catch (error) {

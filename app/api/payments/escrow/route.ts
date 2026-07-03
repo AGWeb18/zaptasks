@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "You cannot manage this job" }, { status: 403 });
     }
 
-    if (!job.stripe_customer_id || !job.provider_stripe_account_id) {
+    if (!job.provider_stripe_account_id) {
       return NextResponse.json({ error: "Payment details incomplete" }, { status: 400 });
     }
 
@@ -68,7 +68,10 @@ export async function POST(req: NextRequest) {
 
     if (existingPayment?.stripe_payment_intent_id) {
       try {
-        await cancelJobPaymentIntent(existingPayment.stripe_payment_intent_id);
+        await cancelJobPaymentIntent(
+          existingPayment.stripe_payment_intent_id,
+          job.provider_stripe_account_id,
+        );
       } catch (cancelError) {
         console.warn("Failed to cancel previous payment intent", cancelError);
       }
@@ -123,7 +126,6 @@ export async function POST(req: NextRequest) {
       jobId: job.id,
       amountCents,
       platformFeeCents,
-      customerId: job.stripe_customer_id,
       providerStripeAccountId: job.provider_stripe_account_id,
       paymentType,
       captureMethod,
@@ -176,6 +178,8 @@ export async function POST(req: NextRequest) {
         clientSecret: paymentIntent.client_secret,
         status: paymentIntent.status,
       },
+      // Direct charge: the client must initialize Stripe.js with this account.
+      stripeAccountId: job.provider_stripe_account_id,
       paymentRecord: insertedPayment,
     });
   } catch (error) {

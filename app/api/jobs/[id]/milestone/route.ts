@@ -87,7 +87,7 @@ export async function POST(req: NextRequest, context: MilestoneParams) {
       return NextResponse.json({ milestone });
     }
 
-    if (!job.stripe_customer_id || !job.provider_stripe_account_id) {
+    if (!job.provider_stripe_account_id) {
       return NextResponse.json({ error: "Payment details incomplete" }, { status: 400 });
     }
 
@@ -95,7 +95,6 @@ export async function POST(req: NextRequest, context: MilestoneParams) {
       jobId,
       amountCents,
       platformFeeCents: schedule.amounts.platformFeeProgressCents,
-      customerId: job.stripe_customer_id,
       providerStripeAccountId: job.provider_stripe_account_id,
       paymentType: "progress",
       captureMethod: "manual",
@@ -128,6 +127,7 @@ export async function POST(req: NextRequest, context: MilestoneParams) {
         clientSecret: paymentIntent.client_secret,
         status: paymentIntent.status,
       },
+      stripeAccountId: job.provider_stripe_account_id,
     });
   } catch (error) {
     console.error("Failed to create milestone:", error);

@@ -13,12 +13,12 @@ const faqs = [
   {
     question: "How does payment work?",
     answer:
-      "You pay the full job amount upfront, which is held securely in escrow through Stripe. Funds are only released to your helper once you mark the job as complete. ZapTasks deducts a 10% platform fee and releases the remainder to the helper — typically within 1–2 business days.",
+      "When you hire a helper, your card is securely pre-authorized for the full job amount through Stripe. You're only charged once you confirm the job is complete — the payment then goes to your helper with ZapTasks' 10% platform fee deducted automatically.",
   },
   {
     question: "What is the 10% platform fee for?",
     answer:
-      "The fee covers Stripe payment processing (roughly 3%), platform operations, secure escrow management, and dispute mediation. It's a flat, transparent rate with no hidden tiers or surprises.",
+      "The fee supports platform operations, secure payment infrastructure, and dispute mediation. It's a flat, transparent rate with no hidden tiers or surprises. Helpers, as independent businesses, also pay Stripe's standard card-processing fees on payments they receive (see stripe.com/pricing for current Canadian rates).",
   },
   {
     question: "How do I find a helper?",
@@ -33,7 +33,7 @@ const faqs = [
   {
     question: "Can I cancel a job?",
     answer:
-      "If you cancel before the helper starts work, you'll receive a full refund. Once work has begun, any escrow release will be proportional to the work completed. Helpers also have a 24-hour notice policy — please communicate early if plans change.",
+      "If you cancel before the helper starts work, your card authorization is released in full (or refunded if already charged). Once work has begun, any refund will be proportional to the work completed. Helpers also have a 24-hour notice policy — please communicate early if plans change.",
   },
   {
     question: "Is my personal information kept private?",
@@ -43,7 +43,7 @@ const faqs = [
   {
     question: "How and when do helpers get paid?",
     answer:
-      "Helpers receive payment through Stripe Connect, deposited directly to their bank account in Canadian Dollars (CAD). Payouts typically arrive 1–2 business days after you mark the job complete. Helpers see their net earnings after the 10% platform fee.",
+      "Helpers receive payment through their own Stripe account, deposited directly to their bank in Canadian Dollars (CAD). Once the homeowner confirms completion, the payment is captured with ZapTasks' 10% fee deducted automatically; Stripe's standard processing fees also apply, and bank payouts typically follow within a few business days.",
   },
 ];
 

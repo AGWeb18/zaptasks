@@ -38,8 +38,9 @@ export default function CheckoutForm({
 
     const result = await stripe.confirmPayment({
       elements,
+      redirect: "if_required",
       confirmParams: {
-        return_url: "http://localhost:3000",
+        return_url: `${window.location.origin}/payment-success/${invoiceId}`,
       },
     });
 
@@ -47,31 +48,7 @@ export default function CheckoutForm({
       setErrorMessage(result.error.message ?? "An unknown error occurred");
       setIsProcessing(false);
     } else {
-      // Payment succeeded, update the invoice status
-      try {
-        const response = await fetch("/api/update-invoice-deposit-paid", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            invoiceId,
-            depositIntentId,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to update invoice status");
-        }
-
-        router.push(`/payment-success/${invoiceId}`);
-      } catch (error) {
-        console.error("Error updating invoice status:", error);
-        setErrorMessage(
-          "Payment successful, but there was an error updating the invoice. Please contact support."
-        );
-        setIsProcessing(false);
-      }
+      router.push(`/payment-success/${invoiceId}`);
     }
   };
 

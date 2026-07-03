@@ -3,9 +3,10 @@ import { getAuth } from "@clerk/nextjs/server";
 
 import { createClientWithUser } from "@/app/utils/supabase/server";
 import {
+  cancelJobPaymentIntent,
   captureJobPaymentIntent,
   refundJobPaymentIntent,
-  stripe,
+  retrieveJobPaymentIntent,
 } from "@/app/lib/payments/stripeConnect";
 import type { JobPaymentRecord } from "@/app/api/jobs/types";
 import { sendDisputeResolvedEmails } from "@/app/lib/email/senders";
@@ -71,17 +72,26 @@ export async function PATCH(req: NextRequest, context: ResolveParams) {
       ? (job.payments as JobPaymentRecord[])
       : [];
     const paymentResults: Array<{ paymentId: string; action: string }> = [];
+    const providerStripeAccountId = job.provider_stripe_account_id as string | null;
+
+    if (payments.some((payment) => payment.stripe_payment_intent_id) && !providerStripeAccountId) {
+      return NextResponse.json({ error: "Provider payout details are missing" }, { status: 400 });
+    }
 
     if (body.resolution === "release") {
       for (const payment of payments) {
-        if (!payment.stripe_payment_intent_id) continue;
+        if (!payment.stripe_payment_intent_id || !providerStripeAccountId) continue;
 
-        const paymentIntent = await stripe.paymentIntents.retrieve(
+        const paymentIntent = await retrieveJobPaymentIntent(
           payment.stripe_payment_intent_id,
+          providerStripeAccountId,
         );
 
         if (paymentIntent.status === "requires_capture") {
-          const captureResult = await captureJobPaymentIntent(paymentIntent.id);
+          const captureResult = await captureJobPaymentIntent(
+            paymentIntent.id,
+            providerStripeAccountId,
+          );
           await supabase
             .from("payments")
             .update({
@@ -103,13 +113,17 @@ export async function PATCH(req: NextRequest, context: ResolveParams) {
 
     if (body.resolution === "refund") {
       for (const payment of payments) {
-        if (!payment.stripe_payment_intent_id) continue;
-        const paymentIntent = await stripe.paymentIntents.retrieve(
+        if (!payment.stripe_payment_intent_id || !providerStripeAccountId) continue;
+        const paymentIntent = await retrieveJobPaymentIntent(
           payment.stripe_payment_intent_id,
+          providerStripeAccountId,
         );
 
         if (paymentIntent.status === "succeeded") {
-          await refundJobPaymentIntent({ paymentIntentId: paymentIntent.id });
+          await refundJobPaymentIntent({
+            paymentIntentId: paymentIntent.id,
+            providerStripeAccountId,
+          });
           await supabase
             .from("payments")
             .update({
@@ -120,7 +134,7 @@ export async function PATCH(req: NextRequest, context: ResolveParams) {
           paymentResults.push({ paymentId: String(payment.id), action: "refunded" });
         } else if (paymentIntent.status === "requires_capture") {
           await supabase.from("payments").update({ status: "canceled" }).eq("id", payment.id);
-          await stripe.paymentIntents.cancel(paymentIntent.id);
+          await cancelJobPaymentIntent(paymentIntent.id, providerStripeAccountId);
           paymentResults.push({ paymentId: String(payment.id), action: "canceled" });
         }
       }
@@ -140,13 +154,14 @@ export async function PATCH(req: NextRequest, context: ResolveParams) {
         (payment) => payment.payment_type === "completion" || payment.payment_type === "escrow",
       );
 
-      if (!targetPayment?.stripe_payment_intent_id) {
+      if (!targetPayment?.stripe_payment_intent_id || !providerStripeAccountId) {
         return NextResponse.json({ error: "No eligible payment for partial refund" }, { status: 409 });
       }
 
       await refundJobPaymentIntent({
         paymentIntentId: targetPayment.stripe_payment_intent_id,
         amountCents: body.partialRefundCents,
+        providerStripeAccountId,
       });
 
       await supabase

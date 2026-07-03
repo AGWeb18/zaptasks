@@ -34,9 +34,29 @@ import { loadStripe } from "@stripe/stripe-js";
 import ChatModal from "@/app/components/ChatModal";
 import ProviderTrustStrip from "@/app/components/ProviderTrustStrip";
 
-const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
-  : null;
+const STRIPE_PUBLISHABLE_KEY =
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? null;
+
+// Payments are direct charges on the helper's connected account, so Stripe.js
+// must be initialized per connected account.
+const stripePromiseByAccount = new Map<
+  string,
+  ReturnType<typeof loadStripe>
+>();
+
+const getStripePromise = (stripeAccountId: string) => {
+  if (!STRIPE_PUBLISHABLE_KEY) return null;
+  let promise = stripePromiseByAccount.get(stripeAccountId);
+  if (!promise) {
+    promise = loadStripe(STRIPE_PUBLISHABLE_KEY, {
+      stripeAccount: stripeAccountId,
+    });
+    stripePromiseByAccount.set(stripeAccountId, promise);
+  }
+  return promise;
+};
+
+const stripeConfigured = Boolean(STRIPE_PUBLISHABLE_KEY);
 
 type EscrowTier = "small" | "medium" | "large";
 
@@ -91,6 +111,7 @@ interface EscrowJob {
   job_request_id: string | null;
   homeowner_id: string;
   provider_id: string;
+  provider_stripe_account_id?: string | null;
   total_amount_cents: number;
   escrow_amount_cents: number;
   platform_fee_cents: number;
@@ -117,6 +138,7 @@ interface PaymentModalState {
   paymentIntentId: string;
   amountCents: number;
   label: string;
+  stripeAccountId: string;
 }
 
 interface ProviderReviewRecord {
@@ -611,7 +633,7 @@ const ManageJobsPage = () => {
         );
       }
 
-      if (payload?.escrowPaymentIntent?.clientSecret) {
+      if (payload?.escrowPaymentIntent?.clientSecret && payload?.stripeAccountId) {
         setPaymentModal({
           jobId: payload.job?.id ?? "",
           paymentType: "escrow",
@@ -619,6 +641,7 @@ const ManageJobsPage = () => {
           paymentIntentId: payload.escrowPaymentIntent.id,
           amountCents: payload.schedule?.amounts?.escrowCents ?? 0,
           label: "Pay Deposit",
+          stripeAccountId: payload.stripeAccountId,
         });
       }
 
@@ -661,12 +684,20 @@ const ManageJobsPage = () => {
         throw new Error("Payment intent was not returned");
       }
 
+      const stripeAccountId =
+        payload.stripeAccountId ?? job.provider_stripe_account_id;
+
+      if (!stripeAccountId) {
+        throw new Error("Payment account was not returned");
+      }
+
       setPaymentModal({
         jobId: job.id,
         paymentType,
         clientSecret: payload.paymentIntent.clientSecret,
         paymentIntentId: payload.paymentIntent.id,
         amountCents: payload.paymentRecord?.amount_cents ?? 0,
+        stripeAccountId,
         label:
           options?.label ??
           (paymentType === "escrow"
@@ -707,7 +738,12 @@ const ManageJobsPage = () => {
           (item) => item?.clientSecret && item?.type
         );
 
-        if (actionable) {
+        const modalStripeAccountId =
+          payload.stripeAccountId ??
+          jobsById[job.id]?.provider_stripe_account_id ??
+          job.provider_stripe_account_id;
+
+        if (actionable && modalStripeAccountId) {
           const paymentType = (actionable.type ??
             "escrow") as PaymentModalState["paymentType"];
           const payments = jobsById[job.id]?.payments ?? [];
@@ -740,6 +776,7 @@ const ManageJobsPage = () => {
             jobId: job.id,
             paymentType,
             clientSecret: actionable.clientSecret,
+            stripeAccountId: modalStripeAccountId,
             paymentIntentId:
               actionable.paymentIntentId ??
               matchedPayment?.stripe_payment_intent_id ??
@@ -1310,9 +1347,10 @@ const ManageJobsPage = () => {
                                         Payment
                                       </h4>
                                       <p className="text-sm text-slate-600 mb-4">
-                                        Pay full amount upfront into escrow.
-                                        Released to pro (minus 10% ZapTasks fee)
-                                        on completion.
+                                        Your card is pre-authorized upfront and
+                                        only charged when you confirm the job is
+                                        done. Your helper receives the payment
+                                        minus the 10% ZapTasks fee.
                                       </p>
                                       <div className="p-4 border border-blue-100 rounded-lg bg-blue-50 flex flex-col gap-2">
                                         <span className="text-xs uppercase tracking-wide text-blue-600">
@@ -1331,7 +1369,7 @@ const ManageJobsPage = () => {
                                         {escrowNeedsPayment && (
                                           <button
                                             className="btn btn-primary mt-1"
-                                            disabled={!stripePromise}
+                                            disabled={!stripeConfigured}
                                             onClick={() =>
                                               openPaymentIntent(
                                                 escrowJob,
@@ -1546,12 +1584,12 @@ const ManageJobsPage = () => {
                                           .
                                         </p>
                                         <p>
-                                          ZapTasks fee (
+                                          ZapTasks&apos; flat{" "}
                                           {(
                                             escrowSchedule.platformFeeRate * 100
-                                          ).toFixed(1)}
-                                          %) automatically covers processing and
-                                          trust & safety support.
+                                          ).toFixed(0)}
+                                          % fee is deducted from the helper&apos;s
+                                          payment — you never pay extra on top.
                                         </p>
                                       </div>
                                     )}
@@ -1690,7 +1728,7 @@ const ManageJobsPage = () => {
           )}
         </section>
       </main>
-      {paymentModal && stripePromise && (
+      {paymentModal && stripeConfigured && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
             <header className="space-y-1">
@@ -1706,7 +1744,7 @@ const ManageJobsPage = () => {
               </p>
             </header>
             <Elements
-              stripe={stripePromise}
+              stripe={getStripePromise(paymentModal.stripeAccountId)}
               options={{
                 clientSecret: paymentModal.clientSecret,
                 appearance: { theme: "stripe" },

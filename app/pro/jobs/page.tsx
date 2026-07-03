@@ -234,9 +234,11 @@ const ProJobsPage = () => {
   const currentUserId = user?.id;
   const router = useRouter();
 
-  const fetchJobs = async () => {
+  const fetchJobs = async ({ silent }: { silent?: boolean } = {}) => {
     try {
-      setLoadingJobs(true);
+      if (!silent) {
+        setLoadingJobs(true);
+      }
       const response = await fetch("/api/job-requests?scope=open");
       if (!response.ok) {
         throw new Error("Failed to load open jobs");
@@ -351,44 +353,11 @@ const ProJobsPage = () => {
       )
       .subscribe();
 
-    const jobsChannel = supabase
-      .channel("job-board-updates")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "job_requests",
-          filter: "status=eq.open",
-        },
-        (payload) => {
-          const newJob = payload.new as OpenJobRequest;
-          setJobs((prev) => {
-            const exists = prev.some((job) => job.id === newJob.id);
-            return exists ? prev : [newJob, ...prev];
-          });
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "job_requests",
-        },
-        (payload) => {
-          const updatedJob = payload.new as OpenJobRequest;
-          setJobs((prev) => {
-            if (updatedJob.status !== "open") {
-              return prev.filter((job) => job.id !== updatedJob.id);
-            }
-            return prev.map((job) =>
-              job.id === updatedJob.id ? updatedJob : job
-            );
-          });
-        }
-      )
-      .subscribe();
+    // The job board is served through the API (RLS blocks direct row reads to
+    // protect homeowner details), so refresh it on a timer instead of realtime.
+    const jobBoardRefresh = setInterval(() => {
+      void fetchJobs({ silent: true });
+    }, 60_000);
 
     const escrowChannel = supabase
       .channel(`escrow-updates-provider-${user.id}`)
@@ -453,8 +422,8 @@ const ProJobsPage = () => {
       .subscribe();
 
     return () => {
+      clearInterval(jobBoardRefresh);
       supabase.removeChannel(notificationsChannel);
-      supabase.removeChannel(jobsChannel);
       supabase.removeChannel(escrowChannel);
     };
   }, [isLoaded, isSignedIn, user?.id, authenticatedSupabase]);
@@ -484,7 +453,6 @@ const ProJobsPage = () => {
   const [stripeAccountMissing, setStripeAccountMissing] = useState(false);
   const [onboardingLoading, setOnboardingLoading] = useState(false);
   const [onboardingAutoAttempted, setOnboardingAutoAttempted] = useState(false);
-  const [releasingReserveId, setReleasingReserveId] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<"newest" | "highest_budget">("newest");
 
@@ -538,56 +506,6 @@ const ProJobsPage = () => {
       setOnboardingLoading(false);
     }
   }, [userEmail, user]);
-
-  const releaseReserve = useCallback(
-    async (jobId: string) => {
-      setReleasingReserveId(jobId);
-      setError(null);
-      try {
-        const response = await fetch(`/api/jobs/${jobId}/release-reserve`, {
-          method: "POST",
-        });
-
-        const payload = await response.json().catch(() => null);
-
-        if (!response.ok) {
-          throw new Error(payload?.error ?? "Unable to release reserve funds.");
-        }
-
-        setEscrowJobs((prev) =>
-          prev.map((job) => {
-            if (job.id !== jobId) {
-              return job;
-            }
-
-            const reserveCents = job.provider_reserve_cents ?? 0;
-            return {
-              ...job,
-              job_status: "completed",
-              provider_reserve_cents: 0,
-              reserve_releasable_at: null,
-              last_provider_transfer_id:
-                (payload?.transferId as string | undefined) ??
-                job.last_provider_transfer_id ??
-                null,
-              provider_transfer_total_cents:
-                (job.provider_transfer_total_cents ?? 0) + reserveCents,
-            };
-          })
-        );
-      } catch (err) {
-        console.error(err);
-        setError(
-          err instanceof Error
-            ? err.message
-            : "We couldn’t release the reserve. Please try again later."
-        );
-      } finally {
-        setReleasingReserveId(null);
-      }
-    },
-    [setEscrowJobs, setError]
-  );
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
@@ -900,16 +818,6 @@ const ProJobsPage = () => {
                   const escrowStatusLabel = escrowPayment
                     ? formatPaymentStatus(escrowPayment.status)
                     : "Not funded yet";
-                  const reserveCents = job.provider_reserve_cents ?? 0;
-                  const reserveReleaseAt = job.reserve_releasable_at
-                    ? new Date(job.reserve_releasable_at)
-                    : null;
-                  const reserveReady = reserveReleaseAt
-                    ? reserveReleaseAt.getTime() <= Date.now()
-                    : false;
-                  const reserveCountdown = reserveReleaseAt
-                    ? formatDistanceToNow(reserveReleaseAt, { addSuffix: true })
-                    : null;
                   const renderPaymentBlock = (
                     label: string,
                     payment: EscrowPaymentRecord | undefined,
@@ -995,7 +903,8 @@ const ProJobsPage = () => {
                           </p>
                           <p className="text-xs text-emerald-700 mt-1">
                             After ZapTasks fee (
-                            {Math.round(job.platform_fee_rate * 100)}%)
+                            {Math.round(job.platform_fee_rate * 100)}%); Stripe
+                            processing fees apply
                           </p>
                         </div>
                         <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
@@ -1042,7 +951,7 @@ const ProJobsPage = () => {
                             <p className="text-sm font-semibold">
                               Full $
                               {(schedule.amounts.escrowCents / 100).toFixed(2)}{" "}
-                              in escrow
+                              secured by homeowner
                             </p>
                             <p className="text-xs text-blue-700">
                               Status: {escrowStatusLabel}
@@ -1050,49 +959,10 @@ const ProJobsPage = () => {
                             <p className="text-xs">
                               You&apos;ll receive $
                               {(providerTakeHome / 100).toFixed(2)} after
-                              completion
+                              completion, less standard Stripe card-processing
+                              fees
                             </p>
                           </div>
-                        </div>
-                      )}
-                      {reserveCents > 0 && (
-                        <div className="border border-amber-200 bg-amber-50 text-amber-700 rounded-lg p-4 space-y-2">
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <p className="text-sm font-semibold">
-                                Reserve hold
-                              </p>
-                              <p className="text-xs">
-                                {formatCurrency(reserveCents)} held until{" "}
-                                {reserveReleaseAt
-                                  ? format(reserveReleaseAt, "MMM d, yyyy")
-                                  : "processing"}
-                                {reserveReleaseAt
-                                  ? ` (${reserveCountdown ?? "processing"})`
-                                  : ""}
-                              </p>
-                            </div>
-                            {reserveReady ? (
-                              <button
-                                className="btn btn-sm btn-primary text-white"
-                                onClick={() => releaseReserve(job.id)}
-                                disabled={releasingReserveId === job.id}
-                              >
-                                {releasingReserveId === job.id
-                                  ? "Releasing..."
-                                  : "Release reserve"}
-                              </button>
-                            ) : (
-                              <span className="text-xs font-medium">
-                                Hold active
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs">
-                            ZapTasks keeps a short-term reserve to cover refunds
-                            and disputes. Funds become eligible once the hold
-                            period expires.
-                          </p>
                         </div>
                       )}
                     </article>
@@ -1191,12 +1061,8 @@ const ProJobsPage = () => {
                   const isOwnJob = job.homeowner_id === currentUserId;
                   const catStyle = getCategoryStyle(job.services);
                   const justPosted = isJustPosted(job.created_at);
-                  const locationLabel = (() => {
-                    if (!job.address) return "Location shared after hire";
-                    const parts = job.address.split(",").map((p) => p.trim()).filter(Boolean);
-                    if (parts.length <= 1) return "Location shared after hire";
-                    return parts.slice(1).join(", ");
-                  })();
+                  // The API already strips the street address for open jobs.
+                  const locationLabel = job.address ?? "Location shared after hire";
                   const budgetLabel = (() => {
                     if (job.pricing_mode === "provider_quote") return "Open to quotes";
                     if (!job.budget_amount) return "Budget open";

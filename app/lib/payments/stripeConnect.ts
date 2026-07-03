@@ -49,31 +49,6 @@ export function determineEscrowTier(totalAmountCents: number): EscrowTier {
   return "simple";
 }
 
-function pickPlatformFeeRate(tier: EscrowTier): number {
-  return PLATFORM_FEE_RATE;
-}
-
-function allocateAmounts(total: number, weights: number[]): number[] {
-  const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
-  let remainder = total;
-
-  return weights.map((weight, index) => {
-    if (weight === 0) {
-      return 0;
-    }
-
-    const rawValue = (total * weight) / totalWeight;
-    let amount = Math.round(rawValue);
-
-    if (index === weights.length - 1) {
-      amount = remainder;
-    }
-
-    remainder -= amount;
-    return amount;
-  });
-}
-
 // Simplified: always 100% escrow
 export function buildEscrowSchedule(totalAmountCents: number): EscrowSchedule {
   if (!Number.isFinite(totalAmountCents) || totalAmountCents <= 0) {
@@ -108,18 +83,21 @@ type CreatePaymentIntentInput = {
   jobId: string;
   amountCents: number;
   platformFeeCents: number;
-  customerId: string;
   providerStripeAccountId: string;
   paymentType: "escrow" | "progress" | "completion";
   captureMethod: "automatic" | "manual";
   metadata?: Record<string, string | number | null | undefined>;
 };
 
+// Direct charge on the provider's connected account. The provider is the
+// merchant of record: disputes and refunds are their responsibility (with
+// Stripe bearing unresolved negative balances per the account's controller
+// settings), the provider pays Stripe processing fees, and ZapTasks keeps
+// the full application fee.
 export async function createJobPaymentIntent({
   jobId,
   amountCents,
   platformFeeCents,
-  customerId,
   providerStripeAccountId,
   paymentType,
   captureMethod,
@@ -130,130 +108,101 @@ export async function createJobPaymentIntent({
   }
 
   if (!providerStripeAccountId) {
-    throw new Error("Provider Stripe account id is required for destination charge");
+    throw new Error("Provider Stripe account id is required for a direct charge");
   }
 
   const applicationFeeCents = Math.max(Math.min(Math.round(platformFeeCents), amountCents), 0);
 
-  const paymentIntent = await getStripe().paymentIntents.create({
-    amount: amountCents,
-    currency: "cad",
-    customer: customerId,
-    capture_method: captureMethod,
-    automatic_payment_methods: { enabled: true },
-    application_fee_amount: applicationFeeCents,
-    transfer_data: {
-      destination: providerStripeAccountId,
+  const paymentIntent = await getStripe().paymentIntents.create(
+    {
+      amount: amountCents,
+      currency: "cad",
+      capture_method: captureMethod,
+      automatic_payment_methods: { enabled: true },
+      application_fee_amount: applicationFeeCents,
+      metadata: {
+        ...metadata,
+        jobId,
+        paymentType,
+        providerStripeAccountId,
+        platformFeeCents: String(applicationFeeCents),
+      },
     },
-    metadata: {
-      ...metadata,
-      jobId,
-      paymentType,
-      providerStripeAccountId,
-      platformFeeCents: String(applicationFeeCents),
+    {
+      stripeAccount: providerStripeAccountId,
+      // Unique per attempt: reusing a key after cancelling a previous intent
+      // would return the cancelled intent instead of a fresh one.
+      idempotencyKey: `pi-${jobId}-${paymentType}-${Date.now()}`,
     },
-    transfer_group: jobId,
-  }, { idempotencyKey: `pi-${jobId}-${paymentType}` });
+  );
 
   return paymentIntent;
 }
 
-export async function captureJobPaymentIntent(paymentIntentId: string) {
+export async function retrieveJobPaymentIntent(
+  paymentIntentId: string,
+  providerStripeAccountId: string,
+) {
+  if (!paymentIntentId) {
+    throw new Error("Payment intent id is required to retrieve");
+  }
+
+  return getStripe().paymentIntents.retrieve(paymentIntentId, {
+    stripeAccount: providerStripeAccountId,
+  });
+}
+
+export async function captureJobPaymentIntent(
+  paymentIntentId: string,
+  providerStripeAccountId: string,
+) {
   if (!paymentIntentId) {
     throw new Error("Payment intent id is required to capture");
   }
 
-  return getStripe().paymentIntents.capture(paymentIntentId);
+  return getStripe().paymentIntents.capture(paymentIntentId, undefined, {
+    stripeAccount: providerStripeAccountId,
+  });
 }
 
-export async function cancelJobPaymentIntent(paymentIntentId: string) {
+export async function cancelJobPaymentIntent(
+  paymentIntentId: string,
+  providerStripeAccountId: string,
+) {
   if (!paymentIntentId) {
     throw new Error("Payment intent id is required to cancel");
   }
 
-  return getStripe().paymentIntents.cancel(paymentIntentId);
+  return getStripe().paymentIntents.cancel(paymentIntentId, undefined, {
+    stripeAccount: providerStripeAccountId,
+  });
 }
 
 export async function refundJobPaymentIntent({
   paymentIntentId,
   amountCents,
+  providerStripeAccountId,
 }: {
   paymentIntentId: string;
   amountCents?: number;
+  providerStripeAccountId: string;
 }) {
   if (!paymentIntentId) {
     throw new Error("Payment intent id is required to refund");
   }
 
-  return getStripe().refunds.create({
-    payment_intent: paymentIntentId,
-    amount: amountCents,
-    reverse_transfer: true,
-    refund_application_fee: true,
-  }, { idempotencyKey: `re-${paymentIntentId}-${amountCents ?? "full"}` });
-}
-
-export function calculateProviderShare(amountCents: number, platformFeeCents: number): number {
-  const gross = Math.max(Number(amountCents) || 0, 0);
-  const platformFee = Math.max(Number(platformFeeCents) || 0, 0);
-  return Math.max(gross - platformFee, 0);
-}
-
-export function calculateProviderReserve(providerShareCents: number) {
-  const share = Math.max(Number(providerShareCents) || 0, 0);
-  if (share === 0) {
-    return { reserveCents: 0, immediateTransferCents: 0 };
-  }
-
-  const reserveCents = Math.min(
-    share,
-    Math.max(Math.round(share * 0.1), 1000),
-  );
-
-  return {
-    reserveCents,
-    immediateTransferCents: Math.max(share - reserveCents, 0),
-  };
-}
-
-type ProviderTransferInput = {
-  jobId: string;
-  providerStripeAccountId: string;
-  amountCents: number;
-  reason: "payout" | "reserve_release";
-  metadata?: Record<string, string | number | null | undefined>;
-};
-
-export async function createProviderTransfer({
-  jobId,
-  providerStripeAccountId,
-  amountCents,
-  reason,
-  metadata = {},
-}: ProviderTransferInput) {
-  if (!jobId) {
-    throw new Error("A job id is required to create a provider transfer");
-  }
-
-  if (!providerStripeAccountId) {
-    throw new Error("Provider account id is required to create a transfer");
-  }
-
-  if (!amountCents || amountCents <= 0) {
-    throw new Error("Transfer amount must be greater than zero");
-  }
-
-  return getStripe().transfers.create({
-    amount: amountCents,
-    currency: "cad",
-    destination: providerStripeAccountId,
-    transfer_group: jobId,
-    metadata: {
-      ...metadata,
-      jobId,
-      reason,
+  return getStripe().refunds.create(
+    {
+      payment_intent: paymentIntentId,
+      amount: amountCents,
+      // Return ZapTasks' fee so the provider isn't out of pocket for it.
+      refund_application_fee: true,
     },
-  }, { idempotencyKey: `tr-${jobId}-${reason}` });
+    {
+      stripeAccount: providerStripeAccountId,
+      idempotencyKey: `re-${paymentIntentId}-${amountCents ?? "full"}`,
+    },
+  );
 }
 
 export async function getOrCreateCustomer({
@@ -295,11 +244,5 @@ export const stripe = new Proxy({} as Stripe, {
     return value;
   },
 });
-
-// Ensure constants exported at top after vars
-export const PROVIDER_RESERVE_RATE = 0.1;
-export const PROVIDER_RESERVE_MIN_CENTS = 1000;
-export const PROVIDER_RESERVE_HOLD_DAYS = 7;
-export const PROVIDER_RESERVE_HOLD_MS = PROVIDER_RESERVE_HOLD_DAYS * 24 * 60 * 60 * 1000;
 
 export { PLATFORM_FEE_RATE };

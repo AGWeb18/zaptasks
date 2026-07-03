@@ -38,7 +38,8 @@ const HomePage: React.FC = () => {
             </h1>
 
             <p className="text-2xl text-slate-600 mb-6 max-w-2xl mx-auto leading-relaxed">
-              Browse local jobs, set your own hours, keep 90% of every job.
+              Browse local jobs, set your own hours and rates. ZapTasks takes
+              just 10% — no subscriptions, no lead fees.
             </p>
 
             <div className="flex flex-wrap justify-center gap-6 text-sm font-medium text-slate-500 mb-12">

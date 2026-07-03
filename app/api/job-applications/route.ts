@@ -18,9 +18,12 @@ export async function POST(req: NextRequest) {
 
     const supabase = await createClientWithUser(userId);
 
-    const { data: jobRequest, error: jobError } = await supabase
+    // Applicants can no longer SELECT job_requests rows directly (homeowner
+    // PII protection), so validate the job via the service-role client.
+    const serviceClient = createServiceRoleClient();
+    const { data: jobRequest, error: jobError } = await serviceClient
       .from("job_requests")
-      .select("id, homeowner_id")
+      .select("id, homeowner_id, status")
       .eq("id", jobId)
       .single();
 
@@ -30,6 +33,10 @@ export async function POST(req: NextRequest) {
 
     if (jobRequest.homeowner_id === userId) {
       return NextResponse.json({ error: "You cannot apply to a job you posted." }, { status: 403 });
+    }
+
+    if (jobRequest.status !== "open") {
+      return NextResponse.json({ error: "This job is no longer accepting applications." }, { status: 409 });
     }
 
     const { data: existingApplication } = await supabase

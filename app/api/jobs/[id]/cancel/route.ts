@@ -5,7 +5,7 @@ import { createClientWithUser } from "@/app/utils/supabase/server";
 import {
   cancelJobPaymentIntent,
   refundJobPaymentIntent,
-  stripe,
+  retrieveJobPaymentIntent,
 } from "@/app/lib/payments/stripeConnect";
 import type { JobPaymentRecord } from "@/app/api/jobs/types";
 
@@ -47,20 +47,29 @@ export async function POST(req: NextRequest, context: CancelJobParams) {
       ? (job.payments as JobPaymentRecord[])
       : [];
     const refundResults: Array<{ paymentId: string; action: string }> = [];
+    const providerStripeAccountId = job.provider_stripe_account_id as string | null;
+
+    if (payments.some((payment) => payment.stripe_payment_intent_id) && !providerStripeAccountId) {
+      return NextResponse.json({ error: "Provider payout details are missing" }, { status: 400 });
+    }
 
     for (const payment of payments) {
-      if (!payment.stripe_payment_intent_id) {
+      if (!payment.stripe_payment_intent_id || !providerStripeAccountId) {
         continue;
       }
 
-      const paymentIntent = await stripe.paymentIntents.retrieve(
+      const paymentIntent = await retrieveJobPaymentIntent(
         payment.stripe_payment_intent_id,
+        providerStripeAccountId,
       );
 
       let action = "noop";
 
       if (paymentIntent.status === "succeeded") {
-        await refundJobPaymentIntent({ paymentIntentId: paymentIntent.id });
+        await refundJobPaymentIntent({
+          paymentIntentId: paymentIntent.id,
+          providerStripeAccountId,
+        });
         action = "refunded";
         await supabase
           .from("payments")
@@ -74,7 +83,7 @@ export async function POST(req: NextRequest, context: CancelJobParams) {
         paymentIntent.status === "requires_payment_method" ||
         paymentIntent.status === "requires_confirmation"
       ) {
-        await cancelJobPaymentIntent(paymentIntent.id);
+        await cancelJobPaymentIntent(paymentIntent.id, providerStripeAccountId);
         action = "canceled";
         await supabase
           .from("payments")

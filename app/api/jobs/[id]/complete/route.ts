@@ -6,7 +6,7 @@ import {
   buildEscrowSchedule,
   createJobPaymentIntent,
   captureJobPaymentIntent,
-  stripe,
+  retrieveJobPaymentIntent,
 } from "@/app/lib/payments/stripeConnect";
 import type {
   JobMilestoneRecord,
@@ -48,6 +48,12 @@ export async function POST(req: NextRequest, context: CompleteJobParams) {
       return NextResponse.json({ error: "Only the homeowner can close this job" }, { status: 403 });
     }
 
+    if (!job.provider_stripe_account_id) {
+      return NextResponse.json({ error: "Provider payout details are missing" }, { status: 400 });
+    }
+
+    const providerStripeAccountId = job.provider_stripe_account_id as string;
+
     const schedule =
       (job.milestone_plan as ReturnType<typeof buildEscrowSchedule> | null) ??
       buildEscrowSchedule(job.total_amount_cents);
@@ -61,7 +67,10 @@ export async function POST(req: NextRequest, context: CompleteJobParams) {
         return { id: payment.id, status: "missing" } as const;
       }
 
-      const intent = await stripe.paymentIntents.retrieve(payment.stripe_payment_intent_id);
+      const intent = await retrieveJobPaymentIntent(
+        payment.stripe_payment_intent_id,
+        providerStripeAccountId,
+      );
       await supabase.from("payments").update({
         status: intent.status,
         captured_at: intent.status === "succeeded" ? new Date().toISOString() : payment.captured_at ?? null,
@@ -114,16 +123,11 @@ export async function POST(req: NextRequest, context: CompleteJobParams) {
           });
         }
       } else {
-        if (!job.stripe_customer_id || !job.provider_stripe_account_id) {
-          return NextResponse.json({ error: "Payment details incomplete" }, { status: 400 });
-        }
-
         const paymentIntent = await createJobPaymentIntent({
           jobId,
           amountCents: completionAmountCents,
           platformFeeCents: schedule.amounts.platformFeeCompletionCents,
-          customerId: job.stripe_customer_id,
-          providerStripeAccountId: job.provider_stripe_account_id,
+          providerStripeAccountId,
           paymentType: "completion",
           captureMethod: "manual",
         });
@@ -153,18 +157,24 @@ export async function POST(req: NextRequest, context: CompleteJobParams) {
     }
 
     if (unsettled.length > 0) {
-      return NextResponse.json({ requiresPaymentActions: true, unsettled }, { status: 409 });
+      return NextResponse.json(
+        { requiresPaymentActions: true, unsettled, stripeAccountId: providerStripeAccountId },
+        { status: 409 },
+      );
     }
 
     // Capture any manually-authorized escrow payment intents
     for (const payment of payments) {
       if (payment.stripe_payment_intent_id) {
-        const intent = await stripe.paymentIntents.retrieve(payment.stripe_payment_intent_id);
-        
+        const intent = await retrieveJobPaymentIntent(
+          payment.stripe_payment_intent_id,
+          providerStripeAccountId,
+        );
+
         // If payment is in requires_capture state, capture it now
         if (intent.status === "requires_capture") {
           try {
-            await captureJobPaymentIntent(payment.stripe_payment_intent_id);
+            await captureJobPaymentIntent(payment.stripe_payment_intent_id, providerStripeAccountId);
             await supabase.from("payments").update({
               status: "succeeded",
               captured_at: new Date().toISOString(),

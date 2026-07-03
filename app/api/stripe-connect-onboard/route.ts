@@ -70,14 +70,18 @@ export async function POST(req: NextRequest) {
           card_payments: { requested: true },
         },
         controller: {
+          // Standard-account model: Stripe (not ZapTasks) is liable for
+          // disputes/negative balances on connected accounts, and the
+          // connected account pays its own Stripe processing fees.
           fees: {
-            payer: "application",
+            payer: "account",
           },
           losses: {
-            payments: "application",
+            payments: "stripe",
           },
+          requirement_collection: "stripe",
           stripe_dashboard: {
-            type: "express",
+            type: "full",
           },
         },
       });

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
-import { createClient, createClientWithUser } from "@/app/utils/supabase/server";
+import { createClient, createClientWithUser, createServiceRoleClient } from "@/app/utils/supabase/server";
 
 export async function GET(req: NextRequest) {
   const { userId } = getAuth(req);
@@ -28,9 +28,15 @@ export async function GET(req: NextRequest) {
   }
 
   if (scope === "open") {
-    const { data, error } = await supabase
+    // Public job board: never expose homeowner email or the exact street
+    // address to applicants — only the awarded provider gets those. RLS blocks
+    // direct row reads, so the board is served here with safe columns only.
+    const serviceClient = createServiceRoleClient();
+    const { data, error } = await serviceClient
       .from("job_requests")
-      .select("*, job_applications(provider_id)")
+      .select(
+        "id, homeowner_id, homeowner_name, job_title, services, description, service_date, service_time, hours, people, bring_equipment, address, budget_type, budget_amount, budget_notes, contact_preference, pricing_mode, status, created_at, photo_urls, job_applications(provider_id)"
+      )
       .eq("status", "open")
       .order("created_at", { ascending: false });
 
@@ -39,7 +45,20 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Failed to load open jobs." }, { status: 500 });
     }
 
-    return NextResponse.json({ jobRequests: data });
+    const maskAddress = (address: unknown): string | null => {
+      if (typeof address !== "string" || !address.trim()) return null;
+      const parts = address.split(",").map((part) => part.trim()).filter(Boolean);
+      if (parts.length <= 1) return null;
+      // Drop the street line, keep city/province for a rough location.
+      return parts.slice(1).join(", ");
+    };
+
+    const jobRequests = (data ?? []).map((jobRequest) => ({
+      ...jobRequest,
+      address: maskAddress(jobRequest.address),
+    }));
+
+    return NextResponse.json({ jobRequests });
   }
 
   return NextResponse.json({ error: "Invalid scope" }, { status: 400 });
