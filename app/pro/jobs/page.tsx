@@ -13,6 +13,7 @@ import {
   Star,
   ChevronRight,
   AlertTriangle,
+  Search,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { createClient } from "@/app/utils/supabase/client";
@@ -165,14 +166,19 @@ const jobStatusCopy: Record<string, string> = {
   refunded: "Refunded",
 };
 
-const SERVICE_CATEGORY_STYLES: Record<string, { bg: string; emoji: string; label: string }> = {
-  "yard-care":        { bg: "bg-emerald-500", emoji: "🌿", label: "Yard & Outdoor" },
-  "property-cleanup": { bg: "bg-emerald-500", emoji: "🌿", label: "Yard & Outdoor" },
-  "home-fixes":       { bg: "bg-orange-500", emoji: "🔧", label: "Home Fixes" },
-  "handyman-jobs":    { bg: "bg-orange-500", emoji: "🔧", label: "Home Fixes" },
-  "grocery-runs":     { bg: "bg-sky-500",    emoji: "🛒", label: "Grocery Runs" },
+const SERVICE_CATEGORY_STYLES: Record<
+  string,
+  { bg: string; color: string; dotBg: string; label: string }
+> = {
+  "yard-care":        { bg: "bg-emerald-500", color: "#047857", dotBg: "#ecfdf5", label: "Yard & Outdoor" },
+  "property-cleanup": { bg: "bg-emerald-500", color: "#047857", dotBg: "#ecfdf5", label: "Yard & Outdoor" },
+  "home-fixes":       { bg: "bg-orange-500",  color: "#c2410c", dotBg: "#fff7ed", label: "Home Fixes" },
+  "handyman-jobs":    { bg: "bg-orange-500",  color: "#c2410c", dotBg: "#fff7ed", label: "Home Fixes" },
+  "grocery-runs":     { bg: "bg-sky-500",     color: "#0369a1", dotBg: "#f0f9ff", label: "Grocery Runs" },
+  "cleaning":         { bg: "bg-violet-500",  color: "#6d28d9", dotBg: "#f5f3ff", label: "Cleaning" },
+  "snow-removal":     { bg: "bg-cyan-500",    color: "#0e7490", dotBg: "#ecfeff", label: "Snow Removal" },
 };
-const DEFAULT_CATEGORY_STYLE = { bg: "bg-slate-500", emoji: "⚡", label: "General" };
+const DEFAULT_CATEGORY_STYLE = { bg: "bg-slate-500", color: "#475569", dotBg: "#f8fafc", label: "General" };
 
 function getCategoryStyle(services: string[]) {
   for (const svc of services) {
@@ -454,7 +460,10 @@ const ProJobsPage = () => {
   const [onboardingLoading, setOnboardingLoading] = useState(false);
   const [onboardingAutoAttempted, setOnboardingAutoAttempted] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>("all");
-  const [sortOrder, setSortOrder] = useState<"newest" | "highest_budget">("newest");
+  const [sortOrder, setSortOrder] = useState<
+    "newest" | "highest_budget" | "fewest_applicants"
+  >("newest");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const startStripeOnboarding = useCallback(async () => {
     if (!userEmail) {
@@ -614,9 +623,25 @@ const ProJobsPage = () => {
       );
     }
 
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      result = result.filter(
+        (job) =>
+          job.job_title.toLowerCase().includes(q) ||
+          job.description.toLowerCase().includes(q) ||
+          (job.address ?? "").toLowerCase().includes(q)
+      );
+    }
+
     switch (sortOrder) {
       case "highest_budget":
         result.sort((a, b) => (b.budget_amount ?? 0) - (a.budget_amount ?? 0));
+        break;
+      case "fewest_applicants":
+        result.sort(
+          (a, b) =>
+            (a.job_applications?.length ?? 0) - (b.job_applications?.length ?? 0)
+        );
         break;
       default:
         result.sort(
@@ -625,7 +650,7 @@ const ProJobsPage = () => {
     }
 
     return result;
-  }, [jobs, activeCategory, sortOrder]);
+  }, [jobs, activeCategory, sortOrder, searchQuery]);
 
   // Onboarding handled via banner — no auto-redirect
 
@@ -634,41 +659,43 @@ const ProJobsPage = () => {
       <Navbar />
       <main className="container mx-auto px-4 py-10">
         <section className="max-w-6xl mx-auto">
-          <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-10">
+          <header className="flex flex-wrap items-end justify-between gap-3 mb-4">
             <div>
-              <h1 className="text-4xl font-bold text-blue-600 mb-2">
-                Browse open jobs near you
+              <h1 className="text-[26px] leading-8 font-bold text-slate-900 m-0 flex items-center gap-2.5">
+                Open jobs near you
+                <span className="text-[13px] font-semibold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full">
+                  {loadingJobs ? "—" : `${filteredJobs.length} open`}
+                </span>
               </h1>
-              <p className="text-base-content/70 max-w-2xl">
-                Scroll the community job board for tasks posted by neighbours
-                across Canada. Anyone can apply—send a quick note, chat through
-                the details, and get paid through ZapTasks when you&apos;re
-                selected.
+              <p className="text-slate-500 mt-1 text-sm">
+                Apply with a quick note — chat, get chosen, get paid through ZapTasks.
               </p>
             </div>
-            <div className="bg-white rounded-xl shadow border border-slate-200 p-4 flex flex-col gap-3 min-w-[220px]">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-blue-500" />
-                <div>
-                  <p className="text-xs uppercase text-base-content/50">
-                    Open jobs
-                  </p>
-                  <p className="text-2xl font-semibold">
-                    {loadingJobs ? "—" : openJobCount}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Bell className="w-5 h-5 text-amber-500" />
-                <div>
-                  <p className="text-xs uppercase text-base-content/50">
-                    Unread alerts
-                  </p>
-                  <p className="text-lg font-semibold">
+            <div className="flex items-center gap-2">
+              <a
+                href="#notifications"
+                className="flex items-center gap-1.5 text-[13px] font-semibold text-slate-600 no-underline px-3 py-2 border border-slate-200 rounded-[10px] bg-white hover:border-slate-300 transition-colors"
+              >
+                <Bell className="w-3.5 h-3.5 text-amber-500" />
+                Alerts
+                {unreadNotifications.length > 0 && (
+                  <span className="bg-blue-600 text-white text-[11px] font-bold px-1.5 py-px rounded-full">
                     {loadingNotifications ? "—" : unreadNotifications.length}
-                  </p>
-                </div>
-              </div>
+                  </span>
+                )}
+              </a>
+              <a
+                href="#booked-jobs"
+                className="flex items-center gap-1.5 text-[13px] font-semibold text-slate-600 no-underline px-3 py-2 border border-slate-200 rounded-[10px] bg-white hover:border-slate-300 transition-colors"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-blue-500" />
+                My booked jobs
+                {escrowJobs.length > 0 && (
+                  <span className="bg-slate-100 text-slate-600 text-[11px] font-bold px-1.5 py-px rounded-full">
+                    {loadingEscrow ? "—" : escrowJobs.length}
+                  </span>
+                )}
+              </a>
             </div>
           </header>
 
@@ -690,7 +717,7 @@ const ProJobsPage = () => {
           )}
 
           {isSignedIn && (loadingNotifications || notifications.length > 0) && (
-          <section className="mb-8">
+          <section id="notifications" className="mb-8 scroll-mt-24">
             <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
               <Bell className="w-4 h-4" /> Notifications
               {unreadNotifications.length > 0 && (
@@ -750,7 +777,7 @@ const ProJobsPage = () => {
           )}
 
           {isSignedIn && (loadingEscrow || escrowJobs.length > 0) && (
-          <section className="mb-12">
+          <section id="booked-jobs" className="mb-12 scroll-mt-24">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
               <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-blue-500" /> Your Booked Jobs
@@ -981,9 +1008,19 @@ const ProJobsPage = () => {
           )}
 
 
-          {/* Filter bar */}
-          <div className="mb-6 space-y-3">
-            <div className="flex flex-wrap gap-2">
+          {/* Search + filter bar */}
+          <div className="sticky top-16 z-40 bg-slate-100 py-2 pb-3 mb-5 flex flex-wrap items-center gap-2.5 border-b border-slate-200/70">
+            <div className="relative flex-1 min-w-[200px] max-w-[320px]">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search jobs"
+                className="w-full box-border py-2 pl-8 pr-3 border border-slate-200 rounded-[10px] bg-white text-slate-900 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div className="flex flex-wrap gap-1.5">
               <button
                 className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors border ${
                   activeCategory === "all"
@@ -994,29 +1031,35 @@ const ProJobsPage = () => {
               >
                 All jobs
               </button>
-              {serviceOptions.map((opt) => (
-                <button
-                  key={opt.id}
-                  className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors border ${
-                    activeCategory === opt.id
-                      ? "bg-blue-600 text-white border-blue-600"
-                      : "bg-white border-slate-200 text-slate-700 hover:border-blue-400"
-                  }`}
-                  onClick={() => setActiveCategory(opt.id)}
-                >
-                  {opt.label}
-                </button>
-              ))}
+              {serviceOptions.map((opt) => {
+                const dotColor =
+                  SERVICE_CATEGORY_STYLES[opt.id]?.bg ?? DEFAULT_CATEGORY_STYLE.bg;
+                const active = activeCategory === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors border ${
+                      active
+                        ? "bg-blue-600 text-white border-blue-600"
+                        : "bg-white border-slate-200 text-slate-700 hover:border-blue-400"
+                    }`}
+                    onClick={() => setActiveCategory(opt.id)}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+                    {opt.label}
+                  </button>
+                );
+              })}
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-slate-500 font-medium">Sort:</span>
+            <div className="flex items-center gap-2 ml-auto">
               <select
-                className="select select-sm select-bordered bg-white text-slate-700 text-sm"
+                className="px-2.5 py-2 border border-slate-200 rounded-[10px] bg-white text-slate-700 text-[13px] outline-none"
                 value={sortOrder}
                 onChange={(e) => setSortOrder(e.target.value as typeof sortOrder)}
               >
                 <option value="newest">Newest first</option>
                 <option value="highest_budget">Highest budget</option>
+                <option value="fewest_applicants">Fewest applicants</option>
               </select>
             </div>
           </div>
@@ -1055,92 +1098,105 @@ const ProJobsPage = () => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 pb-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5 pb-2">
                 {filteredJobs.map((job) => {
                   const applied = hasApplied(job.id);
                   const isOwnJob = job.homeowner_id === currentUserId;
                   const catStyle = getCategoryStyle(job.services);
                   const justPosted = isJustPosted(job.created_at);
+                  const applicantCount = job.job_applications?.length ?? 0;
                   // The API already strips the street address for open jobs.
                   const locationLabel = job.address ?? "Location shared after hire";
-                  const budgetLabel = (() => {
-                    if (job.pricing_mode === "provider_quote") return "Open to quotes";
-                    if (!job.budget_amount) return "Budget open";
-                    return job.budget_type === "hourly"
-                      ? `$${job.budget_amount}/hr CAD`
-                      : `$${job.budget_amount} CAD`;
-                  })();
+                  const isQuote = job.pricing_mode === "provider_quote";
+                  const budgetLabel = isQuote
+                    ? "Open to quotes"
+                    : job.budget_amount
+                    ? `$${job.budget_amount}`
+                    : "Budget open";
+                  const budgetSub = isQuote
+                    ? ""
+                    : job.budget_type === "hourly"
+                    ? "CAD per hour"
+                    : "CAD flat";
+                  const disabled = applied || isOwnJob;
 
                   return (
                     <article
                       key={job.id}
-                      className={`bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 flex flex-col overflow-hidden ${
-                        applied || isOwnJob ? "opacity-60" : ""
+                      className={`bg-white border border-slate-200 rounded-[14px] px-[18px] py-4 flex flex-col gap-2.5 transition-shadow hover:shadow-[0_4px_10px_-2px_rgba(15,23,42,0.08)] hover:border-slate-300 ${
+                        disabled ? "opacity-55" : ""
                       }`}
                     >
-                      {/* Colored category band */}
-                      <div className={`${catStyle.bg} px-4 py-3 flex items-center justify-between`}>
-                        <span className="flex items-center gap-2 text-white text-xs font-semibold uppercase tracking-wide">
-                          <span>{catStyle.emoji}</span>
+                      <div className="flex items-center justify-between gap-2">
+                        <span
+                          className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full"
+                          style={{ color: catStyle.color, background: catStyle.dotBg }}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${catStyle.bg}`} />
                           {catStyle.label}
                         </span>
-                        <span className="bg-white/25 text-white text-xs font-bold px-2.5 py-1 rounded-full">
-                          {budgetLabel}
-                        </span>
-                      </div>
-
-                      {/* Card body */}
-                      <div className="flex-1 flex flex-col px-5 pt-4 pb-1">
-                        {/* Status badges */}
-                        {justPosted && (
-                          <div className="flex gap-2 mb-2">
-                            <span className="flex items-center gap-1 bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-                              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block" />
-                              Just posted
-                            </span>
-                          </div>
-                        )}
-
-                        <h3 className="text-base font-bold text-slate-900 leading-snug mb-1">
-                          {job.job_title}
-                        </h3>
-                        <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed mb-4">
-                          {job.description}
-                        </p>
-
-                        {/* Location + time row */}
-                        <div className="flex flex-col gap-1.5 mt-auto pb-4 text-xs text-slate-500">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                            <span className="truncate">{locationLabel}</span>
-                          </div>
-                          <span className="text-slate-400">
+                        {justPosted ? (
+                          <span className="flex items-center gap-1 text-[11px] font-semibold text-green-700">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                            New
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-slate-400 whitespace-nowrap">
                             {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
                           </span>
-                        </div>
+                        )}
                       </div>
 
-                      {/* CTA */}
-                      <div className="px-5 pb-5">
+                      <div>
+                        <h3 className="text-[15px] font-bold text-slate-900 leading-snug m-0 mb-0.5">
+                          {job.job_title}
+                        </h3>
+                        <p className={`text-[17px] font-bold m-0 ${isQuote ? "text-emerald-600" : "text-slate-900"}`}>
+                          {budgetLabel}{" "}
+                          {budgetSub && (
+                            <span className="text-xs font-medium text-slate-400">{budgetSub}</span>
+                          )}
+                        </p>
+                      </div>
+
+                      <p className="text-[13px] text-slate-500 leading-relaxed m-0 line-clamp-2">
+                        {job.description}
+                      </p>
+
+                      <div className="flex items-center justify-between gap-2 mt-auto pt-1">
+                        <div className="flex flex-col gap-0.5 min-w-0 text-xs text-slate-500">
+                          <span className="flex items-center gap-1 min-w-0">
+                            <MapPin className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                            <span className="truncate">{locationLabel}</span>
+                          </span>
+                          <span className={applicantCount === 0 ? "text-emerald-600" : "text-slate-400"}>
+                            {applicantCount === 0 ? "Be the first to apply" : `${applicantCount} applied`}
+                          </span>
+                        </div>
                         <button
-                          className="btn btn-primary btn-sm btn-block gap-1.5"
+                          className="px-4 py-2 rounded-[10px] text-[13px] font-semibold whitespace-nowrap border disabled:cursor-not-allowed"
                           onClick={() => {
                             if (isOwnJob) return;
                             setSelectedJobId(job.id);
                             resetApplicationForm(job.job_title);
                           }}
-                          disabled={applied || submitting || isOwnJob}
+                          disabled={disabled || submitting}
+                          style={
+                            disabled
+                              ? { borderColor: "#e2e8f0", background: "#f8fafc", color: "#94a3b8" }
+                              : { borderColor: "#2563eb", background: "#2563eb", color: "#ffffff" }
+                          }
                         >
                           {applied ? (
-                            <>
-                              <CheckCircle className="w-4 h-4" /> Applied
-                            </>
+                            <span className="flex items-center gap-1">
+                              <CheckCircle className="w-3.5 h-3.5" /> Applied
+                            </span>
                           ) : isOwnJob ? (
                             "Your job"
                           ) : (
-                            <>
-                              Apply Now <ChevronRight className="w-4 h-4" />
-                            </>
+                            <span className="flex items-center gap-1">
+                              Apply <ChevronRight className="w-3.5 h-3.5" />
+                            </span>
                           )}
                         </button>
                       </div>
@@ -1161,15 +1217,15 @@ const ProJobsPage = () => {
       )}
 
       {selectedJobId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 space-y-5">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 px-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full p-6 flex flex-col gap-[18px]">
             <header className="flex items-center justify-between">
-              <h3 className="font-bold text-xl flex items-center gap-2 text-slate-900">
-                <MessageCircle className="w-5 h-5 text-blue-500" />
+              <h3 className="font-bold text-lg text-slate-900 m-0 flex items-center gap-2">
+                <MessageCircle className="w-4 h-4 text-blue-500" />
                 Apply to {selectedJob?.job_title ?? "this job"}
               </h3>
               <button
-                className="btn btn-sm btn-ghost"
+                className="bg-transparent border-none text-sm font-semibold text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-100 cursor-pointer"
                 onClick={() => setSelectedJobId(null)}
                 disabled={submitting}
                 aria-label="Close application form"
@@ -1178,64 +1234,63 @@ const ProJobsPage = () => {
               </button>
             </header>
 
-            <div className="space-y-4 text-slate-800">
-              {selectedJobIsOwn && (
-                <div className="alert alert-info shadow-sm text-sm">
-                  <CheckCircle className="h-4 w-4" />
-                  <span>
-                    You posted this job. Only other providers can apply.
-                  </span>
-                </div>
-              )}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">
-                  Introduce yourself
-                </label>
-                <textarea
-                  className="textarea textarea-bordered w-full bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  rows={4}
-                  value={applicationMessage}
-                  onChange={(e) => setApplicationMessage(e.target.value)}
+            {selectedJobIsOwn && (
+              <div className="alert alert-info shadow-sm text-sm">
+                <CheckCircle className="h-4 w-4" />
+                <span>
+                  You posted this job. Only other providers can apply.
+                </span>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-[13px] font-semibold text-slate-700 mb-1">
+                Introduce yourself
+              </label>
+              <textarea
+                className="w-full box-border p-3 border border-slate-200 rounded-[10px] text-slate-900 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                rows={4}
+                value={applicationMessage}
+                onChange={(e) => setApplicationMessage(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="text-[13px] font-semibold text-slate-700">
+                <span className="block mb-1">Rate type</span>
+                <select
+                  className="w-full box-border p-2.5 border border-slate-200 rounded-[10px] bg-white text-slate-900 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={rateType}
+                  onChange={(e) =>
+                    setRateType(e.target.value as "flat" | "hourly")
+                  }
+                >
+                  <option value="flat">Flat project estimate</option>
+                  <option value="hourly">Hourly estimate</option>
+                </select>
+              </label>
+              <label className="text-[13px] font-semibold text-slate-700">
+                <span className="block mb-1">Rate amount (optional)</span>
+                <input
+                  type="number"
+                  min="0"
+                  className="w-full box-border p-2.5 border border-slate-200 rounded-[10px] text-slate-900 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Leave blank if flexible"
+                  value={rateAmount}
+                  onChange={(e) => setRateAmount(e.target.value)}
                 />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <label className="text-sm font-semibold text-slate-700">
-                  <span className="block mb-1">Rate type</span>
-                  <select
-                    className="select select-bordered w-full bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    value={rateType}
-                    onChange={(e) =>
-                      setRateType(e.target.value as "flat" | "hourly")
-                    }
-                  >
-                    <option value="flat">Flat project estimate</option>
-                    <option value="hourly">Hourly estimate</option>
-                  </select>
-                </label>
-                <label className="text-sm font-semibold text-slate-700">
-                  <span className="block mb-1">Rate amount (optional)</span>
-                  <input
-                    type="number"
-                    min="0"
-                    className="input input-bordered w-full bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Leave blank if flexible"
-                    value={rateAmount}
-                    onChange={(e) => setRateAmount(e.target.value)}
-                  />
-                </label>
-              </div>
+              </label>
             </div>
 
             <div className="flex justify-end gap-2">
               <button
-                className="btn"
+                className="px-4 py-2.5 bg-slate-100 border-none rounded-[10px] text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-200"
                 onClick={() => setSelectedJobId(null)}
                 disabled={submitting}
               >
                 Cancel
               </button>
               <button
-                className="btn btn-primary"
+                className="px-4 py-2.5 bg-blue-600 border-none rounded-[10px] text-sm font-semibold text-white cursor-pointer hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
                 onClick={submitApplication}
                 disabled={submitting || selectedJobIsOwn}
               >

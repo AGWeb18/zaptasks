@@ -4,15 +4,7 @@ import React, { useState, useMemo, useRef } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { addDays, format } from "date-fns";
-import {
-  Calendar,
-  MapPin,
-  DollarSign,
-  Camera,
-  X,
-  Sparkles,
-  CheckCircle2,
-} from "lucide-react";
+import { MapPin, Camera, X, CheckCircle2 } from "lucide-react";
 import Navbar from "../components/NavBar";
 import AddressAutocomplete from "../components/AddressAutocomplete";
 import Image from "next/image";
@@ -23,6 +15,102 @@ const MAX_PHOTO_MB = 5;
 const MAX_PHOTO_BYTES = MAX_PHOTO_MB * 1024 * 1024;
 const TITLE_MIN = 5;
 const DESC_MIN = 15;
+const DESC_GOOD = 60;
+
+interface Category {
+  id: string;
+  emoji: string;
+  label: string;
+  placeholder: string;
+  examples: string[];
+  serviceIds: string[];
+}
+
+const CATEGORIES: Category[] = [
+  {
+    id: "yard",
+    emoji: "🌿",
+    label: "Yard & outdoor",
+    placeholder: "e.g., Mow the lawn at my house",
+    examples: ["Mow my front and back lawn", "Rake and bag the leaves", "Clean out my gutters"],
+    serviceIds: ["yard-care"],
+  },
+  {
+    id: "fixes",
+    emoji: "🔧",
+    label: "Home fixes",
+    placeholder: "e.g., Mount a TV on the wall",
+    examples: ["Mount a TV on the wall", "Assemble flat-pack furniture", "Fix a leaky faucet"],
+    serviceIds: ["home-fixes"],
+  },
+  {
+    id: "cleaning",
+    emoji: "🧽",
+    label: "Cleaning",
+    placeholder: "e.g., Deep clean my kitchen",
+    examples: ["Deep clean kitchen and bathrooms", "Move-out clean, 2-bedroom condo"],
+    serviceIds: ["cleaning"],
+  },
+  {
+    id: "grocery",
+    emoji: "🛒",
+    label: "Grocery run",
+    placeholder: "e.g., Weekly grocery pickup",
+    examples: ["Weekly grocery run for my mom", "Pharmacy and grocery pickup"],
+    serviceIds: ["grocery-runs"],
+  },
+  {
+    id: "snow",
+    emoji: "❄️",
+    label: "Snow removal",
+    placeholder: "e.g., Shovel my driveway",
+    examples: ["Shovel my driveway and walkway", "Clear snow off two cars and steps"],
+    serviceIds: ["snow-removal"],
+  },
+  {
+    id: "other",
+    emoji: "⚡",
+    label: "Something else",
+    placeholder: "e.g., Help me move a couch upstairs",
+    examples: [],
+    serviceIds: ["general"],
+  },
+];
+
+interface DescriptionPrompt {
+  id: string;
+  text: string;
+  starter: string;
+}
+
+const DESCRIPTION_PROMPTS: DescriptionPrompt[] = [
+  { id: "what", text: "What exactly needs doing?", starter: "What needs doing: " },
+  { id: "where", text: "Where on the property?", starter: "Where: " },
+  { id: "tools", text: "Tools or supplies you have?", starter: "Tools/supplies I have: " },
+  { id: "access", text: "Parking or access details?", starter: "Parking/access: " },
+];
+
+type WhenMode = "asap" | "date" | "flexible";
+
+const WHEN_OPTIONS: { id: WhenMode; label: string; sub: string }[] = [
+  { id: "asap", label: "As soon as possible", sub: "Within a few days" },
+  { id: "date", label: "Pick a date", sub: "Choose a day" },
+  { id: "flexible", label: "I’m flexible", sub: "Helpers suggest times" },
+];
+
+const initialFormState = {
+  category: null as string | null,
+  title: "",
+  description: "",
+  whenMode: "flexible" as WhenMode,
+  date: "",
+  address: "",
+  lat: null as number | null,
+  lng: null as number | null,
+  budgetType: "quote" as "set" | "quote",
+  budgetAmount: "",
+  budgetStyle: "flat" as "flat" | "hourly",
+};
 
 const JobPostingPage = () => {
   const { isLoaded, user } = useUser();
@@ -30,28 +118,36 @@ const JobPostingPage = () => {
   const supabase = useMemo(() => createSupabaseClient(), []);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const [form, setForm] = useState(initialFormState);
   const [photos, setPhotos] = useState<Array<{ file: File; preview: string }>>([]);
-  const [date, setDate] = useState("");
-  const [flexible, setFlexible] = useState(false);
-  const [address, setAddress] = useState("");
-  const [lat, setLat] = useState<number | null>(null);
-  const [lng, setLng] = useState<number | null>(null);
-  const [budgetType, setBudgetType] = useState<"set" | "quote">("quote");
-  const [budgetAmount, setBudgetAmount] = useState("");
-  const [budgetStyle, setBudgetStyle] = useState<"flat" | "hourly">("flat");
   const [submitting, setSubmitting] = useState(false);
+  const [posted, setPosted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const { category, title, description, whenMode, date, address, budgetType, budgetAmount, budgetStyle } = form;
+  const activeCategory = CATEGORIES.find((c) => c.id === category) ?? null;
 
   const minDate = useMemo(() => format(addDays(new Date(), 1), "yyyy-MM-dd"), []);
 
   const titleOk = title.trim().length >= TITLE_MIN;
-  const descOk = description.trim().length >= DESC_MIN;
+  const descLen = description.trim().length;
+  const descOk = descLen >= DESC_MIN;
+  const budgetAmountNumber = parseFloat(budgetAmount);
   const budgetOk =
-    budgetType === "quote" || (budgetAmount.length > 0 && parseFloat(budgetAmount) > 0);
-
+    budgetType === "quote" || (budgetAmount.length > 0 && budgetAmountNumber > 0);
   const canPost = titleOk && descOk && budgetOk;
+
+  const descBarWidth = Math.min(100, Math.round((descLen / DESC_GOOD) * 100));
+  const descBarColor = descLen >= DESC_GOOD ? "bg-emerald-500" : descOk ? "bg-blue-400" : "bg-slate-300";
+  const descHint =
+    descLen === 0
+      ? "A sentence or two is enough"
+      : descLen < DESC_MIN
+      ? "Keep going…"
+      : descLen < DESC_GOOD
+      ? "Good — more detail gets better offers"
+      : "Great detail!";
+  const descHintColor = descLen >= DESC_GOOD ? "text-emerald-600" : "text-slate-400";
 
   const handlePhotoSelect = (fileList: FileList | null) => {
     if (!fileList) return;
@@ -89,6 +185,23 @@ const JobPostingPage = () => {
     });
   };
 
+  const addDescriptionPrompt = (prompt: DescriptionPrompt) => {
+    if (description.includes(prompt.starter)) return;
+    setForm((prev) => ({
+      ...prev,
+      description:
+        (prev.description.trim() ? prev.description.replace(/\s*$/, "") + "\n" : "") + prompt.starter,
+    }));
+  };
+
+  const resetForm = () => {
+    setForm(initialFormState);
+    photos.forEach((photo) => URL.revokeObjectURL(photo.preview));
+    setPhotos([]);
+    setError(null);
+    setPosted(false);
+  };
+
   const handleSubmit = async () => {
     if (!user) {
       setError("Please sign in to post a job");
@@ -119,29 +232,22 @@ const JobPostingPage = () => {
         photoUrls = uploads;
       }
 
-      const text = `${title} ${description}`.toLowerCase();
-      const inferredTags: string[] = [];
-      if (text.includes("snow") || text.includes("shovel")) inferredTags.push("Snow removal");
-      if (text.includes("lawn") || text.includes("yard") || text.includes("grass")) inferredTags.push("Yard work");
-      if (text.includes("clean")) inferredTags.push("Cleaning");
-      if (text.includes("paint")) inferredTags.push("Painting");
-      if (text.includes("repair") || text.includes("fix")) inferredTags.push("Repairs");
-      if (inferredTags.length === 0) inferredTags.push("General help");
+      const services = activeCategory ? activeCategory.serviceIds : ["general"];
 
       const payload = {
         homeownerId: user.id,
         homeownerName: user.fullName || user.username || "ZapTasks User",
         homeownerEmail: user.primaryEmailAddress?.emailAddress || "",
         jobTitle: title,
-        services: inferredTags,
+        services,
         description,
-        date: flexible ? null : date || null,
+        date: whenMode === "date" ? date || null : null,
         address: address || null,
-        latitude: lat,
-        longitude: lng,
+        latitude: form.lat,
+        longitude: form.lng,
         budget: {
           type: budgetType === "quote" ? null : budgetStyle,
-          amount: budgetType === "quote" ? null : parseFloat(budgetAmount),
+          amount: budgetType === "quote" ? null : budgetAmountNumber,
         },
         pricingMode: budgetType === "quote" ? "provider_quote" : "client_budget",
         photoUrls,
@@ -158,7 +264,8 @@ const JobPostingPage = () => {
         throw new Error(errMsg || "Failed to post job");
       }
 
-      router.push("/manage-booking?posted=true");
+      setSubmitting(false);
+      setPosted(true);
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -174,76 +281,191 @@ const JobPostingPage = () => {
     );
   }
 
+  if (posted) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <Navbar />
+        <main className="max-w-[560px] mx-auto px-4 py-16">
+          <div className="bg-white border border-slate-200 rounded-2xl px-8 py-10 text-center">
+            <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-5">
+              <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+            </div>
+            <h1 className="text-2xl font-bold m-0 mb-2 text-slate-900">Your job is live!</h1>
+            <p className="text-slate-500 text-[15px] m-0 mb-7">
+              Helpers near you can see it now. Here&apos;s what happens next:
+            </p>
+            <ol className="list-none m-0 mb-7 p-0 flex flex-col gap-3.5 text-left">
+              {[
+                { title: "Helpers apply", body: "you’ll get a notification for each offer, usually within a few hours." },
+                { title: "Chat and choose", body: "ask questions and pick the person you like best." },
+                { title: "Pay securely", body: "money is held safely and released when the job is done." },
+              ].map((step, i) => (
+                <li key={step.title} className="flex gap-3 items-start">
+                  <span className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 text-xs font-bold flex items-center justify-center flex-shrink-0">
+                    {i + 1}
+                  </span>
+                  <p className="m-0 text-sm text-slate-700">
+                    <strong>{step.title}</strong> — {step.body}
+                  </p>
+                </li>
+              ))}
+            </ol>
+            <div className="flex gap-2.5 justify-center flex-wrap">
+              <button
+                onClick={() => router.push("/manage-booking?posted=true")}
+                className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white border-none rounded-xl text-sm font-semibold cursor-pointer"
+              >
+                View my job
+              </button>
+              <button
+                onClick={resetForm}
+                className="px-5 py-3 bg-white hover:border-slate-300 text-slate-700 border border-slate-200 rounded-xl text-sm font-semibold cursor-pointer"
+              >
+                Post another job
+              </button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
       <Navbar />
 
-      <main className="container mx-auto px-4 py-10 max-w-2xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">Post a job</h1>
-          <p className="text-slate-500 mt-1">
-            Tell helpers what you need and they&apos;ll send you offers
+      <main className="max-w-[640px] mx-auto px-4 pt-8 pb-32">
+        <div className="mb-6">
+          <h1 className="text-[28px] leading-[34px] font-bold text-slate-900 m-0">
+            What do you need done?
+          </h1>
+          <p className="text-slate-500 mt-1.5 text-[15px]">
+            Answer a couple of questions — it takes about a minute. Helpers reply with offers,
+            and you only pay when the job is done.
           </p>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+          <div className="mb-5 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
             <span className="font-semibold">Error:</span> {error}
           </div>
         )}
 
-        <div className="space-y-5">
+        <div className="flex flex-col gap-4">
+          {/* Category */}
+          <section className="bg-white rounded-2xl border border-slate-200 p-5">
+            <h2 className="text-sm font-semibold text-slate-900 m-0 mb-1">Pick the closest match</h2>
+            <p className="text-[13px] text-slate-500 m-0 mb-3.5">
+              This helps the right helpers find your job. Not sure? Choose &ldquo;Something else&rdquo;.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {CATEGORIES.map((c) => {
+                const active = category === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setForm((prev) => ({ ...prev, category: active ? null : c.id }))}
+                    className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-full text-sm font-medium border-[1.5px] cursor-pointer min-h-11 transition-colors ${
+                      active
+                        ? "border-blue-600 bg-blue-50 text-blue-600"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-blue-300"
+                    }`}
+                  >
+                    <span>{c.emoji}</span>
+                    {c.label}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
 
-          {/* Job Details */}
-          <section className="bg-white rounded-2xl border border-slate-200 p-6">
-            <h2 className="text-sm font-semibold text-slate-900 mb-4">Job details</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  Title
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g., Snow shoveling for my driveway"
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                  autoFocus
-                />
-                {title.length > 0 && !titleOk && (
-                  <p className="text-xs text-amber-600 mt-1.5">
-                    {TITLE_MIN - title.trim().length} more characters needed
-                  </p>
-                )}
+          {/* Title */}
+          <section className="bg-white rounded-2xl border border-slate-200 p-5">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-sm font-semibold text-slate-900 m-0">Give it a short title</h2>
+              {titleOk && <CheckCircle2 className="w-[18px] h-[18px] text-emerald-500" />}
+            </div>
+            <p className="text-[13px] text-slate-500 m-0 mb-3">Say it like you&apos;d tell a neighbour.</p>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+              placeholder={activeCategory ? activeCategory.placeholder : "e.g., Mow the lawn at my house"}
+              className="w-full box-border px-4 py-3.5 border border-slate-200 rounded-xl bg-white text-slate-900 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              autoFocus
+            />
+            {activeCategory && activeCategory.examples.length > 0 && !titleOk && (
+              <div className="flex flex-wrap gap-1.5 mt-2.5 items-center">
+                <span className="text-xs text-slate-400">Try one:</span>
+                {activeCategory.examples.map((example) => (
+                  <button
+                    key={example}
+                    type="button"
+                    onClick={() => setForm((prev) => ({ ...prev, title: example }))}
+                    className="px-3 py-1.5 rounded-full text-[13px] border border-dashed border-slate-300 bg-slate-50 text-slate-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 cursor-pointer"
+                  >
+                    {example}
+                  </button>
+                ))}
               </div>
+            )}
+          </section>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  Description
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="What needs doing? Include any special requirements, tools needed, or important details."
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none"
-                  rows={4}
+          {/* Description */}
+          <section className="bg-white rounded-2xl border border-slate-200 p-5">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-sm font-semibold text-slate-900 m-0">Describe the job</h2>
+              {descOk && <CheckCircle2 className="w-[18px] h-[18px] text-emerald-500" />}
+            </div>
+            <p className="text-[13px] text-slate-500 m-0 mb-3">
+              More detail means better offers. Tap a question below to answer it in your description.
+            </p>
+            <textarea
+              value={description}
+              onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+              placeholder="Tell helpers what to expect. Plain words are perfect — no need for technical terms."
+              rows={5}
+              className="w-full box-border px-4 py-3.5 border border-slate-200 rounded-xl bg-white text-slate-900 text-base leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+            />
+            <div className="flex flex-wrap gap-1.5 mt-2.5">
+              {DESCRIPTION_PROMPTS.map((prompt) => {
+                const used = description.includes(prompt.starter);
+                return (
+                  <button
+                    key={prompt.id}
+                    type="button"
+                    onClick={() => addDescriptionPrompt(prompt)}
+                    disabled={used}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[13px] border font-medium ${
+                      used
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-600 cursor-default"
+                        : "border-slate-200 bg-slate-50 text-slate-600 cursor-pointer hover:border-blue-300"
+                    }`}
+                  >
+                    <span className="font-bold">{used ? "✓" : "+"}</span>
+                    {prompt.text}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+              <div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${descBarColor}`}
+                  style={{ width: `${descBarWidth}%` }}
                 />
-                {description.length > 0 && !descOk && (
-                  <p className="text-xs text-amber-600 mt-1.5">
-                    {DESC_MIN - description.trim().length} more characters needed
-                  </p>
-                )}
               </div>
+              <span className={`text-xs whitespace-nowrap ${descHintColor}`}>{descHint}</span>
             </div>
           </section>
 
           {/* Photos */}
-          <section className="bg-white rounded-2xl border border-slate-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-slate-900">Photos</h2>
-              <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
-                Optional
-              </span>
+          <section className="bg-white rounded-2xl border border-slate-200 p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-slate-900 m-0">
+                Add photos <span className="font-normal text-slate-400">(optional)</span>
+              </h2>
             </div>
 
             <input
@@ -258,266 +480,244 @@ const JobPostingPage = () => {
               }}
             />
 
-            {photos.length === 0 ? (
-              <button
-                type="button"
-                onClick={() => photoInputRef.current?.click()}
-                className="w-full h-32 border-2 border-dashed border-slate-200 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all flex flex-col items-center justify-center gap-2 group"
-              >
-                <Camera className="w-7 h-7 text-slate-300 group-hover:text-blue-400 transition-colors" />
-                <span className="text-sm text-slate-500 group-hover:text-blue-600 font-medium">
-                  Click to add photos
-                </span>
-                <span className="text-xs text-slate-400">
-                  Up to {MAX_PHOTOS} · {MAX_PHOTO_MB}MB each
-                </span>
-              </button>
-            ) : (
-              <div className="grid grid-cols-4 gap-3">
-                {photos.map((photo, idx) => (
-                  <div
-                    key={photo.preview}
-                    className="relative aspect-square rounded-xl overflow-hidden border border-slate-200"
-                  >
-                    <Image
-                      src={photo.preview}
-                      alt={`Photo ${idx + 1}`}
-                      fill
-                      className="object-cover"
-                      unoptimized
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removePhoto(idx)}
-                      className="absolute top-1 right-1 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
-                {photos.length < MAX_PHOTOS && (
+            <div className="grid grid-cols-4 gap-2.5">
+              {photos.map((photo, idx) => (
+                <div
+                  key={photo.preview}
+                  className="relative aspect-square rounded-xl overflow-hidden border border-slate-200"
+                >
+                  <Image src={photo.preview} alt={`Photo ${idx + 1}`} fill className="object-cover" unoptimized />
                   <button
                     type="button"
-                    onClick={() => photoInputRef.current?.click()}
-                    className="aspect-square border-2 border-dashed border-slate-200 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center justify-center text-slate-300 hover:text-blue-400 text-2xl leading-none"
+                    onClick={() => removePhoto(idx)}
+                    className="absolute top-1 right-1 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center cursor-pointer"
                   >
-                    +
+                    <X className="w-3.5 h-3.5" />
                   </button>
-                )}
-              </div>
-            )}
+                </div>
+              ))}
+              {photos.length < MAX_PHOTOS && (
+                <button
+                  type="button"
+                  onClick={() => photoInputRef.current?.click()}
+                  className="aspect-square border-2 border-dashed border-slate-200 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all flex flex-col gap-1 items-center justify-center text-slate-300 hover:text-blue-500 cursor-pointer"
+                >
+                  <Camera className="w-[22px] h-[22px]" />
+                  <span className="text-[11px] font-medium">Add</span>
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-slate-400 mt-2.5 mb-0">
+              A quick phone photo helps helpers quote accurately — no need for anything fancy.
+            </p>
           </section>
 
           {/* When */}
-          <section className="bg-white rounded-2xl border border-slate-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-slate-900">When</h2>
-              <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
-                Optional
-              </span>
+          <section className="bg-white rounded-2xl border border-slate-200 p-5">
+            <h2 className="text-sm font-semibold text-slate-900 m-0 mb-3">When should it happen?</h2>
+            <div className="flex gap-2 flex-wrap">
+              {WHEN_OPTIONS.map((option) => {
+                const active = whenMode === option.id;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setForm((prev) => ({ ...prev, whenMode: option.id }))}
+                    className={`flex-1 min-w-[140px] p-3 rounded-xl border-[1.5px] text-center cursor-pointer min-h-11 ${
+                      active ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white hover:border-blue-300"
+                    }`}
+                  >
+                    <p className={`text-sm font-semibold m-0 ${active ? "text-blue-600" : "text-slate-900"}`}>
+                      {option.label}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-0.5 mb-0">{option.sub}</p>
+                  </button>
+                );
+              })}
             </div>
-
-            <div className="space-y-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setFlexible((v) => {
-                    if (!v) setDate("");
-                    return !v;
-                  });
-                }}
-                className={`w-full flex items-center gap-3 p-4 border rounded-xl transition-all text-left ${
-                  flexible
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-slate-200 hover:border-slate-300"
-                }`}
-              >
-                <div
-                  className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                    flexible ? "bg-blue-600 border-blue-600" : "border-slate-300"
-                  }`}
-                >
-                  {flexible && <CheckCircle2 className="w-3 h-3 text-white" />}
-                </div>
-                <div>
-                  <p className="font-medium text-slate-900 text-sm">I&apos;m flexible</p>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Helpers can suggest a time that works
-                  </p>
-                </div>
-              </button>
-
-              {!flexible && (
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                    <Calendar className="inline w-4 h-4 mr-1 text-slate-400" />
-                    Or pick a date
-                  </label>
-                  <input
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    min={minDate}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                  />
-                </div>
-              )}
-            </div>
+            {whenMode === "date" && (
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
+                min={minDate}
+                className="mt-3 w-full box-border px-4 py-3 border border-slate-200 rounded-xl bg-white text-slate-900 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              />
+            )}
           </section>
 
           {/* Where */}
-          <section className="bg-white rounded-2xl border border-slate-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-slate-900">Where</h2>
-              <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
-                Optional
-              </span>
+          <section className="bg-white rounded-2xl border border-slate-200 p-5">
+            <h2 className="text-sm font-semibold text-slate-900 m-0 mb-1">
+              Where is it? <span className="font-normal text-slate-400">(optional)</span>
+            </h2>
+            <p className="text-[13px] text-slate-500 m-0 mb-3">
+              Just your neighbourhood is enough — your exact address stays private until you hire someone.
+            </p>
+            <div className="relative">
+              <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
+              <div className="pl-8">
+                <AddressAutocomplete
+                  onPlaceSelected={(details) => {
+                    const placeLat = details.geometry?.location?.lat?.();
+                    const placeLng = details.geometry?.location?.lng?.();
+                    setForm((prev) => ({
+                      ...prev,
+                      address: details.formatted_address ?? "",
+                      lat: typeof placeLat === "number" ? Number(placeLat.toFixed(3)) : prev.lat,
+                      lng: typeof placeLng === "number" ? Number(placeLng.toFixed(3)) : prev.lng,
+                    }));
+                  }}
+                />
+              </div>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                <MapPin className="inline w-4 h-4 mr-1 text-slate-400" />
-                Neighbourhood or address
-              </label>
-              <AddressAutocomplete
-                onPlaceSelected={(details) => {
-                  setAddress(details.formatted_address ?? "");
-                  const placeLat = details.geometry?.location?.lat?.();
-                  const placeLng = details.geometry?.location?.lng?.();
-                  if (typeof placeLat === "number" && typeof placeLng === "number") {
-                    setLat(Number(placeLat.toFixed(3)));
-                    setLng(Number(placeLng.toFixed(3)));
-                  }
-                }}
-              />
-              {address && (
-                <p className="text-xs text-slate-500 mt-2">
-                  Helpers see your general area — not your full address
-                </p>
-              )}
-            </div>
+            {address && (
+              <p className="text-xs text-slate-500 mt-2 mb-0">
+                Helpers see your general area — not your full address
+              </p>
+            )}
           </section>
 
-          {/* Budget */}
-          <section className="bg-white rounded-2xl border border-slate-200 p-6">
-            <h2 className="text-sm font-semibold text-slate-900 mb-4">Budget</h2>
-
-            <div className="grid grid-cols-2 gap-3 mb-4">
+          {/* Price */}
+          <section className="bg-white rounded-2xl border border-slate-200 p-5">
+            <h2 className="text-sm font-semibold text-slate-900 m-0 mb-3">How do you want to handle price?</h2>
+            <div className="flex flex-col gap-2.5">
               <button
                 type="button"
-                onClick={() => setBudgetType("quote")}
-                className={`p-4 border-2 rounded-xl transition-all text-left ${
-                  budgetType === "quote"
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-slate-200 hover:border-slate-300"
+                onClick={() => setForm((prev) => ({ ...prev, budgetType: "quote" }))}
+                className={`flex items-start gap-3 p-4 rounded-xl border-[1.5px] text-left cursor-pointer ${
+                  budgetType === "quote" ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white hover:border-blue-300"
                 }`}
               >
-                <Sparkles
-                  className={`w-5 h-5 mb-2 ${budgetType === "quote" ? "text-blue-600" : "text-slate-400"}`}
-                />
-                <p className="font-medium text-slate-900 text-sm">Let them quote</p>
-                <p className="text-xs text-slate-500 mt-0.5">Helpers send you their price</p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setBudgetType("set")}
-                className={`p-4 border-2 rounded-xl transition-all text-left ${
-                  budgetType === "set"
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-slate-200 hover:border-slate-300"
-                }`}
-              >
-                <DollarSign
-                  className={`w-5 h-5 mb-2 ${budgetType === "set" ? "text-blue-600" : "text-slate-400"}`}
-                />
-                <p className="font-medium text-slate-900 text-sm">Set a budget</p>
-                <p className="text-xs text-slate-500 mt-0.5">You name the price</p>
-              </button>
-            </div>
-
-            {budgetType === "set" && (
-              <div className="space-y-2">
-                <div className="flex gap-3">
-                  <div className="relative flex-1">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
-                      $
-                    </span>
-                    <input
-                      type="number"
-                      value={budgetAmount}
-                      onChange={(e) => setBudgetAmount(e.target.value)}
-                      placeholder="0"
-                      className="w-full pl-7 pr-4 py-3 border border-slate-200 rounded-xl bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                      min="1"
-                    />
-                  </div>
-                  <select
-                    value={budgetStyle}
-                    onChange={(e) => setBudgetStyle(e.target.value as "flat" | "hourly")}
-                    className="px-4 py-3 border border-slate-200 rounded-xl bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-sm"
-                  >
-                    <option value="flat">Flat rate</option>
-                    <option value="hourly">Per hour</option>
-                  </select>
+                <div
+                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-px ${
+                    budgetType === "quote" ? "border-blue-600" : "border-slate-300"
+                  }`}
+                >
+                  {budgetType === "quote" && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
                 </div>
-                {budgetAmount && parseFloat(budgetAmount) > 0 && (
-                  <p className="text-xs text-slate-500">
-                    Helper receives $
-                    {(parseFloat(budgetAmount) * 0.9).toFixed(2)} after 10% platform fee
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-semibold text-slate-900 text-sm m-0">Get offers from helpers</p>
+                    <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                      Recommended
+                    </span>
+                  </div>
+                  <p className="text-[13px] text-slate-500 mt-1 mb-0">
+                    Helpers send their price — you compare and choose. Easiest if you&apos;re not sure what it should cost.
                   </p>
+                </div>
+              </button>
+              <div
+                className={`rounded-xl border-[1.5px] ${
+                  budgetType === "set" ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white hover:border-blue-300"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => setForm((prev) => ({ ...prev, budgetType: "set" }))}
+                  className="w-full flex items-start gap-3 p-4 text-left cursor-pointer bg-transparent border-none"
+                >
+                  <div
+                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-px ${
+                      budgetType === "set" ? "border-blue-600" : "border-slate-300"
+                    }`}
+                  >
+                    {budgetType === "set" && <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-slate-900 text-sm m-0">I&apos;ll set my own price</p>
+                    <p className="text-[13px] text-slate-500 mt-1 mb-0">Name what you&apos;ll pay, flat or per hour.</p>
+                  </div>
+                </button>
+                {budgetType === "set" && (
+                  <div className="px-4 pb-4 pl-[52px]">
+                    <div className="flex gap-2.5 flex-wrap">
+                      <div className="relative flex-1 min-w-[120px]">
+                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                        <input
+                          type="number"
+                          value={budgetAmount}
+                          onChange={(e) => setForm((prev) => ({ ...prev, budgetAmount: e.target.value }))}
+                          placeholder="0"
+                          min="1"
+                          className="w-full box-border pl-7 pr-3.5 py-3 border border-slate-200 rounded-xl bg-white text-slate-900 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                        />
+                      </div>
+                      <select
+                        value={budgetStyle}
+                        onChange={(e) => setForm((prev) => ({ ...prev, budgetStyle: e.target.value as "flat" | "hourly" }))}
+                        className="px-3.5 py-3 border border-slate-200 rounded-xl bg-white text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                      >
+                        <option value="flat">Total for the job</option>
+                        <option value="hourly">Per hour</option>
+                      </select>
+                    </div>
+                    {budgetAmount && budgetAmountNumber > 0 && (
+                      <p className="text-xs text-slate-500 mt-2 mb-0">
+                        Your helper receives ${(budgetAmountNumber * 0.9).toFixed(2)} — ZapTasks keeps a 10% fee, paid
+                        only when the job is done.
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-
-            {budgetType === "quote" && (
-              <p className="text-sm text-slate-500">
-                Helpers will send you their price — you pick the best offer.
-              </p>
-            )}
+            </div>
           </section>
 
-          {/* Submit */}
-          <div className="space-y-3 pb-10">
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={!canPost || submitting}
-              className={`w-full py-4 rounded-xl font-semibold text-base transition-all ${
-                canPost && !submitting
-                  ? "bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
-                  : "bg-slate-100 text-slate-400 cursor-not-allowed"
-              }`}
-            >
-              {submitting ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
-                  Posting...
-                </span>
-              ) : (
-                "Post Job"
-              )}
-            </button>
-
-            {!canPost && (title.length > 0 || description.length > 0) && (
-              <p className="text-center text-xs text-slate-400">
-                {[
-                  !titleOk && "Add a title",
-                  !descOk && "Add more detail to the description",
-                  !budgetOk && "Enter a budget amount",
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </p>
-            )}
-
-            <p className="text-center text-xs text-slate-400 px-4">
-              By posting you agree to ZapTasks Terms of Service. Helpers are independent
-              contractors.
-            </p>
-          </div>
+          <p className="text-center text-xs text-slate-400 px-4">
+            By posting you agree to ZapTasks Terms of Service. Helpers are independent contractors.
+          </p>
         </div>
       </main>
+
+      {/* Sticky post bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 shadow-[0_-4px_12px_rgba(15,23,42,0.06)]">
+        <div className="max-w-[640px] mx-auto px-4 py-3 flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-1 min-w-0">
+            <div className="flex items-center gap-3">
+              {[
+                { label: "Title", done: titleOk },
+                { label: "Details", done: descOk },
+                { label: "Price", done: budgetOk },
+              ].map((item) => (
+                <span
+                  key={item.label}
+                  className={`flex items-center gap-1 text-xs font-medium ${
+                    item.done ? "text-emerald-600" : "text-slate-400"
+                  }`}
+                >
+                  <span
+                    className={`w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      item.done ? "bg-emerald-500" : "bg-slate-200"
+                    }`}
+                  >
+                    {item.done && (
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth={4} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m9 12 2 2 4-4" />
+                      </svg>
+                    )}
+                  </span>
+                  {item.label}
+                </span>
+              ))}
+            </div>
+            <span className="text-[11px] text-slate-400">Free to post · No card needed yet</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!canPost || submitting}
+            className={`px-7 py-3.5 rounded-xl font-semibold text-[15px] whitespace-nowrap min-h-12 ${
+              canPost && !submitting
+                ? "bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
+                : "bg-slate-100 text-slate-400 cursor-not-allowed"
+            }`}
+          >
+            {submitting ? "Posting…" : "Post my job"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

@@ -19,6 +19,14 @@ const SERVICE_DEFINITIONS: ServiceDefinition[] = [
     id: "grocery-runs",
     label: "Grocery Runs",
   },
+  {
+    id: "cleaning",
+    label: "Cleaning",
+  },
+  {
+    id: "snow-removal",
+    label: "Snow Removal",
+  },
 ];
 
 const labelById: Record<string, string> = SERVICE_DEFINITIONS.reduce(
