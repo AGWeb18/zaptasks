@@ -813,53 +813,6 @@ const ProJobsPage = () => {
             </Link>
           )}
 
-          {isSignedIn && (loadingNotifications || notifications.length > 0) && (
-          <section id="notifications" className="mb-8 scroll-mt-24">
-            <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-              <Bell className="w-4 h-4" /> Notifications
-              {unreadNotifications.length > 0 && (
-                <span className="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                  {unreadNotifications.length} new
-                </span>
-              )}
-            </h2>
-            {loadingNotifications ? (
-              <div className="flex items-center gap-2 text-base-content/60 text-sm">
-                <span className="loading loading-spinner loading-xs"></span>{" "}
-                Loading alerts…
-              </div>
-            ) : (
-              <ul className="space-y-2">
-                {notifications.slice(0, 5).map((notification) => (
-                  <li
-                    key={notification.id}
-                    className={`bg-white border border-slate-200 rounded-lg px-4 py-3 text-sm flex justify-between items-start ${
-                      notification.read_at ? "opacity-60" : ""
-                    }`}
-                  >
-                    <div>
-                      <p className="font-semibold capitalize mb-0.5">
-                        {notification.type.replace(/_/g, " ")}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {format(new Date(notification.created_at), "MMM d, h:mma")}
-                      </p>
-                    </div>
-                    {!notification.read_at && (
-                      <button
-                        className="btn btn-ghost btn-xs text-slate-500"
-                        onClick={() => void markNotificationRead(notification.id)}
-                      >
-                        Mark read
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-          )}
-
           {isSignedIn && (loadingEscrow || escrowJobs.length > 0) && (
           <section id="booked-jobs" className="mb-12 scroll-mt-24">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
