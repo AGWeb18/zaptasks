@@ -12,8 +12,10 @@ import {
   XCircle,
   Star,
   ChevronRight,
+  ArrowLeft,
   AlertTriangle,
   Search,
+  X,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { createClient } from "@/app/utils/supabase/client";
@@ -21,6 +23,7 @@ import { useSupabaseClient } from "@/app/utils/supabase/useClient";
 import { getServiceLabels, listServiceOptions } from "@/app/lib/services/catalog";
 import ChatModal from "@/app/components/ChatModal";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 type EscrowTier = "small" | "medium" | "large";
@@ -225,7 +228,9 @@ const ProJobsPage = () => {
   const [loadingNotifications, setLoadingNotifications] = useState(true);
   const [loadingEscrow, setLoadingEscrow] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [detailJob, setDetailJob] = useState<OpenJobRequest | null>(null);
+  const [composeMode, setComposeMode] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const [applicationMessage, setApplicationMessage] = useState(
     "Hello! I’d love to help with this job."
   );
@@ -544,18 +549,52 @@ const ProJobsPage = () => {
     setRateAmount("");
   };
 
+  const openJobDetail = (job: OpenJobRequest) => {
+    setDetailJob(job);
+    setComposeMode(false);
+  };
+
+  const openJobCompose = (job: OpenJobRequest) => {
+    setDetailJob(job);
+    setComposeMode(true);
+    resetApplicationForm(job.job_title);
+  };
+
+  const closeJobModal = () => {
+    setDetailJob(null);
+    setComposeMode(false);
+  };
+
+  const markNotificationRead = async (notificationId: string) => {
+    await fetch("/api/notifications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notificationId }),
+    });
+    setNotifications((prev) =>
+      prev.map((item) =>
+        item.id === notificationId
+          ? { ...item, read_at: new Date().toISOString() }
+          : item
+      )
+    );
+  };
+
+  const clearAllNotifications = async () => {
+    await Promise.all(unreadNotifications.map((n) => markNotificationRead(n.id)));
+  };
+
   const submitApplication = async () => {
-    if (!selectedJobId || !user) return;
+    if (!detailJob || !user) return;
     setSubmitting(true);
     setError(null);
     try {
-      const job = jobs.find((item) => item.id === selectedJobId);
-      if (job?.homeowner_id && job.homeowner_id === currentUserId) {
+      if (detailJob.homeowner_id && detailJob.homeowner_id === currentUserId) {
         throw new Error("You can't apply to a job you posted.");
       }
 
       const payload = {
-        jobId: selectedJobId,
+        jobId: detailJob.id,
         message: applicationMessage,
         proposedRate: rateAmount ? Number(rateAmount) : null,
         proposedRateType: rateAmount ? rateType : null,
@@ -576,7 +615,7 @@ const ProJobsPage = () => {
 
       setJobs((prev) =>
         prev.map((job) =>
-          job.id === selectedJobId
+          job.id === detailJob.id
             ? {
                 ...job,
                 job_applications: [
@@ -589,7 +628,7 @@ const ProJobsPage = () => {
       );
 
       resetApplicationForm();
-      setSelectedJobId(null);
+      closeJobModal();
     } catch (err) {
       console.error(err);
       setError(
@@ -602,8 +641,8 @@ const ProJobsPage = () => {
     }
   };
 
-  const selectedJob = jobs.find((job) => job.id === selectedJobId);
-  const selectedJobIsOwn = selectedJob?.homeowner_id === currentUserId;
+  const detailJobIsOwn = detailJob?.homeowner_id === currentUserId;
+  const detailJobApplied = detailJob ? hasApplied(detailJob.id) : false;
 
   const isJustPosted = (createdAt: string) =>
     Date.now() - new Date(createdAt).getTime() < 2 * 60 * 60 * 1000;
@@ -672,18 +711,76 @@ const ProJobsPage = () => {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <a
-                href="#notifications"
-                className="flex items-center gap-1.5 text-[13px] font-semibold text-slate-600 no-underline px-3 py-2 border border-slate-200 rounded-[10px] bg-white hover:border-slate-300 transition-colors"
-              >
-                <Bell className="w-3.5 h-3.5 text-amber-500" />
-                Alerts
-                {unreadNotifications.length > 0 && (
-                  <span className="bg-blue-600 text-white text-[11px] font-bold px-1.5 py-px rounded-full">
-                    {loadingNotifications ? "—" : unreadNotifications.length}
-                  </span>
+              <div className="relative">
+                {notifOpen && (
+                  <div
+                    className="fixed inset-0 z-[65]"
+                    onClick={() => setNotifOpen(false)}
+                  />
                 )}
-              </a>
+                <button
+                  type="button"
+                  onClick={() => setNotifOpen((prev) => !prev)}
+                  className="flex items-center gap-1.5 text-[13px] font-semibold text-slate-600 px-3 py-2 border border-slate-200 rounded-[10px] bg-white hover:border-slate-300 transition-colors cursor-pointer"
+                >
+                  <Bell className="w-3.5 h-3.5 text-amber-500" />
+                  Alerts
+                  {unreadNotifications.length > 0 && (
+                    <span className="bg-blue-600 text-white text-[11px] font-bold px-1.5 py-px rounded-full">
+                      {loadingNotifications ? "—" : unreadNotifications.length}
+                    </span>
+                  )}
+                </button>
+                {notifOpen && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute right-0 top-[calc(100%+8px)] w-[300px] bg-white border border-slate-200 rounded-xl shadow-[0_16px_32px_-8px_rgba(15,23,42,0.2)] z-[70] overflow-hidden"
+                  >
+                    <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-slate-100">
+                      <span className="text-[13px] font-bold text-slate-900">Notifications</span>
+                      {unreadNotifications.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => void clearAllNotifications()}
+                          className="text-xs font-semibold text-blue-600 bg-transparent border-none cursor-pointer p-0.5"
+                        >
+                          Clear all
+                        </button>
+                      )}
+                    </div>
+                    <div className="max-h-[280px] overflow-y-auto">
+                      {unreadNotifications.map((notification) => (
+                        <div
+                          key={notification.id}
+                          className="flex items-start justify-between gap-2 px-3.5 py-2.5 border-b border-slate-50"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-[12.5px] font-semibold text-slate-800 m-0 capitalize">
+                              {notification.type.replace(/_/g, " ")}
+                            </p>
+                            <p className="text-[11px] text-slate-400 mt-0.5 mb-0">
+                              {format(new Date(notification.created_at), "MMM d, h:mma")}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            aria-label="Dismiss"
+                            onClick={() => void markNotificationRead(notification.id)}
+                            className="bg-transparent border-none text-slate-400 hover:text-slate-600 cursor-pointer p-0.5 flex-shrink-0"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    {unreadNotifications.length === 0 && (
+                      <p className="py-6 px-3.5 text-center text-[12.5px] text-slate-400 m-0">
+                        You’re all caught up
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
               <a
                 href="#booked-jobs"
                 className="flex items-center gap-1.5 text-[13px] font-semibold text-slate-600 no-underline px-3 py-2 border border-slate-200 rounded-[10px] bg-white hover:border-slate-300 transition-colors"
@@ -751,20 +848,7 @@ const ProJobsPage = () => {
                     {!notification.read_at && (
                       <button
                         className="btn btn-ghost btn-xs text-slate-500"
-                        onClick={async () => {
-                          await fetch("/api/notifications", {
-                            method: "PATCH",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ notificationId: notification.id }),
-                          });
-                          setNotifications((prev) =>
-                            prev.map((item) =>
-                              item.id === notification.id
-                                ? { ...item, read_at: new Date().toISOString() }
-                                : item
-                            )
-                          );
-                        }}
+                        onClick={() => void markNotificationRead(notification.id)}
                       >
                         Mark read
                       </button>
@@ -1120,13 +1204,22 @@ const ProJobsPage = () => {
                     : "CAD flat";
                   const disabled = applied || isOwnJob;
 
+                  const photoUrl = job.photo_urls?.[0] ?? null;
+
                   return (
                     <article
                       key={job.id}
-                      className={`bg-white border border-slate-200 rounded-[14px] px-[18px] py-4 flex flex-col gap-2.5 transition-shadow hover:shadow-[0_4px_10px_-2px_rgba(15,23,42,0.08)] hover:border-slate-300 ${
+                      onClick={() => openJobDetail(job)}
+                      className={`bg-white border border-slate-200 rounded-[14px] overflow-hidden flex flex-col cursor-pointer transition-shadow hover:shadow-[0_4px_10px_-2px_rgba(15,23,42,0.08)] hover:border-slate-300 ${
                         disabled ? "opacity-55" : ""
                       }`}
                     >
+                      {photoUrl && (
+                        <div className="relative aspect-video bg-slate-100 flex-shrink-0">
+                          <Image src={photoUrl} alt="" fill className="object-cover" unoptimized />
+                        </div>
+                      )}
+                      <div className="px-[18px] py-4 flex flex-col gap-2.5 flex-1">
                       <div className="flex items-center justify-between gap-2">
                         <span
                           className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full"
@@ -1175,10 +1268,10 @@ const ProJobsPage = () => {
                         </div>
                         <button
                           className="px-4 py-2 rounded-[10px] text-[13px] font-semibold whitespace-nowrap border disabled:cursor-not-allowed"
-                          onClick={() => {
-                            if (isOwnJob) return;
-                            setSelectedJobId(job.id);
-                            resetApplicationForm(job.job_title);
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isOwnJob || applied) return;
+                            openJobCompose(job);
                           }}
                           disabled={disabled || submitting}
                           style={
@@ -1200,6 +1293,7 @@ const ProJobsPage = () => {
                           )}
                         </button>
                       </div>
+                      </div>
                     </article>
                   );
                 })}
@@ -1216,91 +1310,207 @@ const ProJobsPage = () => {
         />
       )}
 
-      {selectedJobId && (
+      {detailJob && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 px-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full p-6 flex flex-col gap-[18px]">
-            <header className="flex items-center justify-between">
-              <h3 className="font-bold text-lg text-slate-900 m-0 flex items-center gap-2">
-                <MessageCircle className="w-4 h-4 text-blue-500" />
-                Apply to {selectedJob?.job_title ?? "this job"}
-              </h3>
-              <button
-                className="bg-transparent border-none text-sm font-semibold text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-100 cursor-pointer"
-                onClick={() => setSelectedJobId(null)}
-                disabled={submitting}
-                aria-label="Close application form"
-              >
-                Close
-              </button>
-            </header>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full max-h-[85vh] overflow-y-auto p-6 flex flex-col gap-[18px]">
+            {!composeMode ? (
+              <>
+                <header className="flex items-start justify-between gap-3">
+                  <div>
+                    {(() => {
+                      const catStyle = getCategoryStyle(detailJob.services);
+                      return (
+                        <span
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full mb-2"
+                          style={{ color: catStyle.color, background: catStyle.dotBg }}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${catStyle.bg}`} />
+                          {catStyle.label}
+                        </span>
+                      );
+                    })()}
+                    <h3 className="font-bold text-[19px] text-slate-900 m-0">
+                      {detailJob.job_title}
+                    </h3>
+                  </div>
+                  <button
+                    className="bg-transparent border-none text-sm font-semibold text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-100 cursor-pointer flex-shrink-0"
+                    onClick={closeJobModal}
+                    aria-label="Close job details"
+                  >
+                    Close
+                  </button>
+                </header>
 
-            {selectedJobIsOwn && (
-              <div className="alert alert-info shadow-sm text-sm">
-                <CheckCircle className="h-4 w-4" />
-                <span>
-                  You posted this job. Only other providers can apply.
-                </span>
-              </div>
+                {detailJob.photo_urls?.[0] && (
+                  <div className="relative aspect-video rounded-xl overflow-hidden bg-slate-100">
+                    <Image src={detailJob.photo_urls[0]} alt="" fill className="object-cover" unoptimized />
+                  </div>
+                )}
+
+                <p className="text-[15px] leading-relaxed text-slate-700 m-0">
+                  {detailJob.description}
+                </p>
+
+                <div className="flex flex-wrap gap-2.5">
+                  <div className="flex-1 min-w-[140px] bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-3">
+                    <p className="text-[11px] uppercase text-slate-400 m-0">Budget</p>
+                    <p
+                      className={`text-base font-bold m-0 mt-0.5 ${
+                        detailJob.pricing_mode === "provider_quote" ? "text-emerald-600" : "text-slate-900"
+                      }`}
+                    >
+                      {detailJob.pricing_mode === "provider_quote"
+                        ? "Open to quotes"
+                        : detailJob.budget_amount
+                        ? `$${detailJob.budget_amount}${detailJob.budget_type === "hourly" ? "/hr" : ""}`
+                        : "Budget open"}
+                    </p>
+                  </div>
+                  <div className="flex-1 min-w-[140px] bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-3">
+                    <p className="text-[11px] uppercase text-slate-400 m-0">Location</p>
+                    <p className="text-sm font-semibold text-slate-900 m-0 mt-0.5">
+                      {detailJob.address ?? "Location shared after hire"}
+                    </p>
+                  </div>
+                  <div className="flex-1 min-w-[140px] bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-3">
+                    <p className="text-[11px] uppercase text-slate-400 m-0">Posted</p>
+                    <p className="text-sm font-semibold text-slate-900 m-0 mt-0.5">
+                      {formatDistanceToNow(new Date(detailJob.created_at), { addSuffix: true })} ·{" "}
+                      {(detailJob.job_applications?.length ?? 0) === 0
+                        ? "be the first to apply"
+                        : `${detailJob.job_applications?.length} applied`}
+                    </p>
+                  </div>
+                </div>
+
+                {detailJobIsOwn && (
+                  <div className="alert alert-info shadow-sm text-sm">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>You posted this job. Only other providers can apply.</span>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-2">
+                  <button
+                    className="px-4 py-2.5 bg-slate-100 border-none rounded-[10px] text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-200"
+                    onClick={closeJobModal}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="px-[18px] py-2.5 rounded-[10px] text-sm font-semibold cursor-pointer disabled:cursor-not-allowed"
+                    onClick={() => {
+                      if (detailJobIsOwn || detailJobApplied) return;
+                      setComposeMode(true);
+                      resetApplicationForm(detailJob.job_title);
+                    }}
+                    disabled={detailJobIsOwn || detailJobApplied}
+                    style={
+                      detailJobIsOwn || detailJobApplied
+                        ? { background: "#f1f5f9", color: "#94a3b8" }
+                        : { background: "#2563eb", color: "#ffffff" }
+                    }
+                  >
+                    {detailJobApplied ? "Applied" : "Apply now"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <header className="flex items-center justify-between">
+                  <h3 className="font-bold text-lg text-slate-900 m-0 flex items-center gap-2">
+                    <MessageCircle className="w-4 h-4 text-blue-500" />
+                    Apply to {detailJob.job_title}
+                  </h3>
+                  <button
+                    className="bg-transparent border-none text-sm font-semibold text-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-100 cursor-pointer"
+                    onClick={closeJobModal}
+                    disabled={submitting}
+                    aria-label="Close application form"
+                  >
+                    Close
+                  </button>
+                </header>
+
+                {detailJobIsOwn && (
+                  <div className="alert alert-info shadow-sm text-sm">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>
+                      You posted this job. Only other providers can apply.
+                    </span>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-[13px] font-semibold text-slate-700 mb-1">
+                    Introduce yourself
+                  </label>
+                  <textarea
+                    className="w-full box-border p-3 border border-slate-200 rounded-[10px] text-slate-900 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    rows={4}
+                    value={applicationMessage}
+                    onChange={(e) => setApplicationMessage(e.target.value)}
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <label className="text-[13px] font-semibold text-slate-700">
+                    <span className="block mb-1">Rate type</span>
+                    <select
+                      className="w-full box-border p-2.5 border border-slate-200 rounded-[10px] bg-white text-slate-900 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      value={rateType}
+                      onChange={(e) =>
+                        setRateType(e.target.value as "flat" | "hourly")
+                      }
+                    >
+                      <option value="flat">Flat project estimate</option>
+                      <option value="hourly">Hourly estimate</option>
+                    </select>
+                  </label>
+                  <label className="text-[13px] font-semibold text-slate-700">
+                    <span className="block mb-1">Rate amount (optional)</span>
+                    <input
+                      type="number"
+                      min="0"
+                      className="w-full box-border p-2.5 border border-slate-200 rounded-[10px] text-slate-900 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Leave blank if flexible"
+                      value={rateAmount}
+                      onChange={(e) => setRateAmount(e.target.value)}
+                    />
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-between gap-2">
+                  <button
+                    className="flex items-center gap-1 bg-transparent border-none text-sm font-semibold text-blue-600 cursor-pointer p-0"
+                    onClick={() => setComposeMode(false)}
+                    disabled={submitting}
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" /> Back
+                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      className="px-4 py-2.5 bg-slate-100 border-none rounded-[10px] text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-200"
+                      onClick={closeJobModal}
+                      disabled={submitting}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="px-4 py-2.5 bg-blue-600 border-none rounded-[10px] text-sm font-semibold text-white cursor-pointer hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                      onClick={submitApplication}
+                      disabled={submitting || detailJobIsOwn}
+                    >
+                      {submitting
+                        ? "Submitting..."
+                        : detailJobIsOwn
+                        ? "You posted this job"
+                        : "Send application"}
+                    </button>
+                  </div>
+                </div>
+              </>
             )}
-
-            <div>
-              <label className="block text-[13px] font-semibold text-slate-700 mb-1">
-                Introduce yourself
-              </label>
-              <textarea
-                className="w-full box-border p-3 border border-slate-200 rounded-[10px] text-slate-900 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                rows={4}
-                value={applicationMessage}
-                onChange={(e) => setApplicationMessage(e.target.value)}
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <label className="text-[13px] font-semibold text-slate-700">
-                <span className="block mb-1">Rate type</span>
-                <select
-                  className="w-full box-border p-2.5 border border-slate-200 rounded-[10px] bg-white text-slate-900 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  value={rateType}
-                  onChange={(e) =>
-                    setRateType(e.target.value as "flat" | "hourly")
-                  }
-                >
-                  <option value="flat">Flat project estimate</option>
-                  <option value="hourly">Hourly estimate</option>
-                </select>
-              </label>
-              <label className="text-[13px] font-semibold text-slate-700">
-                <span className="block mb-1">Rate amount (optional)</span>
-                <input
-                  type="number"
-                  min="0"
-                  className="w-full box-border p-2.5 border border-slate-200 rounded-[10px] text-slate-900 text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Leave blank if flexible"
-                  value={rateAmount}
-                  onChange={(e) => setRateAmount(e.target.value)}
-                />
-              </label>
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <button
-                className="px-4 py-2.5 bg-slate-100 border-none rounded-[10px] text-sm font-semibold text-slate-700 cursor-pointer hover:bg-slate-200"
-                onClick={() => setSelectedJobId(null)}
-                disabled={submitting}
-              >
-                Cancel
-              </button>
-              <button
-                className="px-4 py-2.5 bg-blue-600 border-none rounded-[10px] text-sm font-semibold text-white cursor-pointer hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
-                onClick={submitApplication}
-                disabled={submitting || selectedJobIsOwn}
-              >
-                {submitting
-                  ? "Submitting..."
-                  : selectedJobIsOwn
-                  ? "You posted this job"
-                  : "Send application"}
-              </button>
-            </div>
           </div>
         </div>
       )}
