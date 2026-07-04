@@ -22,6 +22,8 @@ import { createClient } from "@/app/utils/supabase/client";
 import { useSupabaseClient } from "@/app/utils/supabase/useClient";
 import { getServiceLabels, listServiceOptions } from "@/app/lib/services/catalog";
 import ChatModal from "@/app/components/ChatModal";
+import HomeownerTrustStrip from "@/app/components/HomeownerTrustStrip";
+import ReportButton from "@/app/components/ReportButton";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -1336,6 +1338,23 @@ const ProJobsPage = () => {
                     </p>
                   </div>
                 </div>
+
+                {detailJob.homeowner_id && !detailJobIsOwn && (
+                  <div className="bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-3">
+                    <p className="text-[11px] uppercase text-slate-400 m-0 mb-1.5">
+                      About this poster
+                    </p>
+                    <HomeownerTrustStrip homeownerId={detailJob.homeowner_id} />
+                  </div>
+                )}
+
+                {!detailJobIsOwn && (
+                  <ReportButton
+                    targetType="job_request"
+                    targetId={detailJob.id}
+                    label="Report this job"
+                  />
+                )}
 
                 {detailJobIsOwn && (
                   <div className="alert alert-info shadow-sm text-sm">

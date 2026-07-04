@@ -1,7 +1,9 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
 import { useUser } from "@clerk/nextjs";
+import { ShieldAlert } from "lucide-react";
 import { useSupabaseClient } from "../utils/supabase/useClient";
+import ReportButton from "./ReportButton";
 
 interface ChatModalProps {
   helperId: string;  // was providerId
@@ -83,6 +85,19 @@ export default function ChatModal({ helperId, helperName, onClose }: ChatModalPr
           <h2 className="font-bold">Chat with {helperName}</h2>
           <button onClick={onClose} className="btn btn-sm btn-ghost">Close</button>
         </div>
+        <div className="flex items-start gap-2 mb-2 px-2 py-1.5 rounded bg-amber-50 border border-amber-100 text-amber-800 text-xs">
+          <ShieldAlert className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+          <span>
+            For your protection, keep payments on ZapTasks. Payments made
+            outside the platform (e-transfer, cash) aren&apos;t covered by
+            escrow or dispute support.
+          </span>
+        </div>
+        {conversationId && (
+          <div className="flex justify-end mb-2">
+            <ReportButton targetType="message" targetId={conversationId} label="Report conversation" />
+          </div>
+        )}
         <div className="flex-1 overflow-y-auto mb-2" style={{ maxHeight: 300 }}>
           {messages.map((msg, i) => (
             <div key={i} className={`mb-1 ${msg.sender === user?.id ? "text-right" : "text-left"}`}>

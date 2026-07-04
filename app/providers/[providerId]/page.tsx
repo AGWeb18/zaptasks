@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import Navbar from "@/app/components/NavBar";
+import ReportButton from "@/app/components/ReportButton";
 import {
   Star,
   MapPin,
@@ -21,15 +23,21 @@ interface ProviderProfile {
   services: string[];
   location: string | null;
   memberSince: string | null;
+  displayName: string | null;
+  photoUrl: string | null;
+  bio: string | null;
 }
 
 interface ProviderReview {
   id: string;
-  rating: number;
+  rating: number | null;
   reviewType: string | null;
   comment: string | null;
   createdAt: string;
   jobTitle: string | null;
+  verifiedPayment: boolean;
+  providerResponse: string | null;
+  providerResponseAt: string | null;
 }
 
 interface ProviderStats {
@@ -42,6 +50,8 @@ const ProviderProfilePage = () => {
   const params = useParams();
   const router = useRouter();
   const providerId = params.providerId as string;
+  const { user } = useUser();
+  const isOwnProfile = Boolean(user?.id && user.id === providerId);
 
   const [profile, setProfile] = useState<ProviderProfile | null>(null);
   const [reviews, setReviews] = useState<ProviderReview[]>([]);
@@ -52,6 +62,48 @@ const ProviderProfilePage = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [respondingTo, setRespondingTo] = useState<string | null>(null);
+  const [responseDraft, setResponseDraft] = useState("");
+  const [respondSubmitting, setRespondSubmitting] = useState(false);
+  const [respondError, setRespondError] = useState<string | null>(null);
+
+  const submitResponse = async (reviewId: string) => {
+    const trimmed = responseDraft.trim();
+    if (!trimmed) return;
+    try {
+      setRespondSubmitting(true);
+      setRespondError(null);
+      const response = await fetch(`/api/reviews/${reviewId}/respond`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ response: trimmed }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        setRespondError(payload?.error ?? "Couldn't submit your response.");
+        return;
+      }
+      setReviews((prev) =>
+        prev.map((review) =>
+          review.id === reviewId
+            ? {
+                ...review,
+                providerResponse: payload?.review?.provider_response ?? trimmed,
+                providerResponseAt:
+                  payload?.review?.provider_response_at ?? new Date().toISOString(),
+              }
+            : review
+        )
+      );
+      setRespondingTo(null);
+      setResponseDraft("");
+    } catch (err) {
+      console.error(err);
+      setRespondError("Couldn't submit your response.");
+    } finally {
+      setRespondSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     const loadProviderProfile = async () => {
@@ -78,17 +130,23 @@ const ProviderProfilePage = () => {
           services: Array.isArray(data.services) ? data.services : [],
           location: data.location ?? null,
           memberSince: data.memberSince ?? null,
+          displayName: data.displayName ?? null,
+          photoUrl: data.photoUrl ?? null,
+          bio: data.bio ?? null,
         });
 
         const reviewsList: ProviderReview[] = Array.isArray(data.reviews)
           ? data.reviews.map(
               (review: {
                 id: string;
-                rating: number;
+                rating: number | null;
                 reviewType: string | null;
                 comment: string | null;
                 createdAt: string;
                 jobTitle: string | null;
+                verifiedPayment?: boolean;
+                providerResponse?: string | null;
+                providerResponseAt?: string | null;
               }) => ({
                 id: review.id,
                 rating: review.rating,
@@ -96,6 +154,9 @@ const ProviderProfilePage = () => {
                 comment: review.comment ?? null,
                 createdAt: review.createdAt,
                 jobTitle: review.jobTitle ?? null,
+                verifiedPayment: Boolean(review.verifiedPayment),
+                providerResponse: review.providerResponse ?? null,
+                providerResponseAt: review.providerResponseAt ?? null,
               })
             )
           : [];
@@ -224,12 +285,21 @@ const ProviderProfilePage = () => {
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center text-white text-2xl font-bold">
-                  {profile.user_id.charAt(0).toUpperCase()}
-                </div>
+                {profile.photoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={profile.photoUrl}
+                    alt={profile.displayName ?? "Helper"}
+                    className="w-16 h-16 rounded-full object-cover border border-slate-200"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center text-white text-2xl font-bold">
+                    {(profile.displayName ?? "Helper").charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <div>
                   <h1 className="text-3xl font-bold text-slate-900">
-                    Helper Profile
+                    {profile.displayName ?? "Helper Profile"}
                   </h1>
                   {profile.location && (
                     <div className="flex items-center gap-2 text-slate-600 mt-1">
@@ -240,10 +310,19 @@ const ProviderProfilePage = () => {
                 </div>
               </div>
 
+              {profile.bio && (
+                <p className="text-slate-600 mb-4 leading-relaxed">
+                  {profile.bio}
+                </p>
+              )}
+
               {profile.verified && (
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-sm font-medium mb-4">
+                <div
+                  className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-sm font-medium mb-4"
+                  title="Identity confirmed through Stripe payout verification"
+                >
                   <Shield className="h-4 w-4" />
-                  ID verified via Stripe
+                  Payout identity verified
                 </div>
               )}
 
@@ -330,10 +409,25 @@ const ProviderProfilePage = () => {
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <div className="flex items-center gap-3 mb-2">
-                        {renderStars(review.rating)}
+                      <div className="flex items-center gap-3 mb-2 flex-wrap">
+                        {review.rating !== null ? (
+                          renderStars(review.rating)
+                        ) : (
+                          <span className="text-xs text-slate-500">
+                            No star rating (unpaid job)
+                          </span>
+                        )}
                         {review.reviewType &&
                           getReviewTypeBadge(review.reviewType)}
+                        {review.verifiedPayment && (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-medium"
+                            title="This job had a real captured payment on ZapTasks"
+                          >
+                            <CheckCircle className="h-3 w-3" />
+                            Verified payment
+                          </span>
+                        )}
                       </div>
                       {review.jobTitle && (
                         <p className="text-sm text-slate-600">
@@ -341,8 +435,11 @@ const ProviderProfilePage = () => {
                         </p>
                       )}
                     </div>
-                    <div className="text-sm text-slate-500">
-                      {format(new Date(review.createdAt), "MMM d, yyyy")}
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="text-sm text-slate-500">
+                        {format(new Date(review.createdAt), "MMM d, yyyy")}
+                      </div>
+                      <ReportButton targetType="review" targetId={review.id} label="Report review" />
                     </div>
                   </div>
 
@@ -350,6 +447,75 @@ const ProviderProfilePage = () => {
                     <p className="text-slate-700 leading-relaxed">
                       {review.comment}
                     </p>
+                  )}
+
+                  {review.providerResponse && (
+                    <div className="mt-4 pl-4 border-l-2 border-slate-200">
+                      <p className="text-xs font-semibold text-slate-500 mb-1">
+                        Response from the helper
+                        {review.providerResponseAt &&
+                          ` · ${format(new Date(review.providerResponseAt), "MMM d, yyyy")}`}
+                      </p>
+                      <p className="text-sm text-slate-700 leading-relaxed">
+                        {review.providerResponse}
+                      </p>
+                    </div>
+                  )}
+
+                  {isOwnProfile && !review.providerResponse && (
+                    <div className="mt-4 pl-4 border-l-2 border-slate-200">
+                      {respondingTo === review.id ? (
+                        <div className="space-y-2">
+                          <textarea
+                            className="textarea textarea-bordered w-full text-sm bg-white text-slate-900"
+                            rows={3}
+                            maxLength={1000}
+                            value={responseDraft}
+                            onChange={(event) => setResponseDraft(event.target.value)}
+                            placeholder="Share your side, professionally and briefly."
+                          />
+                          {respondError && (
+                            <p className="text-xs text-error" role="alert">
+                              {respondError}
+                            </p>
+                          )}
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              className="btn btn-xs btn-primary"
+                              disabled={respondSubmitting || !responseDraft.trim()}
+                              onClick={() => void submitResponse(review.id)}
+                            >
+                              {respondSubmitting ? "Sending..." : "Submit response"}
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-xs btn-ghost"
+                              disabled={respondSubmitting}
+                              onClick={() => {
+                                setRespondingTo(null);
+                                setResponseDraft("");
+                                setRespondError(null);
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="text-xs font-medium text-blue-600 hover:underline"
+                          onClick={() => {
+                            setRespondingTo(review.id);
+                            setResponseDraft("");
+                            setRespondError(null);
+                          }}
+                        >
+                          Respond to this review
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               ))}

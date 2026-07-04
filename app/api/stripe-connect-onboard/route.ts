@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuth } from "@clerk/nextjs/server";
+import { getAuth, clerkClient } from "@clerk/nextjs/server";
 
 import { stripe } from "@/app/lib/payments/stripeConnect";
 import { createClientWithUser } from "@/app/utils/supabase/server";
@@ -50,9 +50,36 @@ export async function POST(req: NextRequest) {
 
     const { data: providerRecord } = await supabase
       .from("providers")
-      .select("user_id, stripe_account_id")
+      .select("user_id, stripe_account_id, display_name, photo_url")
       .eq("user_id", userId)
       .maybeSingle();
+
+    // Populate the human profile fields from Clerk (never from client input)
+    // whenever they're missing, so the public profile page isn't stuck
+    // showing an anonymous "Helper Profile" for every helper. Folded into
+    // the insert/update calls below rather than a standalone write, since a
+    // brand-new provider has no row yet for a separate update to land on.
+    let profileFields: { display_name: string; photo_url: string | null } | null = null;
+    if (!providerRecord?.display_name || !providerRecord?.photo_url) {
+      const client = clerkClient();
+      const clerkUser = await client.users.getUser(userId);
+      const displayName =
+        [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ").trim() ||
+        clerkUser.username ||
+        providerName;
+      profileFields = { display_name: displayName, photo_url: clerkUser.imageUrl ?? null };
+    }
+
+    if (profileFields && providerRecord?.user_id) {
+      const { error: profileUpdateError } = await supabase
+        .from("providers")
+        .update(profileFields)
+        .eq("user_id", userId);
+
+      if (profileUpdateError) {
+        console.warn("Failed to backfill provider profile fields", profileUpdateError);
+      }
+    }
 
     let accountId = providerRecord?.stripe_account_id ?? null;
 
@@ -91,7 +118,7 @@ export async function POST(req: NextRequest) {
       if (providerRecord?.user_id) {
         const { error: updateError } = await supabase
           .from("providers")
-          .update({ stripe_account_id: accountId })
+          .update({ stripe_account_id: accountId, ...profileFields })
           .eq("user_id", userId);
 
         if (updateError) {
@@ -100,7 +127,7 @@ export async function POST(req: NextRequest) {
       } else {
         const { error: insertError } = await supabase
           .from("providers")
-          .insert({ user_id: userId, stripe_account_id: accountId })
+          .insert({ user_id: userId, stripe_account_id: accountId, ...profileFields })
           .select("user_id")
           .single();
 

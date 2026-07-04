@@ -15,11 +15,12 @@ CREATE POLICY "homeowners_manage_own_job_requests"
   USING (public.current_user_id() = homeowner_id)
   WITH CHECK (public.current_user_id() = homeowner_id);
 
+-- This policy was removed (2026-07): it exposed homeowner email and exact
+-- street address to any client. Providers get the job board exclusively
+-- through GET /api/job-requests?scope=open, which masks that PII. The DROP
+-- is kept here so re-running this setup script on an older database clears
+-- the policy instead of recreating it.
 DROP POLICY IF EXISTS "anyone_can_view_open_job_requests" ON public.job_requests;
-CREATE POLICY "anyone_can_view_open_job_requests"
-  ON public.job_requests
-  FOR SELECT
-  USING (status = 'open');
 
 DROP POLICY IF EXISTS "selected_provider_can_view_job_requests" ON public.job_requests;
 CREATE POLICY "selected_provider_can_view_job_requests"

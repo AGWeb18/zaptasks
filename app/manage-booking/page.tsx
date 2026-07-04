@@ -155,6 +155,7 @@ interface ReviewModalState {
   rating: number;
   reviewType: "positive" | "no_show" | "issue";
   comment: string;
+  hasCapturedPayment: boolean;
 }
 
 const parseEscrowSchedule = (raw: unknown): EscrowSchedule | null => {
@@ -891,11 +892,19 @@ const ManageJobsPage = () => {
 
   const openReviewModal = (job: EscrowJob) => {
     setReviewError(null);
+    const hasCapturedPayment = (job.payments ?? []).some(
+      (payment) => payment.status === "succeeded" || Boolean(payment.captured_at)
+    );
     setReviewModal({
       jobId: job.id,
       rating: 5,
-      reviewType: "positive",
+      // A star rating requires a captured payment (see the review API and
+      // its RLS policy) -- default an unpaid job straight to "no_show" so
+      // the homeowner isn't shown a "Great service" option the server
+      // would reject anyway.
+      reviewType: hasCapturedPayment ? "positive" : "no_show",
       comment: "",
+      hasCapturedPayment,
     });
   };
 
@@ -909,7 +918,9 @@ const ManageJobsPage = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          rating: reviewModal.rating,
+          // Unpaid jobs can't carry a star rating -- send null rather than
+          // a number the server (and RLS) would reject.
+          rating: reviewModal.hasCapturedPayment ? reviewModal.rating : null,
           reviewType: reviewModal.reviewType,
           comment: reviewModal.comment.trim(),
         }),
@@ -1787,41 +1798,59 @@ const ManageJobsPage = () => {
                 keep no-shows off the platform.
               </p>
             </header>
-            <div className="flex items-center justify-center gap-2">
-              {Array.from({ length: 5 }, (_, index) => index + 1).map(
-                (value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() =>
-                      setReviewModal((prev) =>
-                        prev ? { ...prev, rating: value } : prev
-                      )
-                    }
-                    className={`btn btn-sm ${
-                      value <= reviewModal.rating ? "btn-warning" : "btn-ghost"
-                    }`}
-                  >
-                    <Star
-                      className={`h-4 w-4 ${
-                        value <= reviewModal.rating
-                          ? "text-amber-500"
-                          : "text-slate-400"
-                      }`}
-                      fill={
-                        value <= reviewModal.rating ? "currentColor" : "none"
+            {reviewModal.hasCapturedPayment ? (
+              <div className="flex items-center justify-center gap-2">
+                {Array.from({ length: 5 }, (_, index) => index + 1).map(
+                  (value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() =>
+                        setReviewModal((prev) =>
+                          prev ? { ...prev, rating: value } : prev
+                        )
                       }
-                    />
-                  </button>
-                )
-              )}
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-xs">
-              {[
-                { value: "positive" as const, label: "Great service" },
-                { value: "no_show" as const, label: "No-show" },
-                { value: "issue" as const, label: "Issue on site" },
-              ].map((option) => (
+                      className={`btn btn-sm ${
+                        value <= reviewModal.rating ? "btn-warning" : "btn-ghost"
+                      }`}
+                    >
+                      <Star
+                        className={`h-4 w-4 ${
+                          value <= reviewModal.rating
+                            ? "text-amber-500"
+                            : "text-slate-400"
+                        }`}
+                        fill={
+                          value <= reviewModal.rating ? "currentColor" : "none"
+                        }
+                      />
+                    </button>
+                  )
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                No payment was ever captured on this job, so it can&apos;t
+                carry a star rating. You can still flag a no-show or an
+                issue below.
+              </p>
+            )}
+            <div
+              className={`grid gap-2 text-xs ${
+                reviewModal.hasCapturedPayment ? "grid-cols-3" : "grid-cols-2"
+              }`}
+            >
+              {(reviewModal.hasCapturedPayment
+                ? [
+                    { value: "positive" as const, label: "Great service" },
+                    { value: "no_show" as const, label: "No-show" },
+                    { value: "issue" as const, label: "Issue on site" },
+                  ]
+                : [
+                    { value: "no_show" as const, label: "No-show" },
+                    { value: "issue" as const, label: "Issue on site" },
+                  ]
+              ).map((option) => (
                 <button
                   key={option.value}
                   type="button"

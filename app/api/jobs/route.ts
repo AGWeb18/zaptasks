@@ -11,6 +11,7 @@ import {
 } from "@/app/lib/payments/stripeConnect";
 import type { JobPaymentRecord } from "@/app/api/jobs/types";
 import { sendJobAwardedEmails } from "@/app/lib/email/senders";
+import { isProviderSuspended } from "@/app/lib/trust/suspension";
 
 type PostJobPayload = {
   jobRequestId: string;
@@ -128,6 +129,13 @@ export async function POST(req: NextRequest) {
 
     if (!selectedApplication) {
       return NextResponse.json({ error: "Selected application not found" }, { status: 404 });
+    }
+
+    if (await isProviderSuspended(selectedApplication.provider_id)) {
+      return NextResponse.json(
+        { error: "This provider's account is suspended and cannot be awarded jobs." },
+        { status: 403 },
+      );
     }
 
     const { data: providerRecord, error: providerLookupError } = await supabase

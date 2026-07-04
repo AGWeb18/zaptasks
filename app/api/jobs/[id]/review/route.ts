@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 
-import { createClientWithUser } from "@/app/utils/supabase/server";
+import { createClientWithUser, createServiceRoleClient } from "@/app/utils/supabase/server";
 
 type ReviewParams = {
   params: Promise<{ id: string }>;
 };
 
 function normalizeRating(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return null;
   const rounded = Math.round(parsed);
@@ -30,11 +31,12 @@ export async function POST(req: NextRequest, context: ReviewParams) {
     }
 
     const payload = await req.json().catch(() => null);
-    const rating = normalizeRating(payload?.rating);
+    const ratingProvided = payload?.rating !== null && payload?.rating !== undefined;
+    const rating = ratingProvided ? normalizeRating(payload?.rating) : null;
     const reviewType = typeof payload?.reviewType === "string" ? payload.reviewType : null;
     const comment = typeof payload?.comment === "string" ? payload.comment.trim() : "";
 
-    if (rating === null) {
+    if (ratingProvided && rating === null) {
       return NextResponse.json({ error: "Rating must be an integer between 1 and 5" }, { status: 400 });
     }
 
@@ -46,7 +48,9 @@ export async function POST(req: NextRequest, context: ReviewParams) {
 
     const { data: job, error: jobError } = await supabase
       .from("jobs")
-      .select("id, homeowner_id, provider_id, job_status, provider_reviews(id, homeowner_id)")
+      .select(
+        "id, homeowner_id, provider_id, job_status, provider_reviews(id, homeowner_id), payments(status, captured_at)"
+      )
       .eq("id", jobId)
       .single();
 
@@ -71,13 +75,46 @@ export async function POST(req: NextRequest, context: ReviewParams) {
       return NextResponse.json({ error: "You have already left a review for this job" }, { status: 409 });
     }
 
+    // A colluding homeowner/provider pair could otherwise farm free 5-star
+    // reviews for zero cost: post a job, award it, cancel before ever
+    // paying, then leave a positive review. Gate star ratings on a real
+    // captured payment; a never-paid job can still be reviewed, but only as
+    // a no-show/issue flag with no rating. This mirrors the RLS INSERT
+    // check on provider_reviews, which enforces the same rule for any
+    // client that bypasses this route entirely.
+    const payments = Array.isArray(job.payments)
+      ? (job.payments as Array<{ status: string | null; captured_at: string | null }>)
+      : [];
+    const hasCapturedPayment = payments.some(
+      (payment) => payment.status === "succeeded" || Boolean(payment.captured_at)
+    );
+
+    let finalRating = rating;
+
+    if (!hasCapturedPayment) {
+      if (reviewType !== "no_show" && reviewType !== "issue") {
+        return NextResponse.json(
+          {
+            error:
+              "Reviews with a star rating require a completed payment. You can still report a no-show or an issue.",
+          },
+          { status: 409 }
+        );
+      }
+      // No captured payment means no star rating, regardless of what the
+      // client sent -- RLS would reject a non-null rating here anyway.
+      finalRating = null;
+    } else if (finalRating === null) {
+      return NextResponse.json({ error: "Rating must be an integer between 1 and 5" }, { status: 400 });
+    }
+
     const { data: inserted, error: insertError } = await supabase
       .from("provider_reviews")
       .insert({
         job_id: jobId,
         homeowner_id: userId,
         provider_id: job.provider_id,
-        rating,
+        rating: finalRating,
         review_type: reviewType,
         comment: comment || null,
       })
@@ -87,6 +124,23 @@ export async function POST(req: NextRequest, context: ReviewParams) {
     if (insertError || !inserted) {
       console.error("Failed to store provider review", insertError);
       return NextResponse.json({ error: "Failed to submit review" }, { status: 500 });
+    }
+
+    // verified_payment is not client-writable at all (see trust-and-safety.sql),
+    // so it's set here via the service-role client after this route has
+    // independently confirmed a captured payment exists.
+    if (hasCapturedPayment) {
+      const serviceClient = createServiceRoleClient();
+      const { error: verifyError } = await serviceClient
+        .from("provider_reviews")
+        .update({ verified_payment: true })
+        .eq("id", inserted.id);
+
+      if (verifyError) {
+        console.warn("Failed to mark review as verified payment", verifyError);
+      } else {
+        inserted.verified_payment = true;
+      }
     }
 
     return NextResponse.json({ review: inserted });

@@ -1,6 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuth } from "@clerk/nextjs/server";
+import { getAuth, clerkClient } from "@clerk/nextjs/server";
 import { createClient, createClientWithUser, createServiceRoleClient } from "@/app/utils/supabase/server";
+import { isProviderSuspended } from "@/app/lib/trust/suspension";
+
+// Derives the applicant's display name/email from Clerk rather than trusting
+// client-supplied values -- a request body is fully attacker-controlled, so
+// accepting providerName/providerEmail as-is would let anyone apply under a
+// spoofed identity (e.g. "Mike's Licensed Plumbing Ltd.") with no tie to
+// their actual account.
+async function resolveApplicantIdentity(userId: string): Promise<{ name: string; email: string | null }> {
+  const client = clerkClient();
+  const clerkUser = await client.users.getUser(userId);
+  const name =
+    [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ").trim() ||
+    clerkUser.username ||
+    "ZapTasks user";
+  const email = clerkUser.primaryEmailAddress?.emailAddress ?? null;
+  return { name, email };
+}
 
 export async function POST(req: NextRequest) {
   const { userId } = getAuth(req);
@@ -8,13 +25,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  if (await isProviderSuspended(userId)) {
+    return NextResponse.json(
+      { error: "Your account is suspended. Contact support if you believe this is an error." },
+      { status: 403 },
+    );
+  }
+
   try {
     const body = await req.json();
-    const { jobId, message, proposedRate, proposedRateType, providerName, providerEmail } = body;
+    const { jobId, message, proposedRate, proposedRateType } = body;
 
     if (!jobId || !message) {
       return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
     }
+
+    const { name: providerName, email: providerEmail } = await resolveApplicantIdentity(userId);
 
     const supabase = await createClientWithUser(userId);
 

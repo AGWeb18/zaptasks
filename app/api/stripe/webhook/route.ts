@@ -8,6 +8,30 @@ import { sendPaymentSecuredEmails } from "@/app/lib/email/senders";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// Keeps providers.verified in near-real-time sync with Stripe so the
+// reputation endpoint's 24h cache (see resolveVerified there) doesn't leave
+// a provider showing "verified" for up to a day after their account becomes
+// restricted, or "unverified" for a day after they finish onboarding.
+async function handleAccountUpdatedEvent(event: Stripe.Event) {
+  const supabase = createServiceRoleClient();
+  const account = event.data.object as Stripe.Account;
+
+  const currentlyDue = account.requirements?.currently_due ?? [];
+  const verified =
+    Boolean(account.charges_enabled) &&
+    Boolean(account.payouts_enabled) &&
+    currentlyDue.length === 0;
+
+  const { error } = await supabase
+    .from("providers")
+    .update({ verified, verified_checked_at: new Date().toISOString() })
+    .eq("stripe_account_id", account.id);
+
+  if (error) {
+    console.warn("Stripe webhook: failed to update provider verified status", error);
+  }
+}
+
 async function handlePaymentIntentEvent(event: Stripe.Event) {
   const supabase = createServiceRoleClient();
   const intent = event.data.object as Stripe.PaymentIntent;
@@ -166,6 +190,9 @@ export async function POST(req: NextRequest) {
       case "payment_intent.canceled":
       case "payment_intent.processing":
         await handlePaymentIntentEvent(event);
+        break;
+      case "account.updated":
+        await handleAccountUpdatedEvent(event);
         break;
       default:
         break;

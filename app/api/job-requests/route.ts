@@ -1,6 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuth } from "@clerk/nextjs/server";
+import { getAuth, clerkClient } from "@clerk/nextjs/server";
 import { createClient, createClientWithUser, createServiceRoleClient } from "@/app/utils/supabase/server";
+import { isHomeownerSuspended } from "@/app/lib/trust/suspension";
+
+// See resolveApplicantIdentity in job-applications/route.ts -- same rationale:
+// never trust client-supplied name/email for a job post.
+async function resolvePosterIdentity(userId: string): Promise<{ name: string; email: string | null }> {
+  const client = clerkClient();
+  const clerkUser = await client.users.getUser(userId);
+  const name =
+    [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ").trim() ||
+    clerkUser.username ||
+    "ZapTasks user";
+  const email = clerkUser.primaryEmailAddress?.emailAddress ?? null;
+  return { name, email };
+}
 
 export async function GET(req: NextRequest) {
   const { userId } = getAuth(req);
@@ -72,6 +86,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    if (await isHomeownerSuspended(userId)) {
+      return NextResponse.json(
+        { error: "Your account is suspended. Contact support if you believe this is an error." },
+        { status: 403 },
+      );
+    }
+
     const body = await req.json();
 
     if (!body.jobTitle || !Array.isArray(body.services) || body.services.length === 0) {
@@ -81,6 +102,8 @@ export async function POST(req: NextRequest) {
     if (body.homeownerId && body.homeownerId !== userId) {
       return NextResponse.json({ error: "Homeowner mismatch." }, { status: 403 });
     }
+
+    const { name: homeownerName, email: homeownerEmail } = await resolvePosterIdentity(userId);
 
     const pricingMode = body.pricingMode === "provider_quote" ? "provider_quote" : "client_budget";
 
@@ -105,8 +128,8 @@ export async function POST(req: NextRequest) {
       .from("job_requests")
       .insert({
         homeowner_id: userId,
-        homeowner_name: body.homeownerName,
-        homeowner_email: body.homeownerEmail,
+        homeowner_name: homeownerName,
+        homeowner_email: homeownerEmail,
         job_title: body.jobTitle,
         services: body.services,
         description: body.description,
