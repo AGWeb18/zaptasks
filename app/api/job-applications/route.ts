@@ -9,7 +9,7 @@ import { isProviderSuspended } from "@/app/lib/trust/suspension";
 // spoofed identity (e.g. "Mike's Licensed Plumbing Ltd.") with no tie to
 // their actual account.
 async function resolveApplicantIdentity(userId: string): Promise<{ name: string; email: string | null }> {
-  const client = clerkClient();
+  const client = await clerkClient();
   const clerkUser = await client.users.getUser(userId);
   const name =
     [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ").trim() ||
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     const serviceClient = createServiceRoleClient();
     const { data: jobRequest, error: jobError } = await serviceClient
       .from("job_requests")
-      .select("id, homeowner_id, status")
+      .select("id, homeowner_id, status, job_title")
       .eq("id", jobId)
       .single();
 
@@ -102,6 +102,7 @@ export async function POST(req: NextRequest) {
         type: "job_application_received",
         payload: {
           jobId,
+          jobTitle: jobRequest.job_title,
           applicationId: data.id,
           providerId: userId,
           providerName,
@@ -112,6 +113,7 @@ export async function POST(req: NextRequest) {
         type: "job_application_submitted",
         payload: {
           jobId,
+          jobTitle: jobRequest.job_title,
           applicationId: data.id,
         },
       },

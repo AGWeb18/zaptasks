@@ -4,15 +4,16 @@ import {
 } from '@clerk/nextjs/server';
 
 const isProtectedRoute = createRouteMatcher([
-  // Pages
-  '/booking(.*)',
+  // Pages. /booking and /pro/onboard are intentionally public: both handle
+  // signed-out visitors themselves (Clerk modal at submit / sign-up card),
+  // instead of bouncing everyone to /sign-in first.
   '/manage-booking(.*)',
-  '/pro/onboard(.*)',
   '/admin(.*)',
-  // API routes that mutate data or contain PII
+  // API routes that mutate data or contain PII. /api/job-requests is not
+  // listed: its GET serves the public job board (scope=open, masked
+  // addresses) and every other method/scope enforces auth in the handler.
   '/api/create-customer',
   '/api/check-customer',
-  '/api/job-requests(.*)',
   '/api/job-applications(.*)',
   '/api/jobs(.*)',
   '/api/payments(.*)',
@@ -29,8 +30,8 @@ const isProtectedRoute = createRouteMatcher([
   '/api/reverse-geocode(.*)',
 ]);
 
-export default clerkMiddleware((auth, req) => {
-  if (isProtectedRoute(req)) auth().protect();
+export default clerkMiddleware(async (auth, req) => {
+  if (isProtectedRoute(req)) await auth.protect();
 });
 
 export const config = {

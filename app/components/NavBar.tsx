@@ -12,7 +12,7 @@ const primaryLinks = [
   { href: "/faq", label: "Help & Safety" },
 ];
 
-const signedInLinks = [{ href: "/manage-booking", label: "My Jobs" }];
+const signedInLinks = [{ href: "/manage-booking", label: "My Posted Jobs" }];
 
 const Navbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);

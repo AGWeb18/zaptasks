@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     // brand-new provider has no row yet for a separate update to land on.
     let profileFields: { display_name: string; photo_url: string | null } | null = null;
     if (!providerRecord?.display_name || !providerRecord?.photo_url) {
-      const client = clerkClient();
+      const client = await clerkClient();
       const clerkUser = await client.users.getUser(userId);
       const displayName =
         [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ").trim() ||

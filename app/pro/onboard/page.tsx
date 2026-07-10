@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useUser, SignUpButton, SignInButton } from "@clerk/nextjs";
 import Navbar from "@/app/components/NavBar";
 import {
   Shield,
@@ -57,10 +57,45 @@ export default function PayoutOnboarding() {
 
   if (!isLoaded)
     return (
-      <div className="flex justify-center items-center h-screen">
-        <span className="loading loading-spinner loading-lg"></span>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
       </div>
     );
+
+  if (!isSignedIn) {
+    return (
+      <div className="min-h-screen bg-slate-50 text-slate-900">
+        <Navbar />
+        <main className="max-w-xl mx-auto px-6 py-16">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 md:p-10 text-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-sm font-semibold mb-5">
+              <User className="w-4 h-4" />
+              Free — takes about a minute
+            </div>
+            <h1 className="text-3xl font-bold text-slate-900 mb-3">
+              First, create your free account
+            </h1>
+            <p className="text-slate-600 leading-relaxed mb-8">
+              Sign up to become a helper. After that, we&apos;ll connect your
+              bank through Stripe so you can get paid for jobs.
+            </p>
+            <div className="flex flex-col sm:flex-row justify-center gap-3">
+              <SignUpButton mode="modal">
+                <button className="px-7 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors">
+                  Create free account
+                </button>
+              </SignUpButton>
+              <SignInButton mode="modal">
+                <button className="px-7 py-3 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 font-semibold rounded-xl transition-colors">
+                  I already have one
+                </button>
+              </SignInButton>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">

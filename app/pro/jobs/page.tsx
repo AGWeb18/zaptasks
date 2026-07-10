@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useUser, SignInButton } from "@clerk/nextjs";
+import { useUser, useClerk } from "@clerk/nextjs";
 import Navbar from "@/app/components/NavBar";
 import {
   MapPin,
@@ -222,6 +222,7 @@ const formatPaymentStatus = (status: string | null | undefined): string => {
 
 const ProJobsPage = () => {
   const { isLoaded, isSignedIn, user } = useUser();
+  const { openSignIn } = useClerk();
   const authenticatedSupabase = useSupabaseClient();
   const [jobs, setJobs] = useState<OpenJobRequest[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -314,12 +315,13 @@ const ProJobsPage = () => {
   };
 
   useEffect(() => {
-    if (isLoaded && isSignedIn) {
-      fetchJobs();
+    if (!isLoaded) return;
+    // The job board itself is public — only applying needs an account.
+    fetchJobs();
+    if (isSignedIn) {
       fetchNotifications();
       fetchMyEscrowJobs();
-    } else if (isLoaded && !isSignedIn) {
-      setLoadingJobs(false);
+    } else {
       setLoadingNotifications(false);
       setLoadingEscrow(false);
     }
@@ -465,7 +467,6 @@ const ProJobsPage = () => {
 
   const [stripeAccountMissing, setStripeAccountMissing] = useState(false);
   const [onboardingLoading, setOnboardingLoading] = useState(false);
-  const [onboardingAutoAttempted, setOnboardingAutoAttempted] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<
     "newest" | "highest_budget" | "fewest_applicants"
@@ -523,24 +524,6 @@ const ProJobsPage = () => {
     }
   }, [userEmail, user]);
 
-  useEffect(() => {
-    if (!isLoaded || !isSignedIn) return;
-    if (!requiresOnboarding) return;
-    if (onboardingAutoAttempted || onboardingLoading) return;
-    if (!userEmail) return;
-
-    setOnboardingAutoAttempted(true);
-    void startStripeOnboarding();
-  }, [
-    isLoaded,
-    isSignedIn,
-    requiresOnboarding,
-    onboardingAutoAttempted,
-    onboardingLoading,
-    userEmail,
-    startStripeOnboarding,
-  ]);
-
   const resetApplicationForm = (jobTitle?: string) => {
     setApplicationMessage(
       jobTitle
@@ -557,6 +540,10 @@ const ProJobsPage = () => {
   };
 
   const openJobCompose = (job: OpenJobRequest) => {
+    if (!isSignedIn) {
+      openSignIn();
+      return;
+    }
     setDetailJob(job);
     setComposeMode(true);
     resetApplicationForm(job.job_title);
@@ -646,6 +633,50 @@ const ProJobsPage = () => {
   const detailJobIsOwn = detailJob?.homeowner_id === currentUserId;
   const detailJobApplied = detailJob ? hasApplied(detailJob.id) : false;
 
+  // Close the job detail modal with Escape.
+  useEffect(() => {
+    if (!detailJob) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setDetailJob(null);
+        setComposeMode(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [detailJob]);
+
+  const describeNotification = (notification: NotificationItem): string => {
+    const payload = notification.payload ?? {};
+    const jobTitle =
+      (payload.jobTitle as string | undefined) ??
+      jobs.find((job) => job.id === payload.jobId)?.job_title;
+    const titled = jobTitle ? `“${jobTitle}”` : "a job";
+    switch (notification.type) {
+      case "job_application_submitted":
+        return `Application sent for ${titled}.`;
+      case "job_application_awarded":
+        return `You got the job! You were hired for ${titled}.`;
+      case "job_application_awarded_onboarding":
+        return `You were hired for ${titled} — finish payout setup to get paid.`;
+      case "job_application_received":
+        return `${
+          (payload.providerName as string | undefined) ?? "A helper"
+        } applied to ${titled}.`;
+      case "job_posted_confirmation":
+        return `Your job ${titled} is live.`;
+      case "job_awarded_escrow_required":
+        return `Secure the payment for ${titled} to lock in your helper.`;
+      case "job_awarded_onboarding_pending":
+        return `Your helper for ${titled} is finishing payout setup.`;
+      default:
+        return (
+          notification.type.charAt(0).toUpperCase() +
+          notification.type.slice(1).replace(/_/g, " ")
+        );
+    }
+  };
+
   const isJustPosted = (createdAt: string) =>
     Date.now() - new Date(createdAt).getTime() < 2 * 60 * 60 * 1000;
 
@@ -712,6 +743,7 @@ const ProJobsPage = () => {
                 Apply with a quick note — chat, get chosen, get paid through ZapTasks.
               </p>
             </div>
+            {isSignedIn && (
             <div className="flex items-center gap-2">
               <div className="relative">
                 {notifOpen && (
@@ -757,8 +789,8 @@ const ProJobsPage = () => {
                           className="flex items-start justify-between gap-2 px-3.5 py-2.5 border-b border-slate-50"
                         >
                           <div className="min-w-0">
-                            <p className="text-[12.5px] font-semibold text-slate-800 m-0 capitalize">
-                              {notification.type.replace(/_/g, " ")}
+                            <p className="text-[12.5px] font-semibold text-slate-800 m-0">
+                              {describeNotification(notification)}
                             </p>
                             <p className="text-[11px] text-slate-400 mt-0.5 mb-0">
                               {format(new Date(notification.created_at), "MMM d, h:mma")}
@@ -796,21 +828,21 @@ const ProJobsPage = () => {
                 )}
               </a>
             </div>
+            )}
           </header>
 
           {(requiresOnboarding || stripeAccountMissing) && (
             <Link
               href="/pro/onboard"
-              className="alert alert-warning mb-6 no-underline"
+              className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 hover:border-amber-300 rounded-xl text-amber-900 mb-6 no-underline transition-colors"
             >
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-                <div>
-                  <h3 className="font-bold">Connect Bank Account</h3>
-                  <p className="text-sm mb-0">
-                    Required to receive payouts when hired.
-                  </p>
-                </div>
+              <AlertTriangle className="w-5 h-5 flex-shrink-0 text-amber-500" />
+              <div>
+                <h3 className="font-bold">Connect your bank to get paid</h3>
+                <p className="text-sm mb-0">
+                  Takes about 3 minutes through Stripe — required before
+                  payouts can reach you.
+                </p>
               </div>
             </Link>
           )}
@@ -822,7 +854,7 @@ const ProJobsPage = () => {
                 <Sparkles className="w-4 h-4 text-blue-500" /> Your Booked Jobs
               </h2>
             </div>
-            <div className="alert alert-info bg-blue-50 border border-blue-100 text-xs text-blue-700 mb-4">
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-xs text-blue-700 mb-4">
               <div>
                 <p className="font-semibold">Stay covered</p>
                 <p>
@@ -833,12 +865,12 @@ const ProJobsPage = () => {
               </div>
             </div>
             {loadingEscrow ? (
-              <div className="flex items-center gap-2 text-base-content/60 text-sm">
-                <span className="loading loading-spinner loading-xs"></span>{" "}
+              <div className="flex items-center gap-2 text-slate-500 text-sm">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />{" "}
                 Checking your payouts…
               </div>
             ) : escrowJobs.length === 0 ? (
-              <p className="text-base-content/60 text-sm">
+              <p className="text-slate-500 text-sm">
                 When a homeowner chooses you, the booking and payment details
                 will appear here.
               </p>
@@ -944,7 +976,7 @@ const ProJobsPage = () => {
                           </p>
                         )}
                         <button
-                          className="btn btn-xs btn-secondary mt-2"
+                          className="mt-2 px-3 py-1.5 bg-white border border-blue-200 hover:bg-blue-50 text-blue-700 text-xs font-semibold rounded-lg transition-colors"
                           onClick={() => {
                             if (job.job_requests?.homeowner_id) {
                               setChatModalHomeowner({
@@ -986,7 +1018,7 @@ const ProJobsPage = () => {
                         </div>
                       </div>
                       {!job.provider_stripe_account_id && (
-                        <div className="alert alert-warning text-sm">
+                        <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-sm">
                           <div>
                             <p className="font-semibold">
                               Connect payouts to receive funds
@@ -998,7 +1030,7 @@ const ProJobsPage = () => {
                           </div>
                           <button
                             type="button"
-                            className="btn btn-sm btn-primary text-white"
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                             onClick={startStripeOnboarding}
                             disabled={onboardingLoading}
                           >
@@ -1040,8 +1072,8 @@ const ProJobsPage = () => {
           )}
 
           {error && (
-            <div className="alert alert-error shadow mb-6">
-              <XCircle className="h-5 w-5" />
+            <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm mb-6">
+              <XCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
@@ -1105,22 +1137,7 @@ const ProJobsPage = () => {
 
           {loadingJobs ? (
             <div className="flex justify-center py-20">
-              <span className="loading loading-spinner loading-lg text-primary"></span>
-            </div>
-          ) : !isSignedIn ? (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-14 text-center">
-              <div className="text-6xl mb-5">🔑</div>
-              <h2 className="text-xl font-semibold text-slate-800 mb-2">
-                Sign in to browse jobs
-              </h2>
-              <p className="text-slate-500 text-sm max-w-sm mx-auto mb-6">
-                Create a free account or sign in to see open jobs posted by neighbours and start applying.
-              </p>
-              <SignInButton mode="modal">
-                <button className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors">
-                  Sign In to Browse
-                </button>
-              </SignInButton>
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
             </div>
           ) : filteredJobs.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-14 text-center">
@@ -1132,8 +1149,8 @@ const ProJobsPage = () => {
               </h2>
               <p className="text-slate-500 text-sm max-w-sm mx-auto">
                 {jobs.length === 0
-                  ? "We’ll notify you when new jobs are posted nearby. Make sure your notifications are turned on."
-                  : "Try a different category or check back soon — new jobs are posted daily."}
+                  ? "Jobs appear here the moment neighbours post them — check back soon, or tell a neighbour who needs a hand."
+                  : "Try a different category or clear your search."}
               </p>
             </div>
           ) : (
@@ -1164,8 +1181,16 @@ const ProJobsPage = () => {
                   return (
                     <article
                       key={job.id}
+                      role="button"
+                      tabIndex={0}
                       onClick={() => openJobDetail(job)}
-                      className={`bg-white border border-slate-200 rounded-[14px] overflow-hidden flex flex-col cursor-pointer transition-shadow hover:shadow-[0_4px_10px_-2px_rgba(15,23,42,0.08)] hover:border-slate-300 ${
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          openJobDetail(job);
+                        }
+                      }}
+                      className={`bg-white border border-slate-200 rounded-[14px] overflow-hidden flex flex-col cursor-pointer transition-shadow hover:shadow-[0_4px_10px_-2px_rgba(15,23,42,0.08)] hover:border-slate-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                         disabled ? "opacity-55" : ""
                       }`}
                     >
@@ -1266,7 +1291,16 @@ const ProJobsPage = () => {
       )}
 
       {detailJob && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 px-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 px-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !submitting) {
+              closeJobModal();
+            }
+          }}
+        >
           <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full max-h-[85vh] overflow-y-auto p-6 flex flex-col gap-[18px]">
             {!composeMode ? (
               <>
@@ -1357,7 +1391,7 @@ const ProJobsPage = () => {
                 )}
 
                 {detailJobIsOwn && (
-                  <div className="alert alert-info shadow-sm text-sm">
+                  <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-800 text-sm">
                     <CheckCircle className="h-4 w-4" />
                     <span>You posted this job. Only other providers can apply.</span>
                   </div>
@@ -1374,6 +1408,10 @@ const ProJobsPage = () => {
                     className="px-[18px] py-2.5 rounded-[10px] text-sm font-semibold cursor-pointer disabled:cursor-not-allowed"
                     onClick={() => {
                       if (detailJobIsOwn || detailJobApplied) return;
+                      if (!isSignedIn) {
+                        openSignIn();
+                        return;
+                      }
                       setComposeMode(true);
                       resetApplicationForm(detailJob.job_title);
                     }}
@@ -1406,7 +1444,7 @@ const ProJobsPage = () => {
                 </header>
 
                 {detailJobIsOwn && (
-                  <div className="alert alert-info shadow-sm text-sm">
+                  <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-800 text-sm">
                     <CheckCircle className="h-4 w-4" />
                     <span>
                       You posted this job. Only other providers can apply.

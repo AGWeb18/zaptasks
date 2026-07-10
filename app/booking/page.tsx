@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useMemo, useRef } from "react";
-import { useUser } from "@clerk/nextjs";
+import React, { useState, useMemo, useRef, useEffect } from "react";
+import { useUser, useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { addDays, format } from "date-fns";
 import { MapPin, Camera, X, CheckCircle2 } from "lucide-react";
@@ -114,9 +114,11 @@ const initialFormState = {
 
 const JobPostingPage = () => {
   const { isLoaded, user } = useUser();
+  const { openSignIn } = useClerk();
   const router = useRouter();
   const supabase = useMemo(() => createSupabaseClient(), []);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
 
   const [form, setForm] = useState(initialFormState);
   const [photos, setPhotos] = useState<Array<{ file: File; preview: string }>>([]);
@@ -202,9 +204,18 @@ const JobPostingPage = () => {
     setPosted(false);
   };
 
+  // The error banner lives at the top of the form; make sure it's visible
+  // even when the submit button (sticky bottom bar) triggered it.
+  useEffect(() => {
+    if (error) {
+      errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [error]);
+
   const handleSubmit = async () => {
     if (!user) {
-      setError("Please sign in to post a job");
+      // Keep the filled-in form intact — the modal signs them in in place.
+      openSignIn();
       return;
     }
     if (!canPost) return;
@@ -346,7 +357,10 @@ const JobPostingPage = () => {
         </div>
 
         {error && (
-          <div className="mb-5 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+          <div
+            ref={errorRef}
+            className="mb-5 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm"
+          >
             <span className="font-semibold">Error:</span> {error}
           </div>
         )}

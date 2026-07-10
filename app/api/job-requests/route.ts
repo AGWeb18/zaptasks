@@ -6,7 +6,7 @@ import { isHomeownerSuspended } from "@/app/lib/trust/suspension";
 // See resolveApplicantIdentity in job-applications/route.ts -- same rationale:
 // never trust client-supplied name/email for a job post.
 async function resolvePosterIdentity(userId: string): Promise<{ name: string; email: string | null }> {
-  const client = clerkClient();
+  const client = await clerkClient();
   const clerkUser = await client.users.getUser(userId);
   const name =
     [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ").trim() ||
@@ -18,15 +18,18 @@ async function resolvePosterIdentity(userId: string): Promise<{ name: string; em
 
 export async function GET(req: NextRequest) {
   const { userId } = getAuth(req);
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const supabase = await createClientWithUser(userId);
   const { searchParams } = new URL(req.url);
   const scope = searchParams.get("scope") ?? "mine";
 
-  if (scope === "mine") {
+  // The open job board is public: it's served with safe columns only and a
+  // masked address (see below), and signed-out visitors seeing real jobs is
+  // the main reason they sign up. Everything else still requires auth.
+  if (scope !== "open" && !userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (scope === "mine" && userId) {
+    const supabase = await createClientWithUser(userId);
     const { data, error } = await supabase
       .from("job_requests")
       .select("*, job_applications(*)")

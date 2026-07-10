@@ -16,10 +16,10 @@ export function SiteFooter() {
           <div>
             <h3 className="text-lg font-semibold mb-3">ZapTasks</h3>
             <p className="text-sm text-slate-400 leading-relaxed">
-              Canadian-built marketplace connecting homeowners with trusted
-              local pros from coast to coast. Secure payments keep every booking
-              transparent, and shared ratings help you spot neighbours who
-              consistently deliver.
+              A Canadian marketplace connecting neighbours who need a hand
+              with local helpers who want to earn. Payments are secured
+              through Stripe, and every completed job builds a visible review
+              history.
             </p>
             <div className="mt-4 flex items-center gap-2 text-xs text-slate-400 uppercase tracking-wide">
               <ShieldCheck className="h-4 w-4 text-emerald-400" />
@@ -45,24 +45,20 @@ export function SiteFooter() {
           </div>
           <div>
             <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-300 mb-3">
-              Service areas
+              Where we work
             </h4>
-            <ul className="space-y-2 text-sm text-slate-400">
-              <li>Ontario communities</li>
-              <li>Prairie cities</li>
-              <li>Quebec & Atlantic provinces</li>
-              <li>British Columbia & the North</li>
-            </ul>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              <MapPin className="inline h-4 w-4 text-blue-400 mr-1 -mt-0.5" />
+              Anywhere in Canada. We&apos;re growing neighbourhood by
+              neighbourhood — posting a job or joining as a helper is what
+              kick-starts yours.
+            </p>
           </div>
           <div>
             <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-300 mb-3">
               Contact
             </h4>
             <ul className="space-y-2 text-sm text-slate-400">
-              <li className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-blue-400" />
-                Canada-wide support (Toronto HQ)
-              </li>
               <li className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-blue-400" />
                 <Link
@@ -72,13 +68,12 @@ export function SiteFooter() {
                   hello@keystoneaipartners.com
                 </Link>
               </li>
-              <li>Mon–Sat • 8am–8pm Eastern</li>
             </ul>
           </div>
         </div>
         <div className="mt-10 border-t border-slate-700 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
           <span>
-            &copy; {new Date().getFullYear()} ZapTasks Inc. Proudly Canadian 🇨🇦
+            &copy; {new Date().getFullYear()} ZapTasks. Proudly Canadian 🇨🇦
           </span>
           <div className="flex gap-4">
             <Link href="/legal" className="hover:text-white">

@@ -18,7 +18,6 @@ import {
   ChevronUp,
   Inbox,
   Sparkles,
-  Tag,
   Star,
 } from "lucide-react";
 import { format } from "date-fns";
@@ -244,21 +243,21 @@ const EscrowPaymentForm = ({ modal, onSuccess, onClose }: PaymentFormProps) => {
     <form onSubmit={handleSubmit} className="space-y-4">
       <PaymentElement />
       {error && (
-        <p className="text-sm text-error" role="alert">
+        <p className="text-sm text-red-600" role="alert">
           {error}
         </p>
       )}
       <div className="flex gap-3">
         <button
           type="submit"
-          className="btn btn-primary flex-1"
+          className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           disabled={processing || !stripe || !elements}
         >
           {processing ? "Processing..." : modal.label}
         </button>
         <button
           type="button"
-          className="btn btn-ghost"
+          className="px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-60"
           onClick={onClose}
           disabled={processing}
         >
@@ -317,14 +316,6 @@ interface NotificationItem {
   created_at: string;
   read_at: string | null;
 }
-
-const statusBadgeClasses: Record<string, string> = {
-  open: "badge-info",
-  awarded: "badge-success",
-  completed: "badge-primary",
-  cancelled: "badge-ghost",
-  disputed: "badge-error",
-};
 
 const isCanceledStatus = (status?: string | null): boolean =>
   typeof status === "string" &&
@@ -628,9 +619,9 @@ const ManageJobsPage = () => {
         payload?.escrowPaymentIntent?.clientSecret
       ) {
         setInfoMessage(
-          `Payment setup: Pay $${(
+          `Your card will be pre-authorized for $${(
             payload.schedule.amounts.escrowCents / 100
-          ).toFixed(2)} now to secure the job. The rest is due on completion.`
+          ).toFixed(2)} now and only charged when you confirm the job is done.`
         );
       }
 
@@ -641,7 +632,7 @@ const ManageJobsPage = () => {
           clientSecret: payload.escrowPaymentIntent.clientSecret,
           paymentIntentId: payload.escrowPaymentIntent.id,
           amountCents: payload.schedule?.amounts?.escrowCents ?? 0,
-          label: "Pay Deposit",
+          label: "Secure payment",
           stripeAccountId: payload.stripeAccountId,
         });
       }
@@ -702,10 +693,10 @@ const ManageJobsPage = () => {
         label:
           options?.label ??
           (paymentType === "escrow"
-            ? "Pay Deposit"
+            ? "Secure payment"
             : paymentType === "progress"
-            ? "Pay Progress"
-            : "Pay Remaining"),
+            ? "Pay progress amount"
+            : "Pay remaining balance"),
       });
 
       await fetchJobs({ silent: true });
@@ -788,10 +779,10 @@ const ManageJobsPage = () => {
               fallbackAmount,
             label:
               paymentType === "completion"
-                ? "Pay Remaining"
+                ? "Pay remaining balance"
                 : paymentType === "progress"
-                ? "Pay Progress"
-                : "Pay Deposit",
+                ? "Pay progress amount"
+                : "Secure payment",
           });
         }
 
@@ -877,7 +868,7 @@ const ManageJobsPage = () => {
       }
 
       setInfoMessage(
-        "Job cancelled and any payment will be released within 5-10 days."
+        "Job cancelled. Any pre-authorized payment will be refunded to your card within 5–10 business days."
       );
       await fetchJobs({ silent: true });
     } catch (err) {
@@ -1005,11 +996,11 @@ const ManageJobsPage = () => {
           (payload?.providerName as string | undefined) ??
           (payload?.provider_name as string | undefined);
         return `${
-          providerName ?? "A local pro"
+          providerName ?? "A local helper"
         } just applied to one of your jobs.`;
       }
       case "job_application_awarded":
-        return "Your selected pro has been notified.";
+        return "Your helper has been notified.";
       case "job_awarded_invoices_sent":
         return "Deposit and completion invoices were generated for your awarded job.";
       default:
@@ -1035,13 +1026,13 @@ const ManageJobsPage = () => {
       <Navbar />
       <main className="container mx-auto px-4 py-10">
         <section className="max-w-5xl mx-auto">
-          <header className="text-center mb-10">
-            <h1 className="text-4xl font-bold text-blue-600 mb-3">
-              My Job Requests
+          <header className="mb-8">
+            <h1 className="text-[26px] leading-8 font-bold text-slate-900 m-0">
+              Jobs you&apos;ve posted
             </h1>
-            <p className="text-base-content/70">
-              Track service requests, review applicant messages, and award jobs
-              to your preferred pro.
+            <p className="text-slate-500 mt-1 text-sm">
+              Review applicants, chat with helpers, and release payment when
+              the work is done.
             </p>
           </header>
 
@@ -1058,25 +1049,25 @@ const ManageJobsPage = () => {
           )}
 
           {latestNotificationMessage && (
-            <div className="alert alert-info shadow mb-6">
-              <Sparkles className="h-5 w-5" />
+            <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl text-blue-800 text-sm mb-6">
+              <Sparkles className="h-5 w-5 flex-shrink-0 mt-0.5 text-blue-500" />
               <span>{latestNotificationMessage}</span>
             </div>
           )}
 
           {error && (
-            <div className="alert alert-error shadow mb-6">
-              <XCircle className="h-5 w-5" />
+            <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm mb-6">
+              <XCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
 
           {infoMessage && (
-            <div className="alert alert-success shadow mb-6">
-              <CheckCircle className="h-5 w-5" />
-              <span>{infoMessage}</span>
+            <div className="flex items-start gap-3 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-sm mb-6">
+              <CheckCircle className="h-5 w-5 flex-shrink-0 mt-0.5 text-emerald-600" />
+              <span className="flex-1">{infoMessage}</span>
               <button
-                className="btn btn-xs btn-ghost"
+                className="text-xs font-semibold text-emerald-700 hover:text-emerald-900 flex-shrink-0"
                 onClick={() => setInfoMessage(null)}
               >
                 Close
@@ -1086,7 +1077,7 @@ const ManageJobsPage = () => {
 
           {loading ? (
             <div className="flex justify-center py-20">
-              <span className="loading loading-spinner loading-lg text-primary"></span>
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
             </div>
           ) : jobRequests.length === 0 ? (
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center">
@@ -1127,8 +1118,6 @@ const ManageJobsPage = () => {
                     <div className="grid gap-6">
                       {jobs.map((job) => {
                         const isExpanded = expandedJob === job.id;
-                        const badgeClass =
-                          statusBadgeClasses[job.status] ?? "badge-ghost";
                         const applications = job.job_applications ?? [];
                         const awardedApplication = applications.find(
                           (app) => app.id === job.selected_application_id
@@ -1286,7 +1275,7 @@ const ManageJobsPage = () => {
                                   <p className={`text-sm text-slate-500 leading-relaxed mb-4 ${!isExpanded ? "line-clamp-2" : ""}`}>
                                     {job.description}
                                   </p>
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-base-content/80">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-slate-600">
                                     <div className="flex items-center gap-2">
                                       <Calendar className="w-4 h-4" />
                                       <span>
@@ -1305,51 +1294,41 @@ const ManageJobsPage = () => {
                                       <MapPin className="w-4 h-4" />
                                       <span>
                                         {job.address ??
-                                          "Location provided to awarded pro"}
+                                          "Location shared with your helper after hire"}
                                       </span>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                      <Clock className="w-4 h-4" />
-                                      <span>
-                                        {job.hours
-                                          ? `${job.hours} hour${
-                                              job.hours > 1 ? "s" : ""
-                                            }`
-                                          : "Hours TBD"}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <Users className="w-4 h-4" />
-                                      <span>
-                                        {job.people
-                                          ? `${job.people} person crew`
-                                          : "Crew size flexible"}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <Tag className="w-4 h-4" />
-                                      <span>
-                                        {job.pricing_mode === "provider_quote"
-                                          ? "Awaiting provider quotes"
-                                          : "Budget shared with helpers"}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <DollarSign className="w-4 h-4" />
-                                      <span>
-                                        {job.pricing_mode === "provider_quote"
-                                          ? "Helpers will quote"
-                                          : job.budget_amount
-                                          ? `${
-                                              job.budget_type === "hourly"
-                                                ? "Hourly"
-                                                : "Flat"
-                                            } • $${job.budget_amount.toFixed(
-                                              0
-                                            )}`
-                                          : "Budget hidden"}
-                                      </span>
-                                    </div>
+                                    {job.hours ? (
+                                      <div className="flex items-center gap-2">
+                                        <Clock className="w-4 h-4" />
+                                        <span>
+                                          {job.hours} hour
+                                          {job.hours > 1 ? "s" : ""}
+                                        </span>
+                                      </div>
+                                    ) : null}
+                                    {job.people ? (
+                                      <div className="flex items-center gap-2">
+                                        <Users className="w-4 h-4" />
+                                        <span>{job.people} person crew</span>
+                                      </div>
+                                    ) : null}
+                                    {job.pricing_mode === "provider_quote" ||
+                                    job.budget_amount ? (
+                                      <div className="flex items-center gap-2">
+                                        <DollarSign className="w-4 h-4" />
+                                        <span>
+                                          {job.pricing_mode === "provider_quote"
+                                            ? "Open to helper quotes"
+                                            : `$${job.budget_amount?.toFixed(
+                                                0
+                                              )} ${
+                                                job.budget_type === "hourly"
+                                                  ? "per hour"
+                                                  : "for the job"
+                                              }`}
+                                        </span>
+                                      </div>
+                                    ) : null}
                                   </div>
 
                                   {escrowJob && escrowSchedule && (
@@ -1379,7 +1358,7 @@ const ManageJobsPage = () => {
                                         </p>
                                         {escrowNeedsPayment && (
                                           <button
-                                            className="btn btn-primary mt-1"
+                                            className="mt-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                                             disabled={!stripeConfigured}
                                             onClick={() =>
                                               openPaymentIntent(
@@ -1388,7 +1367,7 @@ const ManageJobsPage = () => {
                                               )
                                             }
                                           >
-                                            Pay now to secure
+                                            Secure payment now
                                           </button>
                                         )}
                                         {!escrowNeedsPayment &&
@@ -1409,7 +1388,7 @@ const ManageJobsPage = () => {
                                 <div className="flex flex-col items-start gap-2">
                                   {job.status === "open" && (
                                     <button
-                                      className="btn btn-sm btn-ghost text-error"
+                                      className="px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-60"
                                       onClick={() => handleDeleteJob(job.id)}
                                       disabled={updatingJobId === job.id}
                                     >
@@ -1423,10 +1402,10 @@ const ManageJobsPage = () => {
                                     escrowJob && (
                                       <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-3 text-sm text-blue-700 space-y-2">
                                         <p className="font-semibold flex items-center gap-2">
-                                          <Award className="w-4 h-4" /> Awarded
-                                          to{" "}
+                                          <Award className="w-4 h-4" /> You
+                                          hired{" "}
                                           {awardedApplication.provider_name ??
-                                            "Selected pro"}
+                                            "a helper"}
                                         </p>
                                         {awardedApplication.provider_id && (
                                           <ProviderTrustStrip
@@ -1460,7 +1439,7 @@ const ManageJobsPage = () => {
                                         </p>
                                         <div className="flex flex-wrap gap-2">
                                           <button
-                                            className="btn btn-xs btn-secondary"
+                                            className="px-3 py-1.5 bg-white border border-blue-200 hover:bg-blue-50 text-blue-700 text-xs font-semibold rounded-lg transition-colors"
                                             onClick={() =>
                                               awardedApplication.provider_id &&
                                               setChatModalProvider({
@@ -1474,7 +1453,7 @@ const ManageJobsPage = () => {
                                             Chat with helper
                                           </button>
                                           <button
-                                            className="btn btn-xs btn-primary"
+                                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                                             disabled={
                                               !escrowJob ||
                                               updatingJobId ===
@@ -1488,7 +1467,7 @@ const ManageJobsPage = () => {
                                             Mark job complete
                                           </button>
                                           <button
-                                            className="btn btn-xs btn-ghost"
+                                            className="px-3 py-1.5 text-blue-700 hover:bg-blue-100 text-xs font-semibold rounded-lg transition-colors disabled:opacity-60"
                                             disabled={
                                               !escrowJob ||
                                               updatingJobId ===
@@ -1502,7 +1481,7 @@ const ManageJobsPage = () => {
                                             Cancel job
                                           </button>
                                           <button
-                                            className="btn btn-xs btn-outline"
+                                            className="px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-600 text-xs font-semibold rounded-lg transition-colors"
                                             onClick={() => {
                                               if (escrowJob) {
                                                 setDisputeJobId(escrowJob.id);
@@ -1520,7 +1499,7 @@ const ManageJobsPage = () => {
                                     (homeownerReview ? (
                                       <div className="flex items-center gap-2 text-xs text-emerald-600">
                                         <span className="font-semibold">
-                                          You rated this pro
+                                          You rated this helper
                                         </span>
                                         {renderStars(
                                           homeownerReview.rating ?? null
@@ -1528,7 +1507,7 @@ const ManageJobsPage = () => {
                                       </div>
                                     ) : (
                                       <button
-                                        className="btn btn-xs btn-success"
+                                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors"
                                         onClick={() =>
                                           openReviewModal(escrowJob)
                                         }
@@ -1538,10 +1517,10 @@ const ManageJobsPage = () => {
                                     ))}
                                   <button
                                     onClick={() => handleToggleJob(job.id)}
-                                    className={`btn btn-sm ${
+                                    className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
                                       !isExpanded && applications.length > 0 && job.status === "open"
-                                        ? "btn-primary text-white"
-                                        : "btn-outline"
+                                        ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                        : "bg-white border border-slate-200 hover:border-slate-300 text-slate-700"
                                     }`}
                                   >
                                     {isExpanded ? (
@@ -1566,33 +1545,27 @@ const ManageJobsPage = () => {
 
                               {isExpanded && (
                                 <section className="mt-6 space-y-6">
-                                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 text-sm text-base-content/80">
+                                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 text-sm text-slate-600">
                                     <h4 className="font-semibold text-base text-gray-800 mb-2">
                                       Additional details
                                     </h4>
-                                    <p className="mb-2">
-                                      <span className="font-medium">
-                                        Contact preference:
-                                      </span>{" "}
-                                      {job.contact_preference ??
-                                        "ZapTasks messages"}
-                                    </p>
+                                    {job.contact_preference && (
+                                      <p className="mb-2">
+                                        <span className="font-medium">
+                                          Contact preference:
+                                        </span>{" "}
+                                        {job.contact_preference}
+                                      </p>
+                                    )}
                                     {escrowSchedule && (
                                       <div className="text-xs text-slate-600 space-y-2">
                                         <p>
-                                          Payment schedule:{" "}
-                                          {escrowSchedule.escrowPercentage}%
-                                          upfront,{" "}
-                                          {escrowSchedule.progressPercentage ??
-                                            0}
-                                          % mid-job,{" "}
-                                          {escrowSchedule.completionPercentage}%
-                                          on completion.
+                                          The full amount is pre-authorized
+                                          upfront and charged only when you
+                                          confirm the job is done.
                                         </p>
                                         <p>
-                                          Paid so far: {escrowFundedLabel}.
-                                          Remaining due: {plannedRemainingLabel}
-                                          .
+                                          Secured so far: {escrowFundedLabel}.
                                         </p>
                                         <p>
                                           ZapTasks&apos; flat{" "}
@@ -1619,9 +1592,9 @@ const ManageJobsPage = () => {
                                       Applicants ({applications.length})
                                     </h4>
                                     {applications.length === 0 ? (
-                                      <p className="text-base-content/60 text-sm">
+                                      <p className="text-slate-500 text-sm">
                                         No applications yet. We’ll alert you as
-                                        soon as local pros respond.
+                                        soon as helpers respond.
                                       </p>
                                     ) : (
                                       <div className="space-y-4">
@@ -1634,17 +1607,17 @@ const ManageJobsPage = () => {
                                               <div className="flex items-center gap-2 mb-1">
                                                 <h5 className="text-lg font-semibold text-gray-900">
                                                   {application.provider_name ??
-                                                    "Prospective provider"}
+                                                    "Local helper"}
                                                 </h5>
                                                 {application.status ===
                                                   "awarded" && (
-                                                  <span className="badge badge-success badge-sm">
-                                                    Awarded
+                                                  <span className="text-xs font-semibold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+                                                    Hired
                                                   </span>
                                                 )}
                                                 {application.status ===
                                                   "not_selected" && (
-                                                  <span className="badge badge-ghost badge-sm">
+                                                  <span className="text-xs font-semibold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">
                                                     Not selected
                                                   </span>
                                                 )}
@@ -1658,7 +1631,7 @@ const ManageJobsPage = () => {
                                                   />
                                                 </div>
                                               )}
-                                              <p className="text-xs text-base-content/60 mb-2">
+                                              <p className="text-xs text-slate-500 mb-2">
                                                 Applied on{" "}
                                                 {format(
                                                   new Date(
@@ -1668,13 +1641,13 @@ const ManageJobsPage = () => {
                                                 )}
                                               </p>
                                               {application.message && (
-                                                <p className="text-sm text-base-content/80 leading-relaxed">
+                                                <p className="text-sm text-slate-600 leading-relaxed">
                                                   {application.message}
                                                 </p>
                                               )}
-                                              <div className="flex flex-wrap gap-3 text-xs text-base-content/70 mt-3">
+                                              <div className="flex flex-wrap gap-3 text-xs text-slate-600 mt-3">
                                                 {application.proposed_rate && (
-                                                  <span className="badge badge-outline">
+                                                  <span className="border border-slate-300 text-slate-600 px-2.5 py-0.5 rounded-full font-medium">
                                                     Proposed{" "}
                                                     {application.proposed_rate_type ===
                                                     "hourly"
@@ -1688,7 +1661,7 @@ const ManageJobsPage = () => {
                                             </div>
                                             <div className="flex flex-col gap-2">
                                               <button
-                                                className="btn btn-outline btn-sm"
+                                                className="px-4 py-2 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 text-sm font-semibold rounded-lg transition-colors"
                                                 onClick={() =>
                                                   application.provider_id &&
                                                   setChatModalProvider({
@@ -1703,7 +1676,7 @@ const ManageJobsPage = () => {
                                               </button>
                                               {job.status === "open" && (
                                                 <button
-                                                  className="btn btn-primary btn-sm"
+                                                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                                                   onClick={() =>
                                                     awardApplication(
                                                       job.id,
@@ -1715,8 +1688,8 @@ const ManageJobsPage = () => {
                                                   }
                                                 >
                                                   {updatingJobId === job.id
-                                                    ? "Awarding..."
-                                                    : "Award job"}
+                                                    ? "Hiring..."
+                                                    : "Hire this helper"}
                                                 </button>
                                               )}
                                             </div>
@@ -1750,8 +1723,9 @@ const ManageJobsPage = () => {
                 {paymentModal.label}
               </h3>
               <p className="text-sm text-slate-600">
-                We’ll hold ${(paymentModal.amountCents / 100).toFixed(2)} until
-                the job step is done.
+                Your card is pre-authorized for $
+                {(paymentModal.amountCents / 100).toFixed(2)} and only charged
+                when you confirm the job is done.
               </p>
             </header>
             <Elements
@@ -1791,10 +1765,10 @@ const ManageJobsPage = () => {
                 Community feedback
               </p>
               <h3 className="text-2xl font-semibold text-slate-900">
-                How did your pro do?
+                How did your helper do?
               </h3>
               <p className="text-sm text-slate-600">
-                Honest reviews help neighbours choose reliable providers and
+                Honest reviews help neighbours choose reliable helpers and
                 keep no-shows off the platform.
               </p>
             </header>
@@ -1805,13 +1779,16 @@ const ManageJobsPage = () => {
                     <button
                       key={value}
                       type="button"
+                      aria-label={`Rate ${value} of 5 stars`}
                       onClick={() =>
                         setReviewModal((prev) =>
                           prev ? { ...prev, rating: value } : prev
                         )
                       }
-                      className={`btn btn-sm ${
-                        value <= reviewModal.rating ? "btn-warning" : "btn-ghost"
+                      className={`p-2 rounded-lg transition-colors ${
+                        value <= reviewModal.rating
+                          ? "bg-amber-50 hover:bg-amber-100"
+                          : "hover:bg-slate-100"
                       }`}
                     >
                       <Star
@@ -1859,22 +1836,22 @@ const ManageJobsPage = () => {
                       prev ? { ...prev, reviewType: option.value } : prev
                     )
                   }
-                  className={`btn btn-xs ${
+                  className={`px-3 py-2 text-xs font-semibold rounded-lg transition-colors ${
                     reviewModal.reviewType === option.value
-                      ? "btn-primary"
-                      : "btn-outline"
+                      ? "bg-blue-600 text-white"
+                      : "bg-white border border-slate-200 hover:border-slate-300 text-slate-700"
                   }`}
                 >
                   {option.label}
                 </button>
               ))}
             </div>
-            <label className="form-control">
-              <span className="label-text text-sm text-slate-700">
+            <label className="block">
+              <span className="block text-sm font-medium text-slate-700 mb-1.5">
                 Share any context (optional)
               </span>
               <textarea
-                className="textarea textarea-bordered h-24 bg-white text-slate-900"
+                className="w-full box-border h-24 p-3 border border-slate-200 rounded-xl bg-white text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 value={reviewModal.comment}
                 onChange={(event) =>
                   setReviewModal((prev) =>
@@ -1886,14 +1863,14 @@ const ManageJobsPage = () => {
               />
             </label>
             {reviewError && (
-              <p className="text-sm text-error" role="alert">
+              <p className="text-sm text-red-600" role="alert">
                 {reviewError}
               </p>
             )}
             <div className="flex items-center justify-end gap-3">
               <button
                 type="button"
-                className="btn btn-ghost"
+                className="px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-60"
                 onClick={() => setReviewModal(null)}
                 disabled={reviewSubmitting}
               >
@@ -1901,7 +1878,7 @@ const ManageJobsPage = () => {
               </button>
               <button
                 type="button"
-                className="btn btn-primary"
+                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 onClick={() => void submitReview()}
                 disabled={reviewSubmitting}
               >
@@ -1936,14 +1913,14 @@ const ManageJobsPage = () => {
               </p>
             </header>
             <textarea
-              className="textarea textarea-bordered w-full h-32 bg-white text-slate-900"
+              className="w-full box-border h-32 p-3 border border-slate-200 rounded-xl bg-white text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Share what happened, when, and any detail that helps."
               value={disputeReason}
               onChange={(event) => setDisputeReason(event.target.value)}
             />
             <div className="flex items-center justify-end gap-3">
               <button
-                className="btn btn-ghost"
+                className="px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
                 onClick={() => {
                   setDisputeJobId(null);
                   setDisputeReason("");
@@ -1952,7 +1929,7 @@ const ManageJobsPage = () => {
                 Cancel
               </button>
               <button
-                className="btn btn-error"
+                className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 onClick={submitDispute}
                 disabled={updatingJobId === disputeJobId}
               >
