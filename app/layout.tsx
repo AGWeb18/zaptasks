@@ -23,19 +23,19 @@ export default async function RootLayout({
     <ClerkProvider>
       <html lang="en" data-theme="light" className={inter.variable}>
         <head>
-          <title>ZapTasks - Home Services Marketplace</title>
+          <title>ZapTasks — Get paid helping your neighbours</title>
           <meta
             name="description"
-            content="Connect homeowners with local helpers for cleaning, handyman, yard work, and more."
+            content="Browse local jobs, set your own rates, and get paid to your bank via Stripe. Free to join — ZapTasks takes 10% only when you're paid. Or post a job free and pay only when it's done."
           />
           <meta name="viewport" content="width=device-width, initial-scale=1" />
           <meta
             property="og:title"
-            content="ZapTasks - Reliable Home Services"
+            content="ZapTasks — Get paid helping your neighbours"
           />
           <meta
             property="og:description"
-            content="Book local helpers for your home needs. Fast, secure, and community-focused."
+            content="A Canadian marketplace for everyday jobs: snow, lawns, cleaning, odd jobs. Free to join, no lead fees, paid straight to your bank."
           />
           <meta property="og:type" content="website" />
           <meta

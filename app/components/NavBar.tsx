@@ -8,6 +8,7 @@ import { Menu, X, Zap } from "lucide-react";
 
 const primaryLinks = [
   { href: "/pro/jobs", label: "Browse Jobs" },
+  { href: "/booking", label: "Post a Job" },
   { href: "/faq", label: "Help & Safety" },
 ];
 
@@ -70,10 +71,10 @@ const Navbar: React.FC = () => {
                       </button>
                     </SignInButton>
                     <Link
-                      href="/booking"
-                      className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                      href="/pro/onboard"
+                      className="px-4 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
                     >
-                      Post a Job
+                      Start Earning
                     </Link>
                   </div>
                 </SignedOut>
@@ -148,11 +149,11 @@ const Navbar: React.FC = () => {
               </SignedIn>
               <li className="pt-2 border-t border-slate-100 mt-1">
                 <Link
-                  href="/booking"
+                  href="/pro/onboard"
                   onClick={() => setIsMenuOpen(false)}
-                  className="block px-3 py-2.5 rounded-lg text-center font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                  className="block px-3 py-2.5 rounded-lg text-center font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors"
                 >
-                  Post a Job Free
+                  Start Earning
                 </Link>
               </li>
             </ul>
