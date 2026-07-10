@@ -101,7 +101,7 @@ const HomePage = () => {
 
           <div className="container relative mx-auto grid max-w-6xl items-center gap-14 px-4 py-16 md:py-24 lg:grid-cols-2">
             <div>
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700">
+              {/* <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700">
                 <MapPin className="h-4 w-4" />
                 Your neighbourhood is hiring
               </div>
@@ -117,7 +117,20 @@ const HomePage = () => {
                 Browse jobs posted near you — snow, lawns, cleaning, odd jobs.
                 Set your own rates and work when you want. Joining is free, and
                 ZapTasks takes 10% only when you get paid.
-              </p>
+              </p> */}
+              <div>
+                <h1 className="mb-5 text-4xl font-extrabold leading-[1.08] tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
+                  Your Schedule. <br/>
+                  Your Rates.{" "} <br/>
+                  <span className="bg-gradient-to-r from-emerald-500 to-blue-600 bg-clip-text text-transparent">
+                    Your Local Side Hustle.
+                  </span>
+                </h1>
+
+                <p className="mb-8 max-w-xl text-lg leading-relaxed text-slate-600 sm:text-xl">
+                  Find flexible gigs right in your neighborhood—from lawn care and cleaning to snow removal and odd jobs. With ZapTasks, you call the shots.
+                </p>
+              </div>
 
               <div className="mb-6 flex flex-col gap-3 sm:flex-row">
                 <Link
