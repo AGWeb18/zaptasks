@@ -464,10 +464,10 @@ const HomePage = () => {
             </Link>{" "}
             or email{" "}
             <a
-              href="mailto:hello@keystoneaipartners.com"
+              href="mailto:myzaptasks@gmail.com"
               className="font-semibold text-emerald-700 hover:underline"
             >
-              hello@keystoneaipartners.com
+              myzaptasks@gmail.com
             </a>
             .
           </p>

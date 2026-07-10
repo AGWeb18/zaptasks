@@ -62,10 +62,10 @@ export function SiteFooter() {
               <li className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-blue-400" />
                 <Link
-                  href="mailto:hello@keystoneaipartners.com"
+                  href="mailto:myzaptasks@gmail.com"
                   className="hover:text-white"
                 >
-                  hello@keystoneaipartners.com
+                  myzaptasks@gmail.com
                 </Link>
               </li>
             </ul>

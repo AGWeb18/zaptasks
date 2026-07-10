@@ -110,7 +110,7 @@ export default function LegalPage() {
           <p className="text-sm text-slate-600">
             We use HTTPS, role-based access, audit logging, and Stripe Connect
             to protect sensitive data. Notify us immediately at
-            hello@keystoneaipartners.com if you suspect unauthorized access.
+            myzaptasks@gmail.com if you suspect unauthorized access.
           </p>
         </section>
 
@@ -132,7 +132,7 @@ export default function LegalPage() {
               partial refund, rework, or payout release.
             </li>
           </ol>
-          <p className="mt-4">Escalations: hello@keystoneaipartners.com </p>
+          <p className="mt-4">Escalations: myzaptasks@gmail.com </p>
         </section>
       </main>
       <SiteFooter />

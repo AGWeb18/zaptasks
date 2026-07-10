@@ -211,7 +211,7 @@ function InvoiceDetails({ invoiceData }: { invoiceData: InvoiceData }) {
             {invoiceData.currency.toUpperCase()} will be released to your helper after you mark the job complete.
           </li>
           <li>
-            Questions? Email us at <a href="mailto:hello@keystoneaipartners.com" className="link">hello@keystoneaipartners.com</a>.
+            Questions? Email us at <a href="mailto:myzaptasks@gmail.com" className="link">myzaptasks@gmail.com</a>.
           </li>
         </ul>
       </div>

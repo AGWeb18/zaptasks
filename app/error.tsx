@@ -48,10 +48,10 @@ export default function Error({
         <p className="text-xs text-slate-400 mt-6">
           Still stuck? Email{" "}
           <a
-            href="mailto:hello@keystoneaipartners.com"
+            href="mailto:myzaptasks@gmail.com"
             className="font-semibold text-blue-600 hover:underline"
           >
-            hello@keystoneaipartners.com
+            myzaptasks@gmail.com
           </a>
         </p>
       </div>

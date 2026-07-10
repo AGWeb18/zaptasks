@@ -83,7 +83,7 @@ export default function FAQPage() {
         <div className="mt-12 text-center">
           <p className="text-slate-500 mb-4">Still have questions?</p>
           <a
-            href="mailto:hello@keystoneaipartners.com"
+            href="mailto:myzaptasks@gmail.com"
             className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors"
           >
             <MessageCircle className="w-5 h-5" />
