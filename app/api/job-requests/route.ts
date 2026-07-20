@@ -81,6 +81,21 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ error: "Invalid scope" }, { status: 400 });
 }
 
+const normalizeCoordinate = (value: unknown) => {
+  const numeric =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number(value)
+        : null;
+
+  if (numeric === null || !Number.isFinite(numeric)) {
+    return null;
+  }
+
+  return Number(numeric.toFixed(3));
+};
+
 export async function POST(req: NextRequest) {
   try {
     const { userId } = getAuth(req);
@@ -111,21 +126,6 @@ export async function POST(req: NextRequest) {
     const pricingMode = body.pricingMode === "provider_quote" ? "provider_quote" : "client_budget";
 
     const supabase = await createClientWithUser(userId);
-
-    const normalizeCoordinate = (value: unknown) => {
-      const numeric =
-        typeof value === "number"
-          ? value
-          : typeof value === "string"
-            ? Number(value)
-            : null;
-
-      if (numeric === null || !Number.isFinite(numeric)) {
-        return null;
-      }
-
-      return Number(numeric.toFixed(3));
-    };
 
     const { data, error } = await supabase
       .from("job_requests")
@@ -203,7 +203,7 @@ export async function PATCH(req: NextRequest) {
 
     const { data: jobRequest, error: jobError } = await supabase
       .from("job_requests")
-      .select("id, homeowner_id")
+      .select("id, homeowner_id, status, job_applications(id)")
       .eq("id", jobId)
       .single();
 
@@ -215,6 +215,54 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({
         error: "Use POST /api/jobs to award applications and set up payment.",
       }, { status: 400 });
+    }
+
+    // Field edits (from /booking?edit=...): only while the job is still open
+    // and nobody has applied yet — applicants made their offer against the
+    // original posting, so it must not change underneath them.
+    if (body?.edits && typeof body.edits === "object") {
+      if (jobRequest.status !== "open") {
+        return NextResponse.json({ error: "Only open jobs can be edited." }, { status: 409 });
+      }
+      if ((jobRequest.job_applications?.length ?? 0) > 0) {
+        return NextResponse.json(
+          { error: "This job can no longer be edited because helpers have already applied." },
+          { status: 409 },
+        );
+      }
+
+      const edits = body.edits;
+
+      if (!edits.jobTitle || !Array.isArray(edits.services) || edits.services.length === 0) {
+        return NextResponse.json({ error: "Missing required job details." }, { status: 400 });
+      }
+
+      const pricingMode = edits.pricingMode === "provider_quote" ? "provider_quote" : "client_budget";
+
+      const { error: editError } = await supabase
+        .from("job_requests")
+        .update({
+          job_title: edits.jobTitle,
+          services: edits.services,
+          description: edits.description,
+          service_date: edits.date || null,
+          address: edits.address || null,
+          latitude: normalizeCoordinate(edits.latitude),
+          longitude: normalizeCoordinate(edits.longitude),
+          budget_type: edits.budget?.type ?? null,
+          budget_amount: edits.budget?.amount ?? null,
+          pricing_mode: pricingMode,
+          photo_urls:
+            Array.isArray(edits.photoUrls) && edits.photoUrls.length > 0 ? edits.photoUrls : null,
+        })
+        .eq("id", jobId);
+
+      if (editError) {
+        console.error("Error editing job request:", editError);
+        return NextResponse.json({ error: "Failed to update job" }, { status: 500 });
+      }
+
+      return NextResponse.json({ success: true });
     }
 
     if (!status) {

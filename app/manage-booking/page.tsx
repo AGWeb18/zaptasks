@@ -17,6 +17,7 @@ import {
   ChevronDown,
   ChevronUp,
   Inbox,
+  Pencil,
   Sparkles,
   Star,
 } from "lucide-react";
@@ -1386,6 +1387,16 @@ const ManageJobsPage = () => {
                                   )}
                                 </div>
                                 <div className="flex flex-col items-start gap-2">
+                                  {job.status === "open" &&
+                                    applications.length === 0 && (
+                                      <Link
+                                        href={`/booking?edit=${job.id}`}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                      >
+                                        <Pencil className="w-3.5 h-3.5" />
+                                        Edit job
+                                      </Link>
+                                    )}
                                   {job.status === "open" && (
                                     <button
                                       className="px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-60"

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useRef, useEffect, Suspense } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { addDays, format } from "date-fns";
 import { MapPin, Camera, X, CheckCircle2 } from "lucide-react";
 import Navbar from "../components/NavBar";
@@ -112,19 +112,101 @@ const initialFormState = {
   budgetStyle: "flat" as "flat" | "hourly",
 };
 
+// Shape of a job row from /api/job-requests?scope=mine that the edit mode needs.
+interface EditableJobRequest {
+  id: string;
+  job_title: string;
+  services: string[];
+  description: string;
+  service_date: string | null;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  budget_type: string | null;
+  budget_amount: number | null;
+  pricing_mode: string | null;
+  status: string;
+  photo_urls: string[] | null;
+  job_applications?: Array<{ id: string }>;
+}
+
 const JobPostingPage = () => {
   const { isLoaded, user } = useUser();
   const { openSignIn } = useClerk();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("edit");
   const supabase = useMemo(() => createSupabaseClient(), []);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
 
   const [form, setForm] = useState(initialFormState);
   const [photos, setPhotos] = useState<Array<{ file: File; preview: string }>>([]);
+  // Photos already on the job when editing; kept unless the user removes them.
+  const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
+  const [editLoading, setEditLoading] = useState(Boolean(editId));
+  const [editBlocked, setEditBlocked] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [posted, setPosted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Edit mode: load the job, verify it's still editable, and prefill the form.
+  useEffect(() => {
+    if (!editId || !isLoaded) return;
+    if (!user) {
+      setEditLoading(false);
+      setEditBlocked("Sign in to edit your job.");
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch("/api/job-requests?scope=mine");
+        if (!response.ok) throw new Error("Failed to load your job.");
+        const { jobRequests } = (await response.json()) as { jobRequests: EditableJobRequest[] };
+        const job = jobRequests?.find((j) => j.id === editId);
+        if (cancelled) return;
+
+        if (!job) {
+          setEditBlocked("We couldn't find this job.");
+        } else if (job.status !== "open") {
+          setEditBlocked("Only open jobs can be edited.");
+        } else if ((job.job_applications?.length ?? 0) > 0) {
+          setEditBlocked(
+            "This job can no longer be edited because helpers have already applied. You can chat with applicants from My Posted Jobs instead.",
+          );
+        } else {
+          const matchedCategory =
+            CATEGORIES.find((c) => c.serviceIds.some((s) => job.services?.includes(s))) ?? null;
+          setForm({
+            category: matchedCategory?.id ?? "other",
+            title: job.job_title ?? "",
+            description: job.description ?? "",
+            whenMode: job.service_date ? "date" : "flexible",
+            date: job.service_date ?? "",
+            address: job.address ?? "",
+            lat: job.latitude,
+            lng: job.longitude,
+            budgetType: job.pricing_mode === "client_budget" ? "set" : "quote",
+            budgetAmount: job.budget_amount != null ? String(job.budget_amount) : "",
+            budgetStyle: job.budget_type === "hourly" ? "hourly" : "flat",
+          });
+          setExistingPhotos(job.photo_urls ?? []);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setEditBlocked(err instanceof Error ? err.message : "Failed to load your job.");
+        }
+      } finally {
+        if (!cancelled) setEditLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editId, isLoaded, user]);
 
   const { category, title, description, whenMode, date, address, budgetType, budgetAmount, budgetStyle } = form;
   const activeCategory = CATEGORIES.find((c) => c.id === category) ?? null;
@@ -151,9 +233,11 @@ const JobPostingPage = () => {
       : "Great detail!";
   const descHintColor = descLen >= DESC_GOOD ? "text-emerald-600" : "text-slate-400";
 
+  const totalPhotoCount = existingPhotos.length + photos.length;
+
   const handlePhotoSelect = (fileList: FileList | null) => {
     if (!fileList) return;
-    const remaining = MAX_PHOTOS - photos.length;
+    const remaining = MAX_PHOTOS - totalPhotoCount;
     if (remaining <= 0) {
       setError(`Maximum ${MAX_PHOTOS} photos allowed`);
       return;
@@ -245,10 +329,7 @@ const JobPostingPage = () => {
 
       const services = activeCategory ? activeCategory.serviceIds : ["general"];
 
-      const payload = {
-        homeownerId: user.id,
-        homeownerName: user.fullName || user.username || "ZapTasks User",
-        homeownerEmail: user.primaryEmailAddress?.emailAddress || "",
+      const jobFields = {
         jobTitle: title,
         services,
         description,
@@ -261,18 +342,29 @@ const JobPostingPage = () => {
           amount: budgetType === "quote" ? null : budgetAmountNumber,
         },
         pricingMode: budgetType === "quote" ? "provider_quote" : "client_budget",
-        photoUrls,
+        photoUrls: [...existingPhotos, ...photoUrls],
       };
 
-      const response = await fetch("/api/job-requests", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const response = editId
+        ? await fetch("/api/job-requests", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ jobId: editId, edits: jobFields }),
+          })
+        : await fetch("/api/job-requests", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              homeownerId: user.id,
+              homeownerName: user.fullName || user.username || "ZapTasks User",
+              homeownerEmail: user.primaryEmailAddress?.emailAddress || "",
+              ...jobFields,
+            }),
+          });
 
       if (!response.ok) {
         const { error: errMsg } = await response.json();
-        throw new Error(errMsg || "Failed to post job");
+        throw new Error(errMsg || (editId ? "Failed to update job" : "Failed to post job"));
       }
 
       setSubmitting(false);
@@ -284,10 +376,55 @@ const JobPostingPage = () => {
     }
   };
 
-  if (!isLoaded) {
+  if (!isLoaded || editLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+      </div>
+    );
+  }
+
+  if (editBlocked) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <Navbar />
+        <main className="max-w-[560px] mx-auto px-4 py-16">
+          <div className="bg-white border border-slate-200 rounded-2xl px-8 py-10 text-center">
+            <h1 className="text-xl font-bold m-0 mb-2 text-slate-900">Can&apos;t edit this job</h1>
+            <p className="text-slate-500 text-[15px] m-0 mb-7">{editBlocked}</p>
+            <button
+              onClick={() => router.push("/manage-booking")}
+              className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white border-none rounded-xl text-sm font-semibold cursor-pointer"
+            >
+              Back to my posted jobs
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (posted && editId) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <Navbar />
+        <main className="max-w-[560px] mx-auto px-4 py-16">
+          <div className="bg-white border border-slate-200 rounded-2xl px-8 py-10 text-center">
+            <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-5">
+              <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+            </div>
+            <h1 className="text-2xl font-bold m-0 mb-2 text-slate-900">Changes saved!</h1>
+            <p className="text-slate-500 text-[15px] m-0 mb-7">
+              Helpers browsing the board will see the updated job right away.
+            </p>
+            <button
+              onClick={() => router.push("/manage-booking")}
+              className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white border-none rounded-xl text-sm font-semibold cursor-pointer"
+            >
+              Back to my posted jobs
+            </button>
+          </div>
+        </main>
       </div>
     );
   }
@@ -348,11 +485,12 @@ const JobPostingPage = () => {
       <main className="max-w-[640px] mx-auto px-4 pt-8 pb-32">
         <div className="mb-6">
           <h1 className="text-[28px] leading-[34px] font-bold text-slate-900 m-0">
-            What do you need done?
+            {editId ? "Edit your job" : "What do you need done?"}
           </h1>
           <p className="text-slate-500 mt-1.5 text-[15px]">
-            Answer a couple of questions — it takes about a minute. Helpers reply with offers,
-            and you only pay when the job is done.
+            {editId
+              ? "Update the details below — your changes go live as soon as you save."
+              : "Answer a couple of questions — it takes about a minute. Helpers reply with offers, and you only pay when the job is done."}
           </p>
         </div>
 
@@ -495,6 +633,21 @@ const JobPostingPage = () => {
             />
 
             <div className="grid grid-cols-4 gap-2.5">
+              {existingPhotos.map((url, idx) => (
+                <div
+                  key={url}
+                  className="relative aspect-square rounded-xl overflow-hidden border border-slate-200"
+                >
+                  <Image src={url} alt={`Photo ${idx + 1}`} fill className="object-cover" unoptimized />
+                  <button
+                    type="button"
+                    onClick={() => setExistingPhotos((prev) => prev.filter((p) => p !== url))}
+                    className="absolute top-1 right-1 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
               {photos.map((photo, idx) => (
                 <div
                   key={photo.preview}
@@ -510,7 +663,7 @@ const JobPostingPage = () => {
                   </button>
                 </div>
               ))}
-              {photos.length < MAX_PHOTOS && (
+              {totalPhotoCount < MAX_PHOTOS && (
                 <button
                   type="button"
                   onClick={() => photoInputRef.current?.click()}
@@ -587,7 +740,14 @@ const JobPostingPage = () => {
             </div>
             {address && (
               <p className="text-xs text-slate-500 mt-2 mb-0">
-                Helpers see your general area — not your full address
+                {editId ? (
+                  <>
+                    Current location: <span className="font-medium">{address}</span> — pick a new one
+                    above to replace it
+                  </>
+                ) : (
+                  "Helpers see your general area — not your full address"
+                )}
               </p>
             )}
           </section>
@@ -716,7 +876,9 @@ const JobPostingPage = () => {
                 </span>
               ))}
             </div>
-            <span className="text-[11px] text-slate-400">Free to post · No card needed yet</span>
+            <span className="text-[11px] text-slate-400">
+              {editId ? "Changes go live immediately" : "Free to post · No card needed yet"}
+            </span>
           </div>
           <button
             type="button"
@@ -728,7 +890,13 @@ const JobPostingPage = () => {
                 : "bg-slate-100 text-slate-400 cursor-not-allowed"
             }`}
           >
-            {submitting ? "Posting…" : "Post my job"}
+            {editId
+              ? submitting
+                ? "Saving…"
+                : "Save changes"
+              : submitting
+              ? "Posting…"
+              : "Post my job"}
           </button>
         </div>
       </div>
@@ -736,4 +904,17 @@ const JobPostingPage = () => {
   );
 };
 
-export default JobPostingPage;
+// useSearchParams (for ?edit=) requires a Suspense boundary in the App Router.
+const JobPostingPageWithParams = () => (
+  <Suspense
+    fallback={
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+      </div>
+    }
+  >
+    <JobPostingPage />
+  </Suspense>
+);
+
+export default JobPostingPageWithParams;
